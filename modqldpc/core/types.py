@@ -14,17 +14,17 @@ class PauliAxis:
 
 @dataclass(frozen=True)
 class PauliRotation:
-    rid: str
-    axis: PauliAxis
-    angle: float       # +/- pi/8
-    source: str
-    idx: int
+    axis: PauliAxis          # Pauli product P
+    angle: float         # rotation angle phi (we use +/- pi/8)
+    source: str          # e.g. "t q[3]" or "tdg q[2]"
+    idx: int             # sequence index
 
 @dataclass(frozen=True)
 class PauliMeasurement:
-    mid: str
-    axis: PauliAxis
-    cbit: int
+    axis: PauliAxis          # Pauli product to measure
+    cbit: Optional[int]  # classical bit index if known
+    qbit: int            # measured qubit (original)
+    idx: int
 
 @dataclass(frozen=True)
 class PauliProgram:
