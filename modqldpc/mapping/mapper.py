@@ -69,20 +69,15 @@ class Mapper(Protocol):
     def solve(self, problem: MappingProblem, hw: HardwareGraph, cfg: MappingConfig) -> MappingPlan: ...
 
 
-_MAPPER_REGISTRY: Dict[str, "Mapper"] = {}
+_MAPPER_REGISTRY: Dict[str, type] = {}
 
 
-def register_mapper(mapper: "Mapper") -> "Mapper":
-    if mapper.name in _MAPPER_REGISTRY:
-        raise ValueError(f"Mapper '{mapper.name}' already registered.")
-    _MAPPER_REGISTRY[mapper.name] = mapper
-    return mapper
+def register_mapper(mapper_cls):
+    _MAPPER_REGISTRY[mapper_cls().name] = mapper_cls
+    return mapper_cls
 
-
-def get_mapper(name: str) -> "Mapper":
-    if name not in _MAPPER_REGISTRY:
-        raise KeyError(f"Unknown mapper '{name}'. Known: {sorted(_MAPPER_REGISTRY)}")
-    return _MAPPER_REGISTRY[name]
+def get_mapper(name: str):
+    return _MAPPER_REGISTRY[name]()
 
 
 def list_mappers() -> List[str]:

@@ -5,6 +5,8 @@ from modqldpc.core.trace import Trace
 from modqldpc.core.types import PipelineConfig
 from modqldpc.frontend.extract_pauli import GoSCConverter
 from modqldpc.frontend.qasm_reader import QiskitCircuitHandler
+from modqldpc.mapping.mapper import MappingConfig, MappingProblem, get_mapper
+from modqldpc.mapping.model import GraphFactory, GridTopology, RingTopology
 
 DEFAULT_BASIS: tuple[str, ...] = (
     "h", "s", "sdg", "x", "y", "z",
@@ -62,5 +64,16 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
     program_ret = conv.load_cache_json(pbc_path)
     for r in program_ret["final_measurements"]:
         print(r)
+
+    hw = GraphFactory().build(topology=GridTopology(1,2), block_ids=[1,2], coupler_capacity=1)
+
+    problem = MappingProblem(n_logicals=20)   # logical ids 0..19
+    cfg = MappingConfig(seed=123, pack_fraction=0.6, shuffle_blocks=False)
+    mapper = get_mapper("auto_round_robin_mapping")
+    print(type(mapper))
+    plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
+    print(plan.meta)
+    for i in range(2):
+        print(plan.loc(i))
 
     # trace.event("run_done")
