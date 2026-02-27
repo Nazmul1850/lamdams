@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Any, Optional
+from qiskit.quantum_info import Pauli
 
 @dataclass(frozen=True)
 class PipelineConfig:
@@ -14,14 +15,14 @@ class PauliAxis:
 
 @dataclass(frozen=True)
 class PauliRotation:
-    axis: PauliAxis          # Pauli product P
+    axis: Pauli          # Pauli product P
     angle: float         # rotation angle phi (we use +/- pi/8)
     source: str          # e.g. "t q[3]" or "tdg q[2]"
     idx: int             # sequence index
 
 @dataclass(frozen=True)
 class PauliMeasurement:
-    axis: PauliAxis          # Pauli product to measure
+    axis: Pauli          # Pauli product to measure
     cbit: Optional[int]  # classical bit index if known
     qbit: int            # measured qubit (original)
     idx: int

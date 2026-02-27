@@ -243,6 +243,8 @@ class RingTopology(TopologyBuilder):
             u = block_ids[i]
             v = block_ids[(i + 1) % n]
             graph.add_coupler(u, v, capacity=coupler_capacity, cid=cid_fn(u, v))
+            if n == 2:
+                break
 
 
 @dataclass(frozen=True)

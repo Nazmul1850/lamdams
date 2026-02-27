@@ -130,4 +130,5 @@ class QiskitCircuitHandler:
     def load_and_transpile(self, path: Optional[str], demo: bool) -> QuantumCircuit:
         """Convenience: load QASM then transpile to basis."""
         qc = self.load_qasm(path=path, demo=demo)
-        return self.transpile_to_basis(qc)
+        num_logicals = qc.num_qubits
+        return self.transpile_to_basis(qc), num_logicals
