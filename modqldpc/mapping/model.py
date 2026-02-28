@@ -119,6 +119,12 @@ class HardwareGraph:
             return None
         a, b = (u, v) if u < v else (v, u)
         return self.edge_to_coupler.get((a, b))
+    
+    def update_plan(self, logical_to_block: Dict[LogicalId, BlockId], logical_to_local: Dict[LogicalId, LocalId]) -> None:
+        for q,b in logical_to_block.items():
+            l = logical_to_local[q]
+            self.logical_to_block[q] = b
+            self.logical_to_local[q] = l
 
     def shortest_path(self, src: BlockId, dst: BlockId) -> Optional[List[BlockId]]:
         """Unweighted shortest path (BFS)."""

@@ -1,3 +1,0 @@
-{"ts": "2026-02-19T22:06:33.236163+00:00", "t": "run_start", "qasm_path": "circuits/Test/example.qasm", "seed": 42, "run_tag": "example"}
-{"ts": "2026-02-19T22:06:33.238332+00:00", "t": "artifact_written", "name": "input.qasm"}
-{"ts": "2026-02-19T22:06:33.259428+00:00", "t": "stage_frontend_done", "n_qubits": 2, "n_rots": 2}

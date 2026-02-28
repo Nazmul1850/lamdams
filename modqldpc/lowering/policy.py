@@ -1,7 +1,7 @@
 # modqldpc/lowering/policy.py
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Protocol, Tuple, Set
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Set
 
 from ..core.types import PauliAxis
 from .keys import KeyNamer
@@ -158,7 +158,55 @@ class NativeAllPaulisForNow(NativeMeasurementPolicy):
             combine_rule={"type": "direct"},
             requires_gauge_fix=False,
         )
+# cost_fn contract:
+#   returns k >= 1 meaning "k native measurement primitives required"
+NativeCostFn = Callable[[BlockId, Dict[int, str], HardwareGraph], int]
 
+
+@dataclass(frozen=True)
+class HeuristicRepeatNativePolicy(NativeMeasurementPolicy):
+    """
+    NativeMeasurementPolicy implementation:
+      - ask cost_fn how many native measurements are needed for target.ops on this block
+      - if k==1: treat as native (direct)
+      - if k>1: treat as non-native; return sequence repeating the same primitive k times
+
+    This is intentionally simplistic; it gives you a clean hook point for later
+    replacement with a real synthesis policy.
+    """
+    cost_fn: NativeCostFn
+    # Optional: attach explanation tags in combine_rule/meta
+    tag: str = "heuristic_repeat"
+
+    def plan_local_measurement(self, *, target: LocalPauli, hw: HardwareGraph) -> LocalMeasurePlan:
+        b = target.block
+        ops = dict(target.ops)
+        k = int(self.cost_fn(b, ops, hw))
+        if k <= 0:
+            raise ValueError(f"cost_fn must return k>=1, got {k} for block {b} ops={ops}")
+
+        native = (k == 1)
+
+        # repeat exact same primitive k times (your requested rule)
+        seq = [ops for _ in range(k)]
+
+        combine_rule: Dict[str, Any] = {
+            "type": "repeat_same_primitive",
+            "k": k,
+            "note": "Placeholder synthesis: repeat identical native primitive k times; "
+                    "replace with real decomposition later.",
+            "tag": self.tag,
+        }
+
+        return LocalMeasurePlan(
+            block=b,
+            target=target,
+            native=native,
+            sequence=seq,
+            combine_rule=combine_rule,
+            requires_gauge_fix=False,
+            gauge_fix_meta={},
+        )
 
 # -------------------------
 # Policy bundle

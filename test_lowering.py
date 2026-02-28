@@ -1,7 +1,10 @@
 # modqldpc/pipeline/run_one.py (demo snippet)
-from modqldpc.mapping.model import GraphFactory, RingTopology
+from typing import Dict
+
+from modqldpc.mapping.model import GraphFactory, HardwareGraph, RingTopology
 from modqldpc.lowering.keys import KeyNamer
 from modqldpc.lowering.policy import (
+    HeuristicRepeatNativePolicy,
     LoweringPolicies,
     ChooseMagicBlockMinId,
     ShortestPathGatherRouting,
@@ -19,6 +22,14 @@ class ChooseMagicBlockMaxId:
     def choose_magic_block(self, *, blocks_involved, hw):
         return max(blocks_involved)
 
+def example_cost_fn(block: int, ops: Dict[int, str], hw: HardwareGraph) -> int:
+    # toy heuristic: larger support costs more
+    w = len(ops)
+    if w <= 1:
+        return 1
+    if w <= 3:
+        return 2
+    return 3
 
 def demo_lowering_step3():
     # --- hardware: ring of 2 blocks (1-2) ---
@@ -62,7 +73,7 @@ def demo_lowering_step3():
         namer=KeyNamer(),
         magic=ChooseMagicBlockMaxId(),  # different policy
         routing=ShortestPathGatherRouting(),
-        native=NativeAllPaulisForNow(),
+        native=HeuristicRepeatNativePolicy(cost_fn=example_cost_fn)(),
     )
 
     res2 = lower_one_layer(

@@ -1,14 +1,16 @@
 from __future__ import annotations
 import os
+from typing import Dict
 from modqldpc.core.artifacts import ArtifactStore
 from modqldpc.core.trace import Trace
 from modqldpc.core.types import PipelineConfig
 from modqldpc.frontend.extract_pauli import GoSCConverter
 from modqldpc.frontend.qasm_reader import QiskitCircuitHandler
 from modqldpc.mapping.mapper import MappingConfig, MappingProblem, get_mapper
-from modqldpc.mapping.model import GraphFactory, GridTopology, RingTopology
+from modqldpc.mapping.model import GraphFactory, GridTopology, HardwareGraph, RingTopology
 from modqldpc.lowering.keys import KeyNamer
 from modqldpc.lowering.policy import (
+    HeuristicRepeatNativePolicy,
     LoweringPolicies,
     ChooseMagicBlockMinId,
     ShortestPathGatherRouting,
@@ -25,6 +27,16 @@ DEFAULT_BASIS: tuple[str, ...] = (
     "t", "tdg",
     "measure",
 )
+
+def example_cost_fn(block: int, ops: Dict[int, str], hw: HardwareGraph) -> int:
+    # toy heuristic: larger support costs more
+    w = len(ops)
+    return 2
+    if w <= 1:
+        return 1
+    if w <= 3:
+        return 2
+    return 3
 
 def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     run_dir = ArtifactStore.make_run_dir(tag=f"{cfg.run_tag}__seed{cfg.seed}")
@@ -63,13 +75,12 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     print(type(mapper))
     plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
     print(plan.meta)
-    for i in range(num_logicals):
-        print(plan.loc(i))
+
     base_policies = LoweringPolicies(
         namer=KeyNamer(),
         magic=ChooseMagicBlockMinId(),
         routing=ShortestPathGatherRouting(),
-        native=NativeAllPaulisForNow(),
+        native=HeuristicRepeatNativePolicy(cost_fn=example_cost_fn),
     )
 
     res1 = lower_one_layer(
