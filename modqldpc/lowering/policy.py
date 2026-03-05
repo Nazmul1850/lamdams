@@ -109,6 +109,8 @@ class ShortestPathGatherRouting(RoutingPolicy):
         route_paths: List[List[BlockId]] = []
         couplers: List[CouplerId] = []
 
+        hop_lengths: List[int] = []
+
         for b in uniq:
             if b == magic_block:
                 continue
@@ -116,7 +118,7 @@ class ShortestPathGatherRouting(RoutingPolicy):
             if not path:
                 raise ValueError(f"No route from block {b} to magic_block {magic_block}")
             route_paths.append(path)
-
+            hop_lengths.append(len(path) - 1)
             # derive couplers used along path
             for u, v in zip(path, path[1:]):
                 cid = hw.coupler_id(u, v)
@@ -131,12 +133,14 @@ class ShortestPathGatherRouting(RoutingPolicy):
             if c not in seen:
                 seen.add(c)
                 couplers_dedup.append(c)
+        duration = max(hop_lengths) if hop_lengths else 0
 
         return InterblockPlan(
             blocks_involved=uniq,
             magic_block=magic_block,
             route_paths=route_paths,
             couplers_used=couplers_dedup,
+            duration=duration,
             meta={"routing": "shortest_path_gather"},
         )
 

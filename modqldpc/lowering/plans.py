@@ -48,6 +48,7 @@ class InterblockPlan:
     magic_block: BlockId
     route_paths: List[List[BlockId]]          # e.g., list of paths to gather pivots
     couplers_used: List[CouplerId]            # flattened list (optional; can be derived)
+    duration: int = 1
     meta: Dict[str, Any] = field(default_factory=dict)
 
 

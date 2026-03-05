@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import Counter
 import os
 from typing import Dict
 from modqldpc.core.artifacts import ArtifactStore
@@ -20,6 +21,9 @@ from modqldpc.lowering.policy import (
 from modqldpc.lowering.lower_layer import lower_one_layer
 from modqldpc.core.types import PauliAxis, PauliRotation  # your dataclasses
 from modqldpc.lowering.visualize import dag_to_dot
+from modqldpc.scheduling.factory import get_scheduler
+from modqldpc.scheduling.types import SchedulingProblem
+from modqldpc.scheduling.validate import validate_schedule
 
 DEFAULT_BASIS: tuple[str, ...] = (
     "h", "s", "sdg", "x", "y", "z",
@@ -31,7 +35,6 @@ DEFAULT_BASIS: tuple[str, ...] = (
 def example_cost_fn(block: int, ops: Dict[int, str], hw: HardwareGraph) -> int:
     # toy heuristic: larger support costs more
     w = len(ops)
-    return 2
     if w <= 1:
         return 1
     if w <= 3:
@@ -52,7 +55,9 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     # Stage 1: QASM -> CircuitIR
     qc_handler = QiskitCircuitHandler()
     qc, num_logicals = qc_handler.load_and_transpile(path=qasm_path, demo=False)
-    qc_handler.assert_in_basis(qc=qc, basis_gates=DEFAULT_BASIS)
+    cnt = Counter(inst.operation.name for inst in qc.data)
+    print("t:", cnt["t"], "tdg:", cnt["tdg"], "total T-like:", cnt["t"]+cnt["tdg"])
+    print(cnt)
     # print(qc_handler.gate_histogram(qc))
     conv = GoSCConverter(verbose=False)
     program = conv.convert(qc=qc)
@@ -60,10 +65,10 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     # conv.print_rotations()
     # conv.print_measurements()
     conv.print_layers()
-    # cir = read_openqasm2(qasm_path)
+
     abspath = os.path.join(run_dir, "stage_frontend/PBC.json")
     conv.save_cache_json(abspath)
-    # store.put_json("stage_frontend/PBC.json", conv.to_cache_json_string())
+    store.put_json("stage_frontend/PBC.json", conv.to_cache_payload())
     trace.event("stage_frontend_done", n_qubits=num_logicals, n_rots=len(program.rotations))
 
     hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
@@ -91,12 +96,12 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
         policies=base_policies,
     )
     print("Policy1 magic=minid; nodes:", len(res1.dag.nodes))
-    print("Topo:", res1.dag.topological_order())
+    # print("Topo:", res1.dag.topological_order())
 
     dot_str = dag_to_dot(res1.dag)
     print(dot_str)
-    # trace.event("run_done")
-    return run_dir
+    trace.event("run_done")
+    return "run_dir"
 
 
 def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
@@ -109,11 +114,9 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
 
     conv = GoSCConverter(verbose=False)
     
-    program_ret = conv.load_cache_json(pbc_path)
-    for r in program_ret["final_measurements"]:
-        print(r)
+    payload = conv.load_cache_json(pbc_path)
 
-    hw = GraphFactory().build(topology=GridTopology(1,2), block_ids=[1,2], coupler_capacity=1)
+    hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
 
     problem = MappingProblem(n_logicals=20)   # logical ids 0..19
     cfg = MappingConfig(seed=123, pack_fraction=0.6, shuffle_blocks=False)
@@ -121,7 +124,40 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
     print(type(mapper))
     plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
     print(plan.meta)
-    for i in range(2):
-        print(plan.loc(i))
+
+    base_policies = LoweringPolicies(
+        namer=KeyNamer(),
+        magic=ChooseMagicBlockMinId(),
+        routing=ShortestPathGatherRouting(),
+        native=HeuristicRepeatNativePolicy(cost_fn=example_cost_fn),
+    )
+
+    res1 = lower_one_layer(
+        layer_idx=0,
+        rotations=conv.program.rotations,
+        rotation_indices=conv.layers[0],
+        hw=hw,
+        policies=base_policies,
+    )
+    print("Policy1 magic=minid; nodes:", len(res1.dag.nodes))
+    # print(dag_to_dot(res1.dag))
+
+    # sched = get_scheduler("random_ready_pack")
+    # problem = SchedulingProblem(dag=res1.dag, hw=hw, seed=0,
+    #                             policy_name="incident_coupler_blocks_local")
+    # S = sched.solve(problem)
+    # validate_schedule(problem, S)
+    # print("depth:", S.depth(), S.meta)
+
+    sched = get_scheduler("naive_event")
+    problem = SchedulingProblem(
+        dag=res1.dag,
+        hw=hw,
+        seed=0,
+        policy_name="incident_coupler_blocks_local",
+        meta={"start_time": 0, "tie_breaker": "duration"},
+    )
+    S = sched.solve(problem)
+    print(S.meta["entries"])
 
     # trace.event("run_done")

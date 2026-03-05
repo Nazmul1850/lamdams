@@ -446,7 +446,7 @@ class GoSCConverter:
         rotations: List[PauliRotation] = []
         for r in payload.get("rotations"):
             # r is dict because we stored dataclasses via asdict
-            axis = PauliAxis(sign=int(r["axis"]["sign"]), tensor=str(r["axis"]["tensor"]))
+            axis = Pauli(str(r["axis"]["sign"]) + str(r["axis"]["tensor"]))
             rotations.append(
                 PauliRotation(
                     axis=axis,
@@ -459,7 +459,8 @@ class GoSCConverter:
         # Restore measurements
         final_meas: List[PauliMeasurement] = []
         for m in payload.get("final_measurements"):
-            axis = PauliAxis(sign=int(m["axis"]["sign"]), tensor=str(m["axis"]["tensor"]))
+            # axis = PauliAxis(sign=int(m["axis"]["sign"]), tensor=str(m["axis"]["tensor"]))
+            axis = Pauli(str(m["axis"]["sign"])+str(m["axis"]["tensor"]))
             final_meas.append(
                 PauliMeasurement(
                     axis=axis,

@@ -24,7 +24,7 @@ class TranspileOptions:
     # If you want a fixed qubit mapping, set initial_layout=list[int] or Layout
     initial_layout: Optional[object] = None
     # Preserve barriers if you use them for debugging/structure
-    preserve_barriers: bool = True
+    preserve_barriers: bool = False
 
 
 class QiskitCircuitHandler:
@@ -56,6 +56,14 @@ class QiskitCircuitHandler:
         return QuantumCircuit.from_qasm_file(path)
 
     # ---------- Transpilation ----------
+    def in_basis(self, qc: QuantumCircuit, *, allow_barrier: bool = True) -> bool:
+        for ci in qc.data:
+            name = ci.operation.name
+            if allow_barrier and name == "barrier":
+                continue
+            if name not in self._opts.basis_gates:
+                return False
+        return True
 
     def transpile_to_basis(self, qc: QuantumCircuit) -> QuantumCircuit:
         """
@@ -131,4 +139,7 @@ class QiskitCircuitHandler:
         """Convenience: load QASM then transpile to basis."""
         qc = self.load_qasm(path=path, demo=demo)
         num_logicals = qc.num_qubits
+        if self.in_basis(qc, allow_barrier=not self._opts.preserve_barriers):
+            print("Circuit is already in basis.")
+            return qc, num_logicals
         return self.transpile_to_basis(qc), num_logicals

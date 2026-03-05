@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 from typing import Dict, List, Optional, Set, Tuple, Any
 from collections import deque
 
@@ -107,6 +108,29 @@ def node_interblock_link(
         meta=meta or {},
     )
 
+def count_init_pivots(
+    dag: ExecDAG,
+    *,
+    layer: int,
+    ridx: int,
+    block: int,
+    prefix: str = "init",
+) -> int:
+    """
+    Count existing nodes in `dag` with kind==K_INIT_PIVOT whose nid matches:
+        "{prefix}_L{layer:02d}_R{ridx:03d}_B{block}(_anything optional)"
+
+    This is used to generate unique nids when you need multiple pivot inits.
+    """
+    # matches e.g. init_L00_R005_B3 or init_L00_R005_B3_k2
+    pat = re.compile(rf"^{re.escape(prefix)}_L{layer:02d}_R{ridx:03d}_B{block}")
+    c = 0
+    for n in dag.nodes.values():
+        if n.kind != K_INIT_PIVOT:
+            continue
+        if pat.search(n.nid):
+            c += 1
+    return c
 
 def node_meas_parity_PZ(
     nid: str,

@@ -6,6 +6,7 @@ from typing import Optional, List
 
 from .ir import (
     ExecDAG,
+    count_init_pivots,
     node_init_pivot,
     node_local_couple,
     node_interblock_link,
@@ -61,14 +62,18 @@ def emit_pi8_gadget(
     for lp in plan.local_plans:
         # pivot init (always for now; can be policy-controlled later)
         piv = namer.pivot_id(layer, ridx, lp.block)
-        nid_init = namer.nid("init", layer, ridx, suffix=f"B{lp.block}")
-        dag.add_node(node_init_pivot(nid_init, lp.block, duration=1, meta={"pivot_id": piv}))
-        last = nid_init
-
+        
+        last = None
         # local coupling sequence (native-aware)
         # lp.sequence is a list of native primitives (each primitive is ops dict)
         for k, prim_ops in enumerate(lp.sequence if lp.sequence else [lp.target.ops]):
-            nid_lc = namer.nid("lc", layer, ridx, suffix=f"B{lp.block}_k{k}")
+            count = count_init_pivots(dag, layer=layer, ridx=ridx, block=lp.block)
+            nid_init = namer.nid("init", layer, ridx, suffix=f"B{lp.block}_c{count}")
+            dag.add_node(node_init_pivot(nid_init, lp.block, duration=1, meta={"pivot_id": piv}))
+            if last:
+                dag.add_edge(last, nid_init)
+            last = nid_init
+            nid_lc = namer.nid("lc", layer, ridx, suffix=f"B{lp.block}_c{count}_k{k}")
             dag.add_node(
                 node_local_couple(
                     nid_lc,
@@ -98,7 +103,7 @@ def emit_pi8_gadget(
                 link_nid,
                 blocks=plan.interblock.blocks_involved,
                 couplers=plan.interblock.couplers_used,
-                duration=1,
+                duration=plan.interblock.duration,
                 meta=plan.interblock.meta,
             )
         )
