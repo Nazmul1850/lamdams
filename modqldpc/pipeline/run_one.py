@@ -21,6 +21,9 @@ from modqldpc.lowering.policy import (
 from modqldpc.lowering.lower_layer import lower_one_layer
 from modqldpc.core.types import PauliAxis, PauliRotation  # your dataclasses
 from modqldpc.lowering.visualize import dag_to_dot
+from modqldpc.runtime.frame_policy import FrameState, FrameUpdatePolicy
+from modqldpc.runtime.layer_exec import LayerExecutor
+from modqldpc.runtime.outcomes import RandomOutcomeModel
 from modqldpc.scheduling.factory import get_scheduler
 from modqldpc.scheduling.types import SchedulingProblem
 from modqldpc.scheduling.validate import validate_schedule
@@ -132,15 +135,15 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         native=HeuristicRepeatNativePolicy(cost_fn=example_cost_fn),
     )
 
-    res1 = lower_one_layer(
+    res0 = lower_one_layer(
         layer_idx=0,
         rotations=conv.program.rotations,
-        rotation_indices=conv.layers[0],
+        rotation_indices=conv.layers[1],
         hw=hw,
         policies=base_policies,
     )
-    print("Policy1 magic=minid; nodes:", len(res1.dag.nodes))
-    # print(dag_to_dot(res1.dag))
+    print("Policy1 magic=minid; nodes:", len(res0.dag.nodes))
+    # print(dag_to_dot(res0.dag))
 
     # sched = get_scheduler("random_ready_pack")
     # problem = SchedulingProblem(dag=res1.dag, hw=hw, seed=0,
@@ -151,13 +154,35 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
 
     sched = get_scheduler("naive_event")
     problem = SchedulingProblem(
-        dag=res1.dag,
+        dag=res0.dag,
         hw=hw,
         seed=0,
         policy_name="incident_coupler_blocks_local",
         meta={"start_time": 0, "tie_breaker": "duration"},
     )
-    S = sched.solve(problem)
-    print(S.meta["entries"])
+    S0 = sched.solve(problem)
+    # print(S0.meta["entries"])
+
+    next_idxs = conv.layers[1]
+    rot_next = [conv.program.rotations[i] for i in next_idxs]
+    executor = LayerExecutor(
+        outcome_model=RandomOutcomeModel(seed=0),
+        frame_policy=FrameUpdatePolicy(),
+    )
+
+    frame0 = FrameState()  # empty at start
+    ex0 = executor.execute_layer(
+        layer=0,
+        dag=res0.dag,
+        schedule=S0,
+        frame_in=frame0,
+        next_layer_rotations=rot_next,
+    )
+
+    # ex0.next_rotations_effective is your "actual next layer" after updates
+    print("changed:", len(ex0.rewrite_log))
+    print(ex0.events)
+
+    # conv.print_layers()
 
     # trace.event("run_done")

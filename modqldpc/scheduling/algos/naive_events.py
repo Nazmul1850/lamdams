@@ -29,7 +29,7 @@ class NaiveEventScheduler(BaseScheduler):
 
         # ---- indegree-left using dag.pred ----
         indeg_left: Dict[str, int] = {nid: len(dag.pred.get(nid, set())) for nid in dag.nodes}
-        ready: Set[str] = {nid for nid, d in indeg_left.items() if d == 0 and getattr(dag.nodes[nid], "duration", 1) > 0}
+        ready: Set[str] = {nid for nid, d in indeg_left.items() if d == 0}
 
         # active heap: (end_time, nid)
         active: List[Tuple[int, str]] = []

@@ -6,6 +6,8 @@ import re
 from typing import Dict, List, Optional, Set, Tuple, Any
 from collections import deque
 
+from modqldpc.core.types import PauliAxis
+
 
 NodeId = str
 BlockId = int
@@ -135,7 +137,7 @@ def count_init_pivots(
 def node_meas_parity_PZ(
     nid: str,
     *,
-    pauli: PauliString,
+    pauli: PauliAxis,
     magic_id: str,
     out_key: str,
     blocks: List[int],
@@ -182,7 +184,7 @@ def node_frame_update(
     *,
     update_kind: str,     # "clifford_pi4" or "pauli"
     depends_on: str,      # classical key name
-    axis: PauliString,    # the P whose correction/byproduct this is
+    axis: PauliAxis,    # the P whose correction/byproduct this is
     duration: int = 0,
     meta: Optional[Dict[str, Any]] = None,
 ) -> ExecNode:
