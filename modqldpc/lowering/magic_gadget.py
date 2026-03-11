@@ -104,7 +104,13 @@ def emit_pi8_gadget(
                 blocks=plan.interblock.blocks_involved,
                 couplers=plan.interblock.couplers_used,
                 duration=plan.interblock.duration,
-                meta=plan.interblock.meta,
+                meta={
+                    **plan.interblock.meta,
+                    "magic_block": plan.interblock.magic_block,
+                    "source_blocks": [b for b in plan.interblock.blocks_involved
+                                      if b != plan.interblock.magic_block],
+                    "route_paths": [list(p) for p in plan.interblock.route_paths],
+                },
             )
         )
         # all local tails must precede the link (gather pivots / make them ready)

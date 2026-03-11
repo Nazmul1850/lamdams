@@ -221,14 +221,15 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         )
         # dot_str = dag_to_dot(res.dag)
         # print(dot_str)
-        sched = get_scheduler("sa_scheduler")
-        # sched = get_scheduler("sequential_scheduler")
+        # sched = get_scheduler("sa_scheduler")
+        # sched = get_scheduler("cp_sat")
+        sched = get_scheduler("sequential_scheduler")
         problem = SchedulingProblem(
             dag=res.dag,
             hw=hw,
             seed=0,
             policy_name="incident_coupler_blocks_local",
-            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 10000, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
+            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 1000, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
         )
         S = sched.solve(problem)
 
@@ -254,7 +255,7 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         # print(ex0.events)
         # print("depth:", ex0.depth)
         total_depth += ex.depth
-        break
+        # break
 
         # conv.print_layers()
 

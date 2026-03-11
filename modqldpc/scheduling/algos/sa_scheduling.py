@@ -32,6 +32,13 @@ class SAPreprocessed:
     node_block_criticality: Dict[str, int]
     link_nodes: Set[str] = field(default_factory=set)
 
+    link_route_blocks: Dict[str, Tuple[int, ...]] = field(default_factory=dict)
+    link_route_couplers: Dict[str, Tuple[str, ...]] = field(default_factory=dict)
+    link_route_depth: Dict[str, int] = field(default_factory=dict)       # current duration proxy
+    link_route_span: Dict[str, int] = field(default_factory=dict)        # number of blocks in route
+    link_route_width: Dict[str, int] = field(default_factory=dict)       # number of couplers in route
+    link_route_kind: Dict[str, str] = field(default_factory=dict)       # metadata tag
+
 
 @dataclass
 class SimulatedAnnealingScheduler(BaseScheduler):
@@ -39,7 +46,7 @@ class SimulatedAnnealingScheduler(BaseScheduler):
 
     def solve(self, problem: SchedulingProblem) -> Schedule:
         pol = get_resource_policy(problem.policy_name)
-
+        dag = problem.dag
         prep = self._preprocess(problem)
         init_state = self._build_initial_state(problem, prep)
         print("Initial candidate component order:", init_state.component_order)
@@ -52,6 +59,9 @@ class SimulatedAnnealingScheduler(BaseScheduler):
 
         print(f"Initial cost {sa_meta['sa_initial_makespan']}, best cost {sa_meta['sa_best_makespan']} after {sa_meta['sa_iterations']} iterations")
 
+        lb = max(prep.bottom_level[nid] for nid in dag.nodes if not dag.pred.get(nid))
+        gap = sa_meta['sa_best_makespan'] - lb
+        print(f"SA makespan: {sa_meta['sa_best_makespan']}, CPM lower bound: {lb}, gap: {gap} ({100*gap/lb:.1f}%)")
         starts: Dict[int, List[str]] = {}
         for nid, e in best_entries.items():
             starts.setdefault(e.start, []).append(nid)
@@ -79,6 +89,12 @@ class SimulatedAnnealingScheduler(BaseScheduler):
                 "node_to_component": dict(prep.node_to_component),
                 "component_root": dict(prep.component_root),
                 "component_order": list(init_state.component_order),
+                "block_criticality": dict(prep.block_criticality),
+                "node_block_criticality": dict(prep.node_block_criticality),
+                "link_route_depth": dict(prep.link_route_depth),
+                "link_route_span": dict(prep.link_route_span),
+                "link_route_width": dict(prep.link_route_width),
+                "link_route_kind": dict(prep.link_route_kind),
                 **best_decode_meta,
                 **sa_meta,
             },
@@ -127,14 +143,28 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             for nid in dag.nodes
         }
 
+        link_nodes: Set[str] = set()
+        link_route_blocks: Dict[str, Tuple[int, ...]] = {}
+        link_route_couplers: Dict[str, Tuple[str, ...]] = {}
+        link_route_depth: Dict[str, int] = {}
+        link_route_span: Dict[str, int] = {}
+        link_route_width: Dict[str, int] = {}
+        link_route_kind: Dict[str, str] = {}
+
+        for nid, node in dag.nodes.items():
+            if self._is_link_node(node):
+                link_nodes.add(nid)
+                route_info = self._extract_link_route_info(node, node_duration[nid])
+
+                link_route_blocks[nid] = route_info["blocks"]
+                link_route_couplers[nid] = route_info["couplers"]
+                link_route_depth[nid] = route_info["depth"]
+                link_route_span[nid] = route_info["span"]
+                link_route_width[nid] = route_info["width"]
+                link_route_kind[nid] = route_info["kind"]
+
         component_root: Dict[int, str] = {}
         component_metrics: Dict[int, Dict[str, Any]] = {}
-        link_nodes: Set[str] = set()
-
-        for nid in dag.nodes:
-            if self._is_link_node(dag.nodes[nid]):
-                link_nodes.add(nid)
-        
         block_criticality: Dict[int, int] = {}
         node_block_criticality: Dict[str, int] = {}
 
@@ -164,6 +194,8 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             comp_duration_sum = sum(node_duration[nid] for nid in comp)
             comp_block_crit_sum = sum(node_block_criticality[nid] for nid in comp)
             comp_link_count = sum(1 for nid in comp if nid in link_nodes)
+            comp_link_depth = sum(link_route_depth.get(nid, 0) for nid in comp)
+            comp_link_width = sum(link_route_width.get(nid, 0) for nid in comp)
 
             # print(f"Component {cid}: size={len(comp)}, root={root}, "
             #       f"bottom_max={comp_bottom_max}, bottom_sum={comp_bottom_sum}, "
@@ -177,6 +209,8 @@ class SimulatedAnnealingScheduler(BaseScheduler):
                 "duration_sum": comp_duration_sum,
                 "block_crit_sum": comp_block_crit_sum,
                 "link_count": comp_link_count,
+                "link_depth_sum": comp_link_depth,
+                "link_width_sum": comp_link_width,
             }
 
         return SAPreprocessed(
@@ -189,6 +223,12 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             block_criticality=block_criticality,
             node_block_criticality=node_block_criticality,
             link_nodes=link_nodes,
+            link_route_blocks=link_route_blocks,
+            link_route_couplers=link_route_couplers,
+            link_route_depth=link_route_depth,
+            link_route_span=link_route_span,
+            link_route_width=link_route_width,
+            link_route_kind=link_route_kind,
         )
     
     def _run_simulated_annealing(
@@ -228,6 +268,7 @@ class SimulatedAnnealingScheduler(BaseScheduler):
         current_state = init_state
         current_entries, current_node_to_time, current_decode_meta = self._decode_candidate(problem, prep, current_state)
         current_cost = int(current_decode_meta["makespan"])
+        true_initial_cost = current_cost  # captured once, never overwritten
 
         best_state = current_state
         best_entries = current_entries
@@ -237,7 +278,30 @@ class SimulatedAnnealingScheduler(BaseScheduler):
 
         accept_count = 0
         improve_count = 0
-        temperature = initial_temp
+
+        # Auto-calibrate initial temperature unless the user supplied an explicit value.
+        # Run n_pilot random neighbors, collect uphill deltas, and choose T so that a
+        # typical uphill move is accepted with probability p0 ≈ 0.80 at the start.
+        user_supplied_temp = "sa_initial_temp" in problem.meta
+        if user_supplied_temp:
+            temperature = initial_temp
+        else:
+            n_pilot = min(20, max(1, iterations // 5))
+            pilot_deltas: List[float] = []
+            for _ in range(n_pilot):
+                ps = self._propose_neighbor(current_state, rng, neighbor_mode)
+                _, _, pm = self._decode_candidate(problem, prep, ps)
+                d = int(pm["makespan"]) - current_cost
+                if d > 0:
+                    pilot_deltas.append(float(d))
+            if pilot_deltas:
+                mean_delta = sum(pilot_deltas) / len(pilot_deltas)
+                p0 = 0.80
+                temperature = -mean_delta / math.log(p0)
+            else:
+                # All pilot neighbors were improvements — start temperature low
+                temperature = max(1.0, current_cost * 0.01)
+            initial_temp = temperature  # keep sa_meta consistent
 
         for _it in range(iterations):
             candidate_state = self._propose_neighbor(current_state, rng, neighbor_mode)
@@ -245,8 +309,7 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             candidate_entries, candidate_node_to_time, candidate_decode_meta = self._decode_candidate(
                 problem, prep, candidate_state
             )
-            initial_cost = int(candidate_decode_meta["makespan"])
-            candidate_cost =initial_cost
+            candidate_cost = int(candidate_decode_meta["makespan"])
 
             if self._accept(current_cost, candidate_cost, temperature, rng):
                 current_state = candidate_state
@@ -272,7 +335,7 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             "sa_cooling_rate": cooling_rate,
             "sa_neighbor": neighbor_mode,
             "sa_seed": seed,
-            "sa_initial_makespan": initial_cost,
+            "sa_initial_makespan": true_initial_cost,
             "sa_best_makespan": best_cost,
             "sa_accept_count": accept_count,
             "sa_improve_count": improve_count,
@@ -333,6 +396,8 @@ class SimulatedAnnealingScheduler(BaseScheduler):
                 -prep.component_metrics[cid]["block_crit_sum"],
                 -prep.component_metrics[cid]["bottom_sum"],
                 -prep.component_metrics[cid]["duration_sum"],
+                prep.component_metrics[cid]["link_depth_sum"],   # heavier link routes first
+                prep.component_metrics[cid]["link_width_sum"],
                 cid,
             ),
         )
@@ -373,16 +438,22 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             dur = prep.node_duration[nid]
             bottom = prep.bottom_level[nid]
             block_crit = prep.node_block_criticality[nid]
+            
+            is_link = nid in prep.link_nodes
+            link_depth = prep.link_route_depth.get(nid, 0)
+            link_width = prep.link_route_width.get(nid, 0)
+            link_span = prep.link_route_span.get(nid, 0)
 
-            # Phase-1 placeholder block criticality = 0
-            block_criticality = 0
 
             if tie == "duration":
                 return (
-                    comp_rank[cid],   # lower-ranked component first
-                    -bottom,          # larger bottom-level first
-                    -block_crit,      # larger block criticality first
-                    -dur,             # longer duration first
+                    comp_rank[cid],              # lower-ranked component first
+                    -bottom,                     # larger bottom-level first
+                    -block_crit,                 # larger block criticality first
+                    0 if not is_link else link_depth,   # deeper routes first
+                    0 if not is_link else link_width,   # wider routes first
+                    0 if not is_link else link_span,    # more blocks first
+                    -dur,                        # longer duration first
                     nid,
                 )
 
@@ -390,6 +461,9 @@ class SimulatedAnnealingScheduler(BaseScheduler):
                 comp_rank[cid],
                 -bottom,
                 -block_crit,
+                0 if not is_link else link_depth,
+                0 if not is_link else link_width,
+                0 if not is_link else link_span,
                 -dur,
                 nid,
             )
@@ -502,7 +576,27 @@ class SimulatedAnnealingScheduler(BaseScheduler):
         if kind is not None and str(kind).startswith("link"):
             return True
         return str(nid).startswith("link_")
+    
+    def _extract_link_route_info(self, node: Any, fallback_duration: int) -> Dict[str, Any]:
+        blocks = tuple(sorted(set(getattr(node, "blocks", []) or [])))
+        couplers = tuple(dict.fromkeys(getattr(node, "couplers", []) or []))  # stable dedup
+        duration = getattr(node, "duration", None)
+        duration = fallback_duration if duration is None else int(duration)
 
+        meta = getattr(node, "meta", None)
+        route_kind = "unknown"
+        if isinstance(meta, dict):
+            route_kind = str(meta.get("routing", "unknown"))
+
+        return {
+            "blocks": blocks,
+            "couplers": couplers,
+            "depth": max(0, duration),
+            "span": len(blocks),
+            "width": len(couplers),
+            "kind": route_kind,
+        }
+    
     def _compute_bottom_levels(self, dag: Any, node_duration: Dict[str, int]) -> Dict[str, int]:
         """
         Weighted bottom level:
