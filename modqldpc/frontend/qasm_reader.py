@@ -19,7 +19,7 @@ DEFAULT_BASIS: tuple[str, ...] = (
 @dataclass(frozen=True)
 class TranspileOptions:
     basis_gates: Sequence[str] = DEFAULT_BASIS
-    optimization_level: int = 1          # 0..3 (Qiskit preset)
+    optimization_level: int = 0          # 0..3 (Qiskit preset)
     seed_transpiler: Optional[int] = 0
     # If you want a fixed qubit mapping, set initial_layout=list[int] or Layout
     initial_layout: Optional[object] = None
@@ -96,7 +96,7 @@ class QiskitCircuitHandler:
             # use an explicit pass manager later. For now, we just allow them.
             pass
 
-        self.assert_in_basis(out, opts.basis_gates, allow_barrier=opts.preserve_barriers)
+        self.assert_in_basis(out, opts.basis_gates, allow_barrier=not opts.preserve_barriers)
         return out
 
     # ---------- Validation / utilities ----------

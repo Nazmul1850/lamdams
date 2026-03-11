@@ -1,0 +1,3 @@
+dependencies = [
+    "wisq @ git+https://github.com/Abtin-Molavi/wisq.git",
+]

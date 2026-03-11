@@ -38,8 +38,10 @@ def lower_one_layer(
     for ridx in rotation_indices:
         r = rotations[ridx]
         sign = -1 if r.angle < 0 else 1
-        axis = PauliAxis(sign=sign, tensor=r.axis.to_label())
-
+        tensor = r.axis.to_label()
+        if '-' in tensor:
+            tensor = tensor[1:]
+        axis = PauliAxis(sign=sign, tensor=tensor)
         plan = plan_rotation_lowering(
             layer=layer_idx,
             ridx=ridx,

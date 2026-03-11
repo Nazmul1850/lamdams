@@ -22,6 +22,7 @@ class LayerExecutionResult:
     rewrite_log: List[AxisRewriteLog] = field(default_factory=list)
     # execution log
     events: List[Dict[str, Any]] = field(default_factory=list)
+    depth: int = 0
 
 
 def _keys_to_names(keys: List[ClassicalKey]) -> List[str]:
@@ -65,7 +66,7 @@ class LayerExecutor:
         done: Set[str] = set()
         indeg_left: Dict[str, int] = {nid: len(dag.pred.get(nid, set())) for nid in dag.nodes}
         ready_zero: Set[str] = set()
-        print(f"Initial indeg_left: {indeg_left}")
+        # print(f"Initial indeg_left: {indeg_left}")
         # helper: when node becomes unblocked, if duration==0 we can run immediately
         def maybe_enqueue_zero(nid: str):
             n: ExecNode = dag.nodes[nid]
@@ -84,13 +85,13 @@ class LayerExecutor:
 
         def complete_node(nid: str, t: int):
             n: ExecNode = dag.nodes[nid]
-            print(f"Completing node {nid} kind {n.kind} at time {t}")
+            # print(f"Completing node {nid} kind {n.kind} at time {t}")
             # If measurement node: sample bits for all produced keys
             if n.kind in (K_MEAS_PARITY_PZ, K_MEAS_MAGIC_X):
                 for k in n.produces:
                     b = int(self.outcome_model.sample_bit(k))
                     st.bits[k.name] = b
-                    print(f"Measured {k.name}={b} at node {nid} kind {n.kind}")
+                    # print(f"Measured {k.name}={b} at node {nid} kind {n.kind}")
                     produced_bits[k.name] = b
                 events.append({"t": t, "nid": nid, "kind": n.kind, "produced": {k: st.bits[k] for k in _keys_to_names(n.produces)}})
 
@@ -109,15 +110,15 @@ class LayerExecutor:
                 if not n.consumes:
                     raise ValueError(f"frame_update node {nid} must consume 1 ClassicalKey")
                 dep = n.consumes[0].name
-                print(st.bits)
-                print(f"Calling update frame {dep}->{update_kind}")
+                # print(st.bits)
+                # print(f"Calling update frame {dep}->{update_kind}")
                 if dep not in st.bits:
                     raise RuntimeError(
                         f"Frame update node {nid} requires bit '{dep}', but it is not available yet. "
                         f"Check same-time ordering / zero-duration execution."
                     )
                 bit = st.bits[dep]
-                print(f"Calling update frame {dep}->{bit}->{update_kind}")
+                # print(f"Calling update frame {dep}->{bit}->{update_kind}")
 
                 self.frame_policy.apply_frame_update(update_kind=update_kind, bit=bit, axis=axis, st=st)
                 events.append({"t": t, "nid": nid, "kind": n.kind, "update_kind": update_kind, "bit": bit, "axis": axis.tensor})
@@ -153,7 +154,7 @@ class LayerExecutor:
         for t in times:
             # complete all nodes whose schedule interval ends at t
             for nid in sorted(end_at[t]):
-                print(f"Time {t}: completing node {nid} kind {dag.nodes[nid].kind}")
+                # print(f"Time {t}: completing node {nid} kind {dag.nodes[nid].kind}")
                 if nid in done:
                     continue
                 complete_node(nid, t)
@@ -172,10 +173,8 @@ class LayerExecutor:
         for r in next_layer_rotations:
             Q = PauliAxis(sign=1 if r.angle>=0 else -1, tensor=r.axis.to_label())
             ang = r.angle
-            for p in st.clifford_pi4_generators:
-                print(f"Prev {p.sign}{p.tensor}")
             Q2, ang2, reason = self.frame_policy.rewrite_axis(Q, ang, st)
-            print(f"Before: {Q.tensor}, After: {Q2.tensor}")
+            # print(f"Before: {Q.tensor}, After: {Q2.tensor}")
             changed_support = (set(i for i,c in enumerate(Q.tensor) if c!="I") != set(i for i,c in enumerate(Q2.tensor) if c!="I"))
             if Q2 != Q or ang2 != ang:
                 rewrite_log.append(
@@ -196,4 +195,5 @@ class LayerExecutor:
             next_rotations_effective=next_eff,
             rewrite_log=rewrite_log,
             events=events,
+            depth=max(times) if times else 0,
         )

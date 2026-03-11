@@ -46,7 +46,7 @@ class FrameUpdatePolicy:
             return
 
         if update_kind == "clifford_pi4":
-            print("Any update!!")
+            # print("Any update!!")
             st.clifford_pi4_generators.append(axis)
             return
 

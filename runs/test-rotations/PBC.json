@@ -1,0 +1,77 @@
+{
+  "final_measurements": [
+    {
+      "axis": {
+        "sign": 1,
+        "tensor": "YXZ"
+      },
+      "cbit": 0,
+      "idx": 0,
+      "qbit": 0,
+      "support": [
+        0,
+        1
+      ],
+      "word": "YXZ"
+    }
+  ],
+  "layer_ids": [
+    [
+      0
+    ],
+    [
+      1
+    ]
+  ],
+  "layers": [
+    {
+      "layer": 0,
+      "rotations": [
+        {
+          "ridx": 0,
+          "word": "ZXI"
+        }
+      ],
+      "size": 1
+    },
+    {
+      "layer": 1,
+      "rotations": [
+        {
+          "ridx": 1,
+          "word": "IYI"
+        }
+      ],
+      "size": 1
+    }
+  ],
+  "rotations": [
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "ZXI"
+      },
+      "idx": 0,
+      "source": "t q[0]",
+      "support": [
+        2
+      ],
+      "word": "ZXI"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IYI"
+      },
+      "idx": 1,
+      "source": "t q[9]",
+      "support": [
+        1
+      ],
+      "word": "IYI"
+    }
+  ],
+  "schema": "modqldpc.pauli_program_cache.v1"
+}

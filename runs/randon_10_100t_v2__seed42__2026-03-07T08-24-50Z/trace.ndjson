@@ -1,0 +1,4 @@
+{"ts": "2026-03-07T08:24:50.182595+00:00", "t": "run_start", "qasm_path": "circuits/Test/rand_10q_100t.qasm", "seed": 42, "run_tag": "randon_10_100t_v2"}
+{"ts": "2026-03-07T08:24:50.183224+00:00", "t": "artifact_written", "name": "input.qasm"}
+{"ts": "2026-03-07T08:24:50.257652+00:00", "t": "stage_frontend_done", "n_qubits": 10, "n_rots": 100}
+{"ts": "2026-03-07T08:24:50.258680+00:00", "t": "run_done"}

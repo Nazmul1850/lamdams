@@ -1,0 +1,9 @@
+{"ts": "2026-03-10T20:00:19.933948+00:00", "t": "run_start", "qasm_path": "circuits/Test/3_17_13.qasm", "seed": 42, "run_tag": "compare-dascot"}
+{"ts": "2026-03-10T20:00:19.934318+00:00", "t": "artifact_written", "name": "input.qasm"}
+{"ts": "2026-03-10T20:00:19.947039+00:00", "t": "stage_frontend_done", "n_qubits": 16, "n_rots": 14}
+{"ts": "2026-03-10T20:00:19.947189+00:00", "t": "lowering_start"}
+{"ts": "2026-03-10T20:00:19.948294+00:00", "t": "layer_executed", "layer_id": 0, "depth": 41, "num_rewrites": 0, "sched": "sa_scheduler"}
+{"ts": "2026-03-10T20:00:19.949006+00:00", "t": "layer_executed", "layer_id": 1, "depth": 32, "num_rewrites": 0, "sched": "sa_scheduler"}
+{"ts": "2026-03-10T20:00:19.949769+00:00", "t": "layer_executed", "layer_id": 2, "depth": 32, "num_rewrites": 0, "sched": "sa_scheduler"}
+{"ts": "2026-03-10T20:00:19.951210+00:00", "t": "layer_executed", "layer_id": 3, "depth": 67, "num_rewrites": 0, "sched": "sa_scheduler"}
+{"ts": "2026-03-10T20:00:19.951257+00:00", "t": "run_done", "total_depth": 172}

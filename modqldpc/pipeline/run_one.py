@@ -1,6 +1,8 @@
 from __future__ import annotations
 from collections import Counter
+import hashlib
 import os
+import random
 from typing import Dict
 from modqldpc.core.artifacts import ArtifactStore
 from modqldpc.core.trace import Trace
@@ -35,14 +37,49 @@ DEFAULT_BASIS: tuple[str, ...] = (
     "measure",
 )
 
-def example_cost_fn(block: int, ops: Dict[int, str], hw: HardwareGraph) -> int:
-    # toy heuristic: larger support costs more
+def _stable_seed(block: int, ops: Dict[int, str]) -> int:
+    items = tuple(sorted(ops.items()))
+    payload = f"{block}|{items}".encode("utf-8")
+    h = hashlib.sha256(payload).hexdigest()
+    return int(h[:16], 16)
+
+def _round_to_nearest_odd(x: float) -> int:
+    k = int(round(x))
+    if k % 2 == 0:
+        # choose the nearer odd
+        if abs((k - 1) - x) <= abs((k + 1) - x):
+            k = k - 1
+        else:
+            k = k + 1
+    return max(1, k)
+
+def normal_rotation_cost_fn(
+    block: int,
+    ops: Dict[int, str],
+    hw,  # HardwareGraph
+    *,
+    base: float = 2.5,
+    slope: float = 1.0,
+    sigma_base: float = 0.75,
+    sigma_slope: float = 0.15,
+    min_cost: int = 1,
+    max_cost: int = 25,
+) -> int:
     w = len(ops)
-    if w <= 1:
+
+    if w <= 0:
         return 1
-    if w <= 3:
-        return 2
-    return 3
+
+    mu = base + slope * w
+    sigma = sigma_base + sigma_slope * w
+
+    rng = random.Random(_stable_seed(block, ops))
+    x = rng.gauss(mu, sigma)
+
+    x = max(min_cost, min(max_cost, x))
+    c = _round_to_nearest_odd(x)
+    c = max(min_cost, min(max_cost, c))
+    return c
 
 def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     run_dir = ArtifactStore.make_run_dir(tag=f"{cfg.run_tag}__seed{cfg.seed}")
@@ -88,22 +125,60 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
         namer=KeyNamer(),
         magic=ChooseMagicBlockMinId(),
         routing=ShortestPathGatherRouting(),
-        native=HeuristicRepeatNativePolicy(cost_fn=example_cost_fn),
+        native=HeuristicRepeatNativePolicy(cost_fn=normal_rotation_cost_fn),
     )
 
-    res1 = lower_one_layer(
-        layer_idx=0,
-        rotations=program.rotations,
-        rotation_indices=layers[0],
-        hw=hw,
-        policies=base_policies,
-    )
-    print("Policy1 magic=minid; nodes:", len(res1.dag.nodes))
-    # print("Topo:", res1.dag.topological_order())
+    total_depth: int = 0
+    trace.event("lowering_start")
+    for layer_id, layer in enumerate(conv.layers):
+        res = lower_one_layer(
+            layer_idx=layer_id,
+            rotations=conv.program.rotations,
+            rotation_indices=layer,
+            hw=hw,
+            policies=base_policies,
+        )
+        # dot_str = dag_to_dot(res.dag)
+        # print(dot_str)
+        # sched = get_scheduler("sa_scheduler")
+        sched = get_scheduler("sequential_scheduler")
+        problem = SchedulingProblem(
+            dag=res.dag,
+            hw=hw,
+            seed=0,
+            policy_name="incident_coupler_blocks_local",
+            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 10000, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
+        )
+        S = sched.solve(problem)
 
-    dot_str = dag_to_dot(res1.dag)
-    print(dot_str)
-    trace.event("run_done")
+        next_idxs = conv.layers[layer_id+1] if (layer_id+1) in conv.layers else []
+        rot_next = [conv.program.rotations[i] for i in next_idxs]
+        executor = LayerExecutor(
+            outcome_model=RandomOutcomeModel(seed=42),
+            frame_policy=FrameUpdatePolicy(),
+        )
+
+        frame = FrameState()  # empty at start
+        ex = executor.execute_layer(
+            layer=layer_id,
+            dag=res.dag,
+            schedule=S,
+            frame_in=frame,
+            next_layer_rotations=rot_next,
+        )
+
+        # ex0.next_rotations_effective is your "actual next layer" after updates
+        # print("changed:", len(ex.rewrite_log))
+        # print(ex0.rewrite_log)
+        # print(ex0.events)
+        # print("depth:", ex0.depth)
+        trace.event("layer_executed", layer_id=layer_id, depth=ex.depth, num_rewrites=len(ex.rewrite_log), sched='sa_scheduler')
+        total_depth += ex.depth
+
+        # conv.print_layers()
+
+        # trace.event("run_done")
+    trace.event("run_done", total_depth=total_depth)
     return "run_dir"
 
 
@@ -119,9 +194,9 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
     
     payload = conv.load_cache_json(pbc_path)
 
-    hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
+    hw = GraphFactory().build(topology=GridTopology(1,3), block_ids=[1,2,3], coupler_capacity=1)
 
-    problem = MappingProblem(n_logicals=20)   # logical ids 0..19
+    problem = MappingProblem(n_logicals=10)   # logical ids 0..19
     cfg = MappingConfig(seed=123, pack_fraction=0.6, shuffle_blocks=False)
     mapper = get_mapper("auto_round_robin_mapping")
     print(type(mapper))
@@ -132,57 +207,56 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         namer=KeyNamer(),
         magic=ChooseMagicBlockMinId(),
         routing=ShortestPathGatherRouting(),
-        native=HeuristicRepeatNativePolicy(cost_fn=example_cost_fn),
+        native=HeuristicRepeatNativePolicy(cost_fn=normal_rotation_cost_fn),
     )
+    total_depth: int = 0
 
-    res0 = lower_one_layer(
-        layer_idx=0,
-        rotations=conv.program.rotations,
-        rotation_indices=conv.layers[1],
-        hw=hw,
-        policies=base_policies,
-    )
-    print("Policy1 magic=minid; nodes:", len(res0.dag.nodes))
-    # print(dag_to_dot(res0.dag))
+    for layer_id, layer in enumerate(conv.layers):
+        res = lower_one_layer(
+            layer_idx=layer_id,
+            rotations=conv.program.rotations,
+            rotation_indices=layer,
+            hw=hw,
+            policies=base_policies,
+        )
+        # dot_str = dag_to_dot(res.dag)
+        # print(dot_str)
+        sched = get_scheduler("sa_scheduler")
+        # sched = get_scheduler("sequential_scheduler")
+        problem = SchedulingProblem(
+            dag=res.dag,
+            hw=hw,
+            seed=0,
+            policy_name="incident_coupler_blocks_local",
+            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 10000, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
+        )
+        S = sched.solve(problem)
 
-    # sched = get_scheduler("random_ready_pack")
-    # problem = SchedulingProblem(dag=res1.dag, hw=hw, seed=0,
-    #                             policy_name="incident_coupler_blocks_local")
-    # S = sched.solve(problem)
-    # validate_schedule(problem, S)
-    # print("depth:", S.depth(), S.meta)
+        next_idxs = conv.layers[layer_id+1] if (layer_id+1) in conv.layers else []
+        rot_next = [conv.program.rotations[i] for i in next_idxs]
+        executor = LayerExecutor(
+            outcome_model=RandomOutcomeModel(seed=42),
+            frame_policy=FrameUpdatePolicy(),
+        )
 
-    sched = get_scheduler("naive_event")
-    problem = SchedulingProblem(
-        dag=res0.dag,
-        hw=hw,
-        seed=0,
-        policy_name="incident_coupler_blocks_local",
-        meta={"start_time": 0, "tie_breaker": "duration"},
-    )
-    S0 = sched.solve(problem)
-    # print(S0.meta["entries"])
+        frame = FrameState()  # empty at start
+        ex = executor.execute_layer(
+            layer=layer_id,
+            dag=res.dag,
+            schedule=S,
+            frame_in=frame,
+            next_layer_rotations=rot_next,
+        )
 
-    next_idxs = conv.layers[1]
-    rot_next = [conv.program.rotations[i] for i in next_idxs]
-    executor = LayerExecutor(
-        outcome_model=RandomOutcomeModel(seed=0),
-        frame_policy=FrameUpdatePolicy(),
-    )
+        # ex0.next_rotations_effective is your "actual next layer" after updates
+        # print("changed:", len(ex.rewrite_log))
+        # print(ex0.rewrite_log)
+        # print(ex0.events)
+        # print("depth:", ex0.depth)
+        total_depth += ex.depth
+        break
 
-    frame0 = FrameState()  # empty at start
-    ex0 = executor.execute_layer(
-        layer=0,
-        dag=res0.dag,
-        schedule=S0,
-        frame_in=frame0,
-        next_layer_rotations=rot_next,
-    )
+        # conv.print_layers()
 
-    # ex0.next_rotations_effective is your "actual next layer" after updates
-    print("changed:", len(ex0.rewrite_log))
-    print(ex0.events)
-
-    # conv.print_layers()
-
-    # trace.event("run_done")
+        # trace.event("run_done")
+    print("Total depth:", total_depth)

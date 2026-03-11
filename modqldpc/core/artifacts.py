@@ -21,7 +21,7 @@ class ArtifactStore:
     @staticmethod
     def make_run_dir(base: str = "runs", *, tag: str = "run") -> str:
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
-        run_id = f"{ts}__{tag}"
+        run_id = f"{tag}__{ts}"
         run_dir = os.path.join(base, run_id)
         os.makedirs(run_dir, exist_ok=True)
         return run_dir

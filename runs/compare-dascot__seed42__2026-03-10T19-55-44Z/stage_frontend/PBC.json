@@ -1,0 +1,309 @@
+{
+  "final_measurements": [],
+  "layer_ids": [
+    [
+      0,
+      1,
+      2,
+      4
+    ],
+    [
+      3,
+      5,
+      6
+    ],
+    [
+      7,
+      8,
+      9
+    ],
+    [
+      10,
+      11,
+      12,
+      13
+    ]
+  ],
+  "layers": [
+    {
+      "layer": 0,
+      "rotations": [
+        {
+          "ridx": 0,
+          "word": "IIIIIIIIIIIIIZZI"
+        },
+        {
+          "ridx": 1,
+          "word": "-IIIIIIIIIIIIIZIX"
+        },
+        {
+          "ridx": 2,
+          "word": "IIIIIIIIIIIIIIIX"
+        },
+        {
+          "ridx": 4,
+          "word": "IIIIIIIIIIIIIIZI"
+        }
+      ],
+      "size": 4
+    },
+    {
+      "layer": 1,
+      "rotations": [
+        {
+          "ridx": 3,
+          "word": "IIIIIIIIIIIIIYZY"
+        },
+        {
+          "ridx": 5,
+          "word": "IIIIIIIIIIIIIYIY"
+        },
+        {
+          "ridx": 6,
+          "word": "IIIIIIIIIIIIIXIX"
+        }
+      ],
+      "size": 3
+    },
+    {
+      "layer": 2,
+      "rotations": [
+        {
+          "ridx": 7,
+          "word": "IIIIIIIIIIIIIIIZ"
+        },
+        {
+          "ridx": 8,
+          "word": "IIIIIIIIIIIIIXZI"
+        },
+        {
+          "ridx": 9,
+          "word": "-IIIIIIIIIIIIIXIZ"
+        }
+      ],
+      "size": 3
+    },
+    {
+      "layer": 3,
+      "rotations": [
+        {
+          "ridx": 10,
+          "word": "-IIIIIIIIIIIIIYYZ"
+        },
+        {
+          "ridx": 11,
+          "word": "IIIIIIIIIIIIIZZZ"
+        },
+        {
+          "ridx": 12,
+          "word": "-IIIIIIIIIIIIIYYI"
+        },
+        {
+          "ridx": 13,
+          "word": "IIIIIIIIIIIIIYYZ"
+        }
+      ],
+      "size": 4
+    }
+  ],
+  "rotations": [
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIZZI"
+      },
+      "idx": 0,
+      "source": "t q[1]",
+      "support": [
+        1,
+        2
+      ],
+      "word": "IIIIIIIIIIIIIZZI"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": -1,
+        "tensor": "IIIIIIIIIIIIIZIX"
+      },
+      "idx": 1,
+      "source": "t q[2]",
+      "support": [
+        0,
+        2
+      ],
+      "word": "-IIIIIIIIIIIIIZIX"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIIIX"
+      },
+      "idx": 2,
+      "source": "t q[0]",
+      "support": [
+        0
+      ],
+      "word": "IIIIIIIIIIIIIIIX"
+    },
+    {
+      "angle": -0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIYZY"
+      },
+      "idx": 3,
+      "source": "tdg q[2]",
+      "support": [
+        0,
+        1,
+        2
+      ],
+      "word": "IIIIIIIIIIIIIYZY"
+    },
+    {
+      "angle": -0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIIZI"
+      },
+      "idx": 4,
+      "source": "tdg q[1]",
+      "support": [
+        1
+      ],
+      "word": "IIIIIIIIIIIIIIZI"
+    },
+    {
+      "angle": -0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIYIY"
+      },
+      "idx": 5,
+      "source": "tdg q[2]",
+      "support": [
+        0,
+        2
+      ],
+      "word": "IIIIIIIIIIIIIYIY"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIXIX"
+      },
+      "idx": 6,
+      "source": "t q[0]",
+      "support": [
+        0,
+        2
+      ],
+      "word": "IIIIIIIIIIIIIXIX"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIIIZ"
+      },
+      "idx": 7,
+      "source": "t q[0]",
+      "support": [
+        0
+      ],
+      "word": "IIIIIIIIIIIIIIIZ"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIXZI"
+      },
+      "idx": 8,
+      "source": "t q[1]",
+      "support": [
+        1,
+        2
+      ],
+      "word": "IIIIIIIIIIIIIXZI"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": -1,
+        "tensor": "IIIIIIIIIIIIIXIZ"
+      },
+      "idx": 9,
+      "source": "t q[2]",
+      "support": [
+        0,
+        2
+      ],
+      "word": "-IIIIIIIIIIIIIXIZ"
+    },
+    {
+      "angle": -0.39269908169872414,
+      "axis": {
+        "sign": -1,
+        "tensor": "IIIIIIIIIIIIIYYZ"
+      },
+      "idx": 10,
+      "source": "tdg q[1]",
+      "support": [
+        0,
+        1,
+        2
+      ],
+      "word": "-IIIIIIIIIIIIIYYZ"
+    },
+    {
+      "angle": -0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIZZZ"
+      },
+      "idx": 11,
+      "source": "tdg q[0]",
+      "support": [
+        0,
+        1,
+        2
+      ],
+      "word": "IIIIIIIIIIIIIZZZ"
+    },
+    {
+      "angle": -0.39269908169872414,
+      "axis": {
+        "sign": -1,
+        "tensor": "IIIIIIIIIIIIIYYI"
+      },
+      "idx": 12,
+      "source": "tdg q[1]",
+      "support": [
+        1,
+        2
+      ],
+      "word": "-IIIIIIIIIIIIIYYI"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {
+        "sign": 1,
+        "tensor": "IIIIIIIIIIIIIYYZ"
+      },
+      "idx": 13,
+      "source": "t q[2]",
+      "support": [
+        0,
+        1,
+        2
+      ],
+      "word": "IIIIIIIIIIIIIYYZ"
+    }
+  ],
+  "schema": "modqldpc.pauli_program_cache.v1"
+}
