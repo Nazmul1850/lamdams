@@ -5,6 +5,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from modqldpc.lowering.ir import K_INTERBLOCK_LINK
 from ortools.sat.python import cp_model
 
 from ..base import BaseScheduler
@@ -144,8 +145,8 @@ class CPSATScheduler(BaseScheduler):
         hw = problem.hw
 
         time_limit: Optional[float] = problem.meta.get("cp_sat_time_limit", None)
-        use_routes: bool = bool(problem.meta.get("cp_sat_route_alternatives", False))
-        max_hops: int = int(problem.meta.get("cp_sat_max_hops", 4))
+        use_routes: bool = bool(problem.meta.get("cp_sat_route_alternatives", True))
+        max_hops: int = int(problem.meta.get("cp_sat_max_hops", len(hw.blocks)))
         log_search: bool = bool(problem.meta.get("cp_sat_log", True))
 
         # ── node durations ───────────────────────────────────────────────────
@@ -197,7 +198,7 @@ class CPSATScheduler(BaseScheduler):
             if dur == 0:
                 continue  # zero-duration nodes hold no resources
 
-            is_link = (getattr(node, "kind", "") == "interblock_link")
+            is_link = (getattr(node, "kind", "") == K_INTERBLOCK_LINK)
 
             if use_routes and is_link:
                 # ── route-alternative encoding ───────────────────────────────

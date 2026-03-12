@@ -1,2 +1,0 @@
-{"ts": "2026-03-10T23:24:21.355881+00:00", "t": "run_start", "qasm_path": "circuits/Test/qft_20.qasm", "seed": 42, "run_tag": "compare-dascot"}
-{"ts": "2026-03-10T23:24:21.356284+00:00", "t": "artifact_written", "name": "input.qasm"}

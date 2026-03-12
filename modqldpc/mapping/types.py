@@ -50,21 +50,15 @@ class MappingConfig:
     # for random_pack
     shuffle_blocks: bool = True
     shuffle_logicals: bool = True
-    # for (future) annealing
+    # for SA mapping
+    # T0 must be large enough to accept the worst typical move early on.
+    # Probe moves showed max delta ~3M; T0=1e5 gives ~5% acceptance of those.
     sa_steps: int = 50_000
-    sa_t0: float = 1.0
-    sa_alpha: float = 0.9995
+    sa_t0: float = 1e5
+    sa_tend: float = 0.05
     # capacity handling: if True, raise if insufficient capacity
     strict_capacity: bool = True
 
 
 class MappingCostFn(Protocol):
     def __call__(self, plan: MappingPlan, problem: MappingProblem, hw: HardwareGraph) -> float: ...
-
-
-@dataclass(frozen=True)
-class AnnealingConfig:
-    steps: int = 50_000
-    t0: float = 1.0
-    alpha: float = 0.9995
-    seed: int = 0

@@ -106,20 +106,30 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     # conv.print_measurements()
     conv.print_layers()
 
-    abspath = os.path.join(run_dir, "stage_frontend/PBC.json")
-    conv.save_cache_json(abspath)
-    store.put_json("stage_frontend/PBC.json", conv.to_cache_payload())
+    compact = True #will come from configs
+    if compact == True:
+        payload = conv.to_compact_payload()
+        store.put_json("stage_frontend/PBC.json", payload)
+    else:
+        payload = conv.to_cache_payload()
+        store.put_json("stage_frontend/PBC.json", payload)
+    # conv.save_cache_json(abspath, compact=True)
+    # store.put_json("stage_frontend/PBC.json", conv.to_cache_payload())
     trace.event("stage_frontend_done", n_qubits=num_logicals, n_rots=len(program.rotations))
 
-    hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
+    # hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
+    hw = GraphFactory().build(topology=RingTopology(), block_ids=[1,2,3,4,5], coupler_capacity=1)
     print(qc.num_qubits)
     print(qc.num_clbits)
     problem = MappingProblem(n_logicals=num_logicals) 
-    cfg = MappingConfig(seed=123, pack_fraction=0.6, shuffle_blocks=False)
-    mapper = get_mapper("auto_round_robin_mapping")
-    print(type(mapper))
-    plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
-    print(plan.meta)
+    cfg = MappingConfig(seed=123, sa_steps=10000, sa_t0=1e5, sa_tend=0.05)
+    mapper = get_mapper("simulated_annealing")
+    plan = mapper.solve(problem, hw, cfg, {
+        "rotations": conv.program.rotations,
+        "verbose": True, 
+        "debug": True,
+    })
+    # print(plan.meta)
 
     base_policies = LoweringPolicies(
         namer=KeyNamer(),
@@ -141,13 +151,14 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
         # dot_str = dag_to_dot(res.dag)
         # print(dot_str)
         # sched = get_scheduler("sa_scheduler")
-        sched = get_scheduler("sequential_scheduler")
+        # sched = get_scheduler("sequential_scheduler")
+        sched = get_scheduler("cp_sat")
         problem = SchedulingProblem(
             dag=res.dag,
             hw=hw,
             seed=0,
             policy_name="incident_coupler_blocks_local",
-            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 10000, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
+            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 0, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
         )
         S = sched.solve(problem)
 
@@ -172,7 +183,7 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
         # print(ex0.rewrite_log)
         # print(ex0.events)
         # print("depth:", ex0.depth)
-        trace.event("layer_executed", layer_id=layer_id, depth=ex.depth, num_rewrites=len(ex.rewrite_log), sched='sa_scheduler')
+        trace.event("layer_executed", layer_id=layer_id, depth=ex.depth, num_rewrites=len(ex.rewrite_log), sched='sequential_scheduler')
         total_depth += ex.depth
 
         # conv.print_layers()
@@ -191,16 +202,22 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
     # store.put_json("config.json", cfg)
 
     conv = GoSCConverter(verbose=False)
-    
     payload = conv.load_cache_json(pbc_path)
 
-    hw = GraphFactory().build(topology=GridTopology(1,3), block_ids=[1,2,3], coupler_capacity=1)
+    # hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
+    hw = GraphFactory().build(topology=RingTopology(), block_ids=[1,2,3,4,5], coupler_capacity=1)
 
-    problem = MappingProblem(n_logicals=10)   # logical ids 0..19
-    cfg = MappingConfig(seed=123, pack_fraction=0.6, shuffle_blocks=False)
-    mapper = get_mapper("auto_round_robin_mapping")
-    print(type(mapper))
-    plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
+    problem = MappingProblem(n_logicals=50)   # look at the trace file to get the actual number of logicals for this run
+    cfg = MappingConfig(seed=123, sa_steps=0, sa_t0=1e5, sa_tend=0.05)
+    # mapper = get_mapper("auto_round_robin_mapping")
+    # print(type(mapper))
+    # plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
+    mapper = get_mapper("simulated_annealing")
+    plan = mapper.solve(problem, hw, cfg, {
+        "rotations": conv.program.rotations,
+        "verbose": True, 
+        "debug": True,
+    })
     print(plan.meta)
 
     base_policies = LoweringPolicies(
@@ -221,15 +238,15 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         )
         # dot_str = dag_to_dot(res.dag)
         # print(dot_str)
-        # sched = get_scheduler("sa_scheduler")
+        sched = get_scheduler("sa_scheduler")
         # sched = get_scheduler("cp_sat")
-        sched = get_scheduler("sequential_scheduler")
+        # sched = get_scheduler("sequential_scheduler")
         problem = SchedulingProblem(
             dag=res.dag,
             hw=hw,
             seed=0,
             policy_name="incident_coupler_blocks_local",
-            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 1000, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
+            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 0, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
         )
         S = sched.solve(problem)
 
@@ -255,7 +272,7 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         # print(ex0.events)
         # print("depth:", ex0.depth)
         total_depth += ex.depth
-        # break
+        break
 
         # conv.print_layers()
 

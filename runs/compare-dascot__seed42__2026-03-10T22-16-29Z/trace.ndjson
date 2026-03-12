@@ -1,2 +1,0 @@
-{"ts": "2026-03-10T22:16:29.839325+00:00", "t": "run_start", "qasm_path": "circuits/Test/qaoa_nativegates_ibm_qiskit_opt1_10.qasm", "seed": 42, "run_tag": "compare-dascot"}
-{"ts": "2026-03-10T22:16:29.839792+00:00", "t": "artifact_written", "name": "input.qasm"}

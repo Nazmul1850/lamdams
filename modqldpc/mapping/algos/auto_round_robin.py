@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
+from typing import Optional
 
 from ..base import BaseMapper
 from ..types import MappingPlan, MappingProblem, MappingConfig
@@ -21,7 +22,7 @@ class AutoRoundRobinMapper(BaseMapper):
     """
     name: str = "auto_round_robin_mapping"
 
-    def solve(self, problem: MappingProblem, hw: HardwareGraph, cfg: MappingConfig) -> MappingPlan:
+    def solve(self, problem: MappingProblem, hw: HardwareGraph, cfg: MappingConfig, meta: Optional[dict] = None) -> MappingPlan:
         _ensure_capacity(problem, hw, cfg)
         rng = random.Random(cfg.seed)
 

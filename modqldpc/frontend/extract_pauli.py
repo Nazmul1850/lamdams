@@ -96,7 +96,8 @@ class GoSCConverter:
     - turn Z_{pi/8} into Pauli product rotations via conjugation by Cliffords,
     - absorb final Clifford into Pauli product measurements.
     """
-    CACHE_SCHEMA = "modqldpc.pauli_program_cache.v1"
+    CACHE_SCHEMA         = "modqldpc.pauli_program_cache.v1"
+    COMPACT_CACHE_SCHEMA = "modqldpc.pauli_program_cache.v1.compact"
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -427,25 +428,108 @@ class GoSCConverter:
     def to_cache_json_string(self) -> str:
         return json.dumps(self.to_cache_payload(), indent=2, sort_keys=True)
 
-    def save_cache_json(self, path: str) -> None:
-        s = self.to_cache_json_string()
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(s)
+    # def save_cache_json(self, *, compact: bool = False) -> str:
+    #     if compact:
+    #         payload = self.to_compact_payload()
+    #         return payload
+    #         # s = json.dumps(payload, separators=(",", ":"))  # no whitespace
+    #     else:
+    #         payload = self.to_cache_payload()
+    #         return payload
+            # s = json.dumps(payload, indent=2, sort_keys=True)
+        # os.makedirs(os.path.dirname(path), exist_ok=True)
+        # with open(path, "w", encoding="utf-8") as f:
+        #     f.write(s)
+
+    # -------------- Compact format --------------
+
+    def to_compact_payload(self) -> Dict[str, Any]:
+        """
+        Minimal serialisation of the PauliProgram.
+
+        Compact encoding:
+          rotations    : [[axis_sign, tensor, t_sign], ...]
+                         axis_sign = ±1 (leading sign of the Pauli word)
+                         tensor    = Pauli word without the sign prefix
+                         t_sign    = ±1  (+1 → T gate, -1 → Tdg gate)
+                         angle is exactly t_sign * π/8 — reconstructed on load.
+          measurements : [[axis_sign, tensor, qbit, cbit_or_null], ...]
+          layer_ids    : [[r_idx, ...], ...]  — unchanged
+        """
+        if self.program is None:
+            raise ValueError("self.program is None. Nothing to export.")
+
+        rotations_compact = []
+        for r in self.program.rotations:
+            d = self._axis_to_dict(r.axis)
+            t_sign = 1 if r.angle >= 0 else -1
+            rotations_compact.append([d["sign"], d["tensor"], t_sign])
+
+        measurements_compact = []
+        for m in self.program.final_meas:
+            d = self._axis_to_dict(m.axis)
+            measurements_compact.append([d["sign"], d["tensor"], m.qbit, m.cbit])
+
+        return {
+            "schema": self.COMPACT_CACHE_SCHEMA,
+            "rotations": rotations_compact,
+            "measurements": measurements_compact,
+            "layer_ids": self.layers,
+        }
+
+    def _load_compact(self, payload: Dict[str, Any]) -> None:
+        """Restore self.program and self.layers from a compact payload."""
+        rotations: List[PauliRotation] = []
+        for i, entry in enumerate(payload.get("rotations", [])):
+            axis_sign, tensor, t_sign = entry
+            axis = Pauli(str(axis_sign) + str(tensor))
+            rotations.append(
+                PauliRotation(
+                    axis=axis,
+                    angle=t_sign * (math.pi / 8.0),
+                    source="",
+                    idx=i,
+                )
+            )
+
+        final_meas: List[PauliMeasurement] = []
+        for i, entry in enumerate(payload.get("measurements", [])):
+            axis_sign, tensor, qbit, cbit = entry
+            axis = Pauli(str(axis_sign) + str(tensor))
+            final_meas.append(
+                PauliMeasurement(
+                    axis=axis,
+                    cbit=None if cbit is None else int(cbit),
+                    qbit=int(qbit),
+                    idx=i,
+                )
+            )
+
+        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=None)
+        self.layers = [[int(x) for x in layer] for layer in payload.get("layer_ids", [])]
 
     # -------------- Import --------------
 
     def load_cache_json(self, path: str) -> Dict[str, Any]:
+        """
+        Load a PBC JSON file.  Automatically detects verbose vs compact format
+        from the 'schema' field — no caller changes needed after switching formats.
+        """
         with open(path, "r", encoding="utf-8") as f:
             payload = json.load(f)
 
-        if payload.get("schema") != self.CACHE_SCHEMA:
-            raise ValueError(f"Unknown cache schema: {payload.get('schema')}")
+        schema = payload.get("schema")
 
-        # Restore rotations
+        if schema == self.COMPACT_CACHE_SCHEMA:
+            self._load_compact(payload)
+            return payload
+
+        if schema != self.CACHE_SCHEMA:
+            raise ValueError(f"Unknown cache schema: {schema!r}")
+
+        # Verbose format (original)
         rotations: List[PauliRotation] = []
         for r in payload.get("rotations"):
-            # r is dict because we stored dataclasses via asdict
             axis = Pauli(str(r["axis"]["sign"]) + str(r["axis"]["tensor"]))
             rotations.append(
                 PauliRotation(
@@ -456,11 +540,9 @@ class GoSCConverter:
                 )
             )
 
-        # Restore measurements
         final_meas: List[PauliMeasurement] = []
         for m in payload.get("final_measurements"):
-            # axis = PauliAxis(sign=int(m["axis"]["sign"]), tensor=str(m["axis"]["tensor"]))
-            axis = Pauli(str(m["axis"]["sign"])+str(m["axis"]["tensor"]))
+            axis = Pauli(str(m["axis"]["sign"]) + str(m["axis"]["tensor"]))
             final_meas.append(
                 PauliMeasurement(
                     axis=axis,
@@ -470,11 +552,7 @@ class GoSCConverter:
                 )
             )
 
-        # final_clifford: may be a repr wrapper; keep as stored (you can't reconstruct Qiskit Clifford reliably)
-        final_clifford = None
-        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=final_clifford)
-
-        # Restore layers (canonical)
+        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=None)
         self.layers = [[int(x) for x in layer] for layer in payload.get("layer_ids", [])]
 
         return payload
