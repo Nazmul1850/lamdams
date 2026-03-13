@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: lamdams
+Version: 0.1.0
+Requires-Dist: wisq @ git+https://github.com/Abtin-Molavi/wisq.git
+Requires-Dist: ortools>=9.8

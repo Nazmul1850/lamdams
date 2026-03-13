@@ -3,44 +3,51 @@
     {
       "axis": {
         "sign": 1,
-        "tensor": "YXZ"
+        "tensor": "ZZZ"
       },
       "cbit": 0,
       "idx": 0,
       "qbit": 0,
-      "support": [
-        0,
-        1
-      ],
-      "word": "YXZ"
+      "support": [0, 1, 2],
+      "word": "ZZZ"
     }
   ],
   "layer_ids": [
-    [
-      0
-    ],
-    [
-      1
-    ]
+    [0, 1, 2],
+    [3, 4, 5],
+    [6],
+    [7]
   ],
   "layers": [
     {
       "layer": 0,
       "rotations": [
-        {
-          "ridx": 0,
-          "word": "ZXI"
-        }
+        {"ridx": 0, "word": "ZII"},
+        {"ridx": 1, "word": "IXI"},
+        {"ridx": 2, "word": "IIY"}
       ],
-      "size": 1
+      "size": 3
     },
     {
       "layer": 1,
       "rotations": [
-        {
-          "ridx": 1,
-          "word": "IYI"
-        }
+        {"ridx": 3, "word": "XII"},
+        {"ridx": 4, "word": "IZI"},
+        {"ridx": 5, "word": "IIX"}
+      ],
+      "size": 3
+    },
+    {
+      "layer": 2,
+      "rotations": [
+        {"ridx": 6, "word": "ZXI"}
+      ],
+      "size": 1
+    },
+    {
+      "layer": 3,
+      "rotations": [
+        {"ridx": 7, "word": "IYZ"}
       ],
       "size": 1
     }
@@ -48,29 +55,67 @@
   "rotations": [
     {
       "angle": 0.39269908169872414,
-      "axis": {
-        "sign": 1,
-        "tensor": "ZXI"
-      },
+      "axis": {"sign": 1, "tensor": "ZII"},
       "idx": 0,
       "source": "t q[0]",
-      "support": [
-        2
-      ],
-      "word": "ZXI"
+      "support": [2],
+      "word": "ZII"
     },
     {
       "angle": 0.39269908169872414,
-      "axis": {
-        "sign": 1,
-        "tensor": "IYI"
-      },
+      "axis": {"sign": 1, "tensor": "IXI"},
       "idx": 1,
-      "source": "t q[9]",
-      "support": [
-        1
-      ],
-      "word": "IYI"
+      "source": "t q[1]",
+      "support": [1],
+      "word": "IXI"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {"sign": 1, "tensor": "IIY"},
+      "idx": 2,
+      "source": "t q[2]",
+      "support": [0],
+      "word": "IIY"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {"sign": -1, "tensor": "XII"},
+      "idx": 3,
+      "source": "t q[0]",
+      "support": [2],
+      "word": "XII"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {"sign": -1, "tensor": "IZI"},
+      "idx": 4,
+      "source": "t q[1]",
+      "support": [1],
+      "word": "IZI"
+    },
+    {
+      "angle": 0.39269908169872414,
+      "axis": {"sign": -1, "tensor": "IIX"},
+      "idx": 5,
+      "source": "tdg q[2]",
+      "support": [0],
+      "word": "IIX"
+    },
+    {
+      "angle": 0.7853981633974483,
+      "axis": {"sign": 1, "tensor": "ZXI"},
+      "idx": 6,
+      "source": "t q[0]",
+      "support": [1, 2],
+      "word": "ZXI"
+    },
+    {
+      "angle": 0.7853981633974483,
+      "axis": {"sign": 1, "tensor": "IYZ"},
+      "idx": 7,
+      "source": "t q[2]",
+      "support": [0, 1],
+      "word": "IYZ"
     }
   ],
   "schema": "modqldpc.pauli_program_cache.v1"

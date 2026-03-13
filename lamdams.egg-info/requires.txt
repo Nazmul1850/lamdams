@@ -1,0 +1,2 @@
+wisq @ git+https://github.com/Abtin-Molavi/wisq.git
+ortools>=9.8

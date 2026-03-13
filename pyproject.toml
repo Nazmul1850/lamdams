@@ -1,4 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lamdams"
+version = "0.1.0"
 dependencies = [
     "wisq @ git+https://github.com/Abtin-Molavi/wisq.git",
     "ortools>=9.8",
 ]
+
+[tool.setuptools.packages.find]
+include = ["modqldpc*"]

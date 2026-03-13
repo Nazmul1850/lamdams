@@ -414,6 +414,7 @@ class SimulatedAnnealingScheduler(BaseScheduler):
         hw = problem.hw
         pol = get_resource_policy(problem.policy_name)
         tracker = HardwareTracker(hw=hw, policy=pol)
+        dbg = bool(problem.meta.get("debug_decode", False))
 
         entries: Dict[str, ScheduleEntry] = {}
         node_to_time: Dict[str, int] = {}
@@ -426,6 +427,11 @@ class SimulatedAnnealingScheduler(BaseScheduler):
 
         active: List[Tuple[int, str]] = []
         t = int(problem.meta.get("start_time", 0))
+
+        if dbg:
+            print(f"\n{'='*60}")
+            print(f"[decode] START  nodes={len(dag.nodes)}  comp_order={state.component_order}")
+            print(f"{'='*60}")
 
         comp_rank: Dict[int, int] = {
             cid: rank for rank, cid in enumerate(state.component_order)
@@ -478,11 +484,20 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             while active and active[0][0] <= t:
                 _, finished = heapq.heappop(active)
                 add_children_of(finished)
+                if dbg:
+                    print(f"  [t={t}] finished: {finished}")
 
             if ready:
                 pq: List[Tuple[Tuple, str]] = []
                 for nid in ready:
                     heapq.heappush(pq, (node_priority(nid), nid))
+
+                if dbg:
+                    print(f"\n[t={t}] ready queue ({len(ready)} nodes):")
+                    tmp_pq = list(pq)
+                    for pri, nid in sorted(tmp_pq):
+                        cid = prep.node_to_component[nid]
+                        print(f"  {nid:30s}  dur={prep.node_duration[nid]}  bl={prep.bottom_level[nid]}  cid={cid}  priority={pri}")
 
                 started_any = False
                 blocked: List[str] = []
@@ -504,6 +519,8 @@ class SimulatedAnnealingScheduler(BaseScheduler):
                         ready.remove(nid)
                         add_children_of(nid)
                         started_any = True
+                        if dbg:
+                            print(f"  [t={t}] INSTANT  {nid}")
                         continue
 
                     end = t + dur
@@ -514,8 +531,12 @@ class SimulatedAnnealingScheduler(BaseScheduler):
                         heapq.heappush(active, (end, nid))
                         ready.remove(nid)
                         started_any = True
+                        if dbg:
+                            print(f"  [t={t}] STARTED  {nid}  dur={dur}  end={end}")
                     else:
                         blocked.append(nid)
+                        if dbg:
+                            print(f"  [t={t}] BLOCKED  {nid}  dur={dur}")
 
                 for nid in blocked:
                     ready.add(nid)
@@ -540,6 +561,15 @@ class SimulatedAnnealingScheduler(BaseScheduler):
             raise RuntimeError("No active and no ready but schedule incomplete.")
 
         makespan = 0 if not entries else max(e.end for e in entries.values())
+
+        if dbg:
+            print(f"\n[decode] DONE  makespan={makespan}  scheduled={len(entries)}")
+            print("  Node schedule:")
+            for nid in sorted(entries, key=lambda n: entries[n].start):
+                e = entries[nid]
+                cid = prep.node_to_component[nid]
+                print(f"    {nid:30s}  [{e.start:3d} .. {e.end:3d}]  cid={cid}")
+            print(f"{'='*60}\n")
 
         return entries, node_to_time, {
             "candidate_component_order": list(state.component_order),

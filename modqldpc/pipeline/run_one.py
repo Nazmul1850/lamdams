@@ -1,9 +1,11 @@
 from __future__ import annotations
 from collections import Counter
 import hashlib
+import importlib.util
 import os
 import random
-from typing import Dict
+import sys
+from typing import Callable, Dict, List
 from modqldpc.core.artifacts import ArtifactStore
 from modqldpc.core.trace import Trace
 from modqldpc.core.types import PipelineConfig
@@ -19,6 +21,7 @@ from modqldpc.lowering.policy import (
     ShortestPathGatherRouting,
     NativeAllPaulisForNow,
     MagicPlacementPolicy,
+    NativeCostFn,
 )
 from modqldpc.lowering.lower_layer import lower_one_layer
 from modqldpc.core.types import PauliAxis, PauliRotation  # your dataclasses
@@ -81,6 +84,47 @@ def normal_rotation_cost_fn(
     c = max(min_cost, min(max_cost, c))
     return c
 
+
+_ROTATION_SYNCH_DIR = os.path.join(os.path.dirname(__file__), "..", "rotation_synch")
+
+
+def _load_gross_synth(base_dir: str):
+    spec = importlib.util.spec_from_file_location(
+        "gross_clifford",
+        os.path.join(base_dir, "gross_clifford.py"),
+    )
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["gross_clifford"] = mod  # required so @dataclass can resolve its own module
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def make_gross_actual_cost_fn(plan, base_dir: str = _ROTATION_SYNCH_DIR, n_data: int = 11) -> NativeCostFn:
+    """
+    Returns a cost function backed by the actual gross code BFS closure data.
+
+    Converts ops (global logical IDs -> Pauli char) to the n_data-length Pauli
+    string expected by GrossCliffordSynth using plan.logical_to_local as the
+    position index.  Logical IDs whose local_id >= n_data are the pivot qubit
+    and are intentionally excluded.
+    """
+    mod = _load_gross_synth(base_dir)
+    synth = mod.GrossCliffordSynth.load_precomputed(base_dir)
+
+    def cost_fn(_block: int, ops: Dict[int, str], _hw) -> int:
+        chars: List[str] = ["I"] * n_data
+        for lid, axis in ops.items():
+            local_id = plan.logical_to_local.get(lid)
+            if local_id is not None and local_id < n_data:
+                chars[local_id] = axis
+        if all(c == "I" for c in chars):
+            return 1
+        mask = mod.pauli_to_mask("".join(chars))
+        cost: int = synth.rotation_cost(mask)
+        return cost
+    return cost_fn
+
+
 def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     run_dir = ArtifactStore.make_run_dir(tag=f"{cfg.run_tag}__seed{cfg.seed}")
     store = ArtifactStore(run_dir)
@@ -135,7 +179,7 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
         namer=KeyNamer(),
         magic=ChooseMagicBlockMinId(),
         routing=ShortestPathGatherRouting(),
-        native=HeuristicRepeatNativePolicy(cost_fn=normal_rotation_cost_fn),
+        native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
     )
 
     total_depth: int = 0
@@ -204,12 +248,14 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
     conv = GoSCConverter(verbose=False)
     payload = conv.load_cache_json(pbc_path)
 
-    # hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
-    hw = GraphFactory().build(topology=RingTopology(), block_ids=[1,2,3,4,5], coupler_capacity=1)
+    hw = GraphFactory().build(topology=GridTopology(3,3), block_ids=[i+1 for i in range(9)], coupler_capacity=1)
+    # hw = GraphFactory().build(topology=RingTopology(), block_ids=[1,2], coupler_capacity=1)
 
-    problem = MappingProblem(n_logicals=50)   # look at the trace file to get the actual number of logicals for this run
-    cfg = MappingConfig(seed=123, sa_steps=0, sa_t0=1e5, sa_tend=0.05)
+    problem = MappingProblem(n_logicals=10)   # look at the trace file to get the actual number of logicals for this run
+    cfg = MappingConfig(seed=123, sa_steps=10000, sa_t0=1e5, sa_tend=0.05)
     # mapper = get_mapper("auto_round_robin_mapping")
+    # mapper = get_mapper("auto_pack")
+    # mapper = get_mapper("pure_random")
     # print(type(mapper))
     # plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
     mapper = get_mapper("simulated_annealing")
@@ -224,7 +270,7 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         namer=KeyNamer(),
         magic=ChooseMagicBlockMinId(),
         routing=ShortestPathGatherRouting(),
-        native=HeuristicRepeatNativePolicy(cost_fn=normal_rotation_cost_fn),
+        native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
     )
     total_depth: int = 0
 
@@ -238,15 +284,23 @@ def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
         )
         # dot_str = dag_to_dot(res.dag)
         # print(dot_str)
-        sched = get_scheduler("sa_scheduler")
-        # sched = get_scheduler("cp_sat")
+        # sched = get_scheduler("sa_scheduler")
+        sched = get_scheduler("cp_sat")
         # sched = get_scheduler("sequential_scheduler")
         problem = SchedulingProblem(
             dag=res.dag,
             hw=hw,
             seed=0,
             policy_name="incident_coupler_blocks_local",
-            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 0, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
+            meta={
+                "start_time": 0, 
+                "tie_breaker": "duration", 
+                "sa_iterations": 0, 
+                "sa_initial_temp": 10.0, 
+                "sa_cooling_rate": 0.95, 
+                "sa_neighbor": "mixed", 
+                "debug_decode": False
+            },
         )
         S = sched.solve(problem)
 

@@ -147,7 +147,7 @@ class CPSATScheduler(BaseScheduler):
         time_limit: Optional[float] = problem.meta.get("cp_sat_time_limit", None)
         use_routes: bool = bool(problem.meta.get("cp_sat_route_alternatives", True))
         max_hops: int = int(problem.meta.get("cp_sat_max_hops", len(hw.blocks)))
-        log_search: bool = bool(problem.meta.get("cp_sat_log", True))
+        log_search: bool = bool(problem.meta.get("cp_sat_log", False))
 
         # ── node durations ───────────────────────────────────────────────────
         node_dur: Dict[str, int] = {}
