@@ -8,6 +8,7 @@ from .algos.auto_pack import AutoPackMapper
 from .algos.random_pack import RandomPackMapper
 from .algos.random_semi_pack import RandomSemiPackMapper
 from .algos.sa_mapping import SimulatedAnnealingMapper
+from .hardware_gen import make_hardware, HardwareSpec
 
 __all__ = [
     "MappingPlan", "MappingProblem", "MappingConfig", "MappingCostFn",
@@ -15,4 +16,5 @@ __all__ = [
     "get_mapper", "list_mappers",
     "AutoRoundRobinMapper", "AutoPackMapper", "RandomPackMapper",
     "RandomSemiPackMapper", "SimulatedAnnealingMapper",
+    "make_hardware", "HardwareSpec",
 ]

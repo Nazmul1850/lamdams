@@ -98,15 +98,29 @@ def emit_pi8_gadget(
     link_nid: Optional[str] = None
     if plan.interblock is not None:
         link_nid = namer.nid("link", layer, ridx)
+
+        # Flatten all route paths to get every block on the routing tree,
+        # including intermediate blocks that are not participant blocks.
+        # These must appear in `blocks` so that the scheduler can lock them
+        # for the full duration of the link (ownership scope 2: route lock).
+        _seen_rb: set = set()
+        _all_route_blocks: list = []
+        for _path in plan.interblock.route_paths:
+            for _rb in _path:
+                if _rb not in _seen_rb:
+                    _seen_rb.add(_rb)
+                    _all_route_blocks.append(_rb)
+
         dag.add_node(
             node_interblock_link(
                 link_nid,
-                blocks=plan.interblock.blocks_involved,
+                blocks=_all_route_blocks,          # participant + intermediate blocks
                 couplers=plan.interblock.couplers_used,
                 duration=plan.interblock.duration,
                 meta={
                     **plan.interblock.meta,
                     "magic_block": plan.interblock.magic_block,
+                    "participant_blocks": list(plan.interblock.blocks_involved),
                     "source_blocks": [b for b in plan.interblock.blocks_involved
                                       if b != plan.interblock.magic_block],
                     "route_paths": [list(p) for p in plan.interblock.route_paths],

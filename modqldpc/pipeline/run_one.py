@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections import Counter
 import hashlib
+import pathlib
 import importlib.util
 import os
 import random
@@ -12,7 +13,8 @@ from modqldpc.core.types import PipelineConfig
 from modqldpc.frontend.extract_pauli import GoSCConverter
 from modqldpc.frontend.qasm_reader import QiskitCircuitHandler
 from modqldpc.mapping.mapper import MappingConfig, MappingProblem, get_mapper
-from modqldpc.mapping.model import GraphFactory, GridTopology, HardwareGraph, RingTopology
+from modqldpc.mapping.hardware_gen import make_hardware, HardwareSpec
+from modqldpc.mapping.model import GraphFactory, RingTopology
 from modqldpc.lowering.keys import KeyNamer
 from modqldpc.lowering.policy import (
     HeuristicRepeatNativePolicy,
@@ -32,6 +34,18 @@ from modqldpc.runtime.outcomes import RandomOutcomeModel
 from modqldpc.scheduling.factory import get_scheduler
 from modqldpc.scheduling.types import SchedulingProblem
 from modqldpc.scheduling.validate import validate_schedule
+from modqldpc.pipeline.profiling import (
+    CircuitProfile, LayerProfile,
+    collect_circuit_profile, collect_layer_profile,
+)
+from modqldpc.pipeline.viz import (
+    plot_circuit_character,
+    plot_depth_profile,
+    plot_block_utilization,
+    plot_routing_distances,
+    plot_frame_rewrites,
+    plot_parallelism_profile,
+)
 
 DEFAULT_BASIS: tuple[str, ...] = (
     "h", "s", "sdg", "x", "y", "z",
@@ -183,11 +197,17 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     )
 
     total_depth: int = 0
+    effective_rotations: Dict[int, PauliRotation] = {r.idx: r for r in conv.program.rotations}
+    frame = FrameState()
+    executor = LayerExecutor(
+        outcome_model=RandomOutcomeModel(seed=42),
+        frame_policy=FrameUpdatePolicy(),
+    )
     trace.event("lowering_start")
     for layer_id, layer in enumerate(conv.layers):
         res = lower_one_layer(
             layer_idx=layer_id,
-            rotations=conv.program.rotations,
+            rotations=effective_rotations,
             rotation_indices=layer,
             hw=hw,
             policies=base_policies,
@@ -207,13 +227,7 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
         S = sched.solve(problem)
 
         next_idxs = conv.layers[layer_id+1] if (layer_id+1) in conv.layers else []
-        rot_next = [conv.program.rotations[i] for i in next_idxs]
-        executor = LayerExecutor(
-            outcome_model=RandomOutcomeModel(seed=42),
-            frame_policy=FrameUpdatePolicy(),
-        )
-
-        frame = FrameState()  # empty at start
+        rot_next = [effective_rotations[i] for i in next_idxs]
         ex = executor.execute_layer(
             layer=layer_id,
             dag=res.dag,
@@ -222,11 +236,14 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
             next_layer_rotations=rot_next,
         )
 
-        # ex0.next_rotations_effective is your "actual next layer" after updates
+        for r in ex.next_rotations_effective:
+            effective_rotations[r.idx] = r
+        frame = ex.frame_after
+
         # print("changed:", len(ex.rewrite_log))
-        # print(ex0.rewrite_log)
-        # print(ex0.events)
-        # print("depth:", ex0.depth)
+        # print(ex.rewrite_log)
+        # print(ex.events)
+        # print("depth:", ex.depth)
         trace.event("layer_executed", layer_id=layer_id, depth=ex.depth, num_rewrites=len(ex.rewrite_log), sched='sequential_scheduler')
         total_depth += ex.depth
 
@@ -237,98 +254,274 @@ def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
     return "run_dir"
 
 
-def run_one_compiled(pbc_path: str, cfg: PipelineConfig):
-    # run_dir = ArtifactStore.make_run_dir(tag=f"{cfg.run_tag}__seed{cfg.seed}")
-    # store = ArtifactStore(run_dir)
-    # trace = Trace(f"{run_dir}/trace.ndjson")
+def run_one_compiled(
+    pbc_path: str,
+    cfg: PipelineConfig,
+    meta: dict | None = None,
+) -> None:
+    """
+    Run the full compiled PBC pipeline on a pre-converted circuit.
 
-    # trace.event("run_start", pbc_path=pbc_path, seed=cfg.seed, run_tag=cfg.run_tag)
-    # store.put_json("config.json", cfg)
+    Parameters
+    ----------
+    pbc_path : str
+        Path to the compact PBC JSON produced by the frontend.
+    cfg : PipelineConfig
+        Pipeline-level config (run tag, global seed, …).
+    meta : dict, optional
+        Runtime knobs — all keys are optional.  Recognised keys and defaults::
 
+          # Hardware
+          topology          "grid" | "ring"           default: "grid"
+          sparse_pct        float  [0, 1)              default: 0.0   (dense)
+          n_data            int    qubit slots/block    default: 11
+          coupler_capacity  int    capacity per link    default: 1
+
+          # Mapping
+          mapper            str    mapper name          default: "auto_round_robin_mapping"
+          seed              int    global RNG seed      default: 42
+          sa_steps          int    SA mapper iterations default: 10_000
+          sa_t0             float  SA start temperature default: 1e5
+          sa_tend           float  SA end temperature   default: 1.1
+
+          # Scheduling
+          scheduler         str    scheduler name       default: "greedy_critical"
+          cp_sat_time_limit float  CP-SAT budget (s)    default: 120.0
+
+          # Experiment flags
+          run_experiments   bool   run Fig 8/9/10       default: True
+          exp_sparse_pct    float  sparsity for Fig 9   default: 0.7
+          exp_mapper        str    mapper  for Fig 9    default: "simulated_annealing"
+          exp_scheduler     str    scheduler for Fig 9  default: "greedy_critical"
+    """
+    meta = meta or {}
+
+    # ── Resolve meta with defaults ────────────────────────────────────────────
+    topology          = str(meta.get("topology",          "grid"))
+    sparse_pct        = float(meta.get("sparse_pct",      0.0))
+    n_data            = int(meta.get("n_data",             11))
+    coupler_cap       = int(meta.get("coupler_capacity",   1))
+    mapper_name       = str(meta.get("mapper",            "auto_round_robin_mapping"))
+    sched_name        = str(meta.get("scheduler",         "greedy_critical"))
+    seed              = int(meta.get("seed",               cfg.seed))
+    sa_steps          = int(meta.get("sa_steps",           10_000))
+    sa_t0             = float(meta.get("sa_t0",            1e5))
+    sa_tend           = float(meta.get("sa_tend",          1.1))
+    cp_sat_time_limit = float(meta.get("cp_sat_time_limit", 120.0))
+    run_experiments   = bool(meta.get("run_experiments",   True))
+    exp_sparse_pct    = float(meta.get("exp_sparse_pct",   0.7))
+    exp_mapper        = str(meta.get("exp_mapper",        "simulated_annealing"))
+    exp_scheduler     = str(meta.get("exp_scheduler",     "greedy_critical"))
+
+    # ── Stage 1 : Load compiled PBC ──────────────────────────────────────────
     conv = GoSCConverter(verbose=False)
-    payload = conv.load_cache_json(pbc_path)
+    conv.load_cache_json(pbc_path)
 
-    hw = GraphFactory().build(topology=GridTopology(3,3), block_ids=[i+1 for i in range(9)], coupler_capacity=1)
-    # hw = GraphFactory().build(topology=RingTopology(), block_ids=[1,2], coupler_capacity=1)
+    # Infer n_logicals from the Pauli string length of the first rotation.
+    # The string may carry a sign prefix (+/-) which is stripped before measuring.
+    first_rot  = next(iter(conv.program.rotations))
+    pauli_str  = first_rot.axis.to_label().lstrip("+-")
+    n_logicals = len(pauli_str)
 
-    problem = MappingProblem(n_logicals=10)   # look at the trace file to get the actual number of logicals for this run
-    cfg = MappingConfig(seed=123, sa_steps=10000, sa_t0=1e5, sa_tend=0.05)
-    # mapper = get_mapper("auto_round_robin_mapping")
-    # mapper = get_mapper("auto_pack")
-    # mapper = get_mapper("pure_random")
-    # print(type(mapper))
-    # plan = mapper.solve(problem=problem, hw=hw, cfg=cfg)
-    mapper = get_mapper("simulated_annealing")
-    plan = mapper.solve(problem, hw, cfg, {
-        "rotations": conv.program.rotations,
-        "verbose": True, 
-        "debug": True,
-    })
-    print(plan.meta)
+    # print(f"[frontend]  n_logicals={n_logicals}"
+    #       f"  layers={len(conv.layers)}"
+    #       f"  rotations={len(conv.program.rotations)}")
 
-    base_policies = LoweringPolicies(
-        namer=KeyNamer(),
-        magic=ChooseMagicBlockMinId(),
-        routing=ShortestPathGatherRouting(),
-        native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
+    # # ── Stage 2 : Build hardware ──────────────────────────────────────────────
+    # # make_hardware handles both grid and ring topologies, choosing the minimum
+    # # number of blocks required for the requested fill rate.
+    # hw, hw_spec = make_hardware(
+    #     n_logicals,
+    #     topology=topology,
+    #     sparse_pct=sparse_pct,
+    #     n_data=n_data,
+    #     coupler_capacity=coupler_cap,
+    # )
+    # print(f"[hardware]  {hw_spec.label()}"
+    #       f"  topology={topology}"
+    #       f"  sparse_pct={sparse_pct:.0%}"
+    #       f"  n_data={n_data}")
+
+    # # ── Stage 3 : Mapping ─────────────────────────────────────────────────────
+    # map_cfg     = MappingConfig(seed=seed, sa_steps=sa_steps, sa_t0=sa_t0, sa_tend=sa_tend)
+    # map_problem = MappingProblem(n_logicals=n_logicals)
+    # mapper      = get_mapper(mapper_name)
+    # plan        = mapper.solve(map_problem, hw, map_cfg, {
+    #     "rotations": conv.program.rotations,
+    #     "verbose":   False,
+    #     "debug":     False,
+    # })
+    # print(f"[mapping]   {mapper_name}  →  cost={plan.meta.get('cost', '?')}")
+
+    # # ── Stage 4 : Lowering policies ───────────────────────────────────────────
+    # policies = LoweringPolicies(
+    #     namer=KeyNamer(),
+    #     magic=ChooseMagicBlockMinId(),
+    #     routing=ShortestPathGatherRouting(),
+    #     native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
+    # )
+
+    # # ── Stage 5 : Execution state ─────────────────────────────────────────────
+    # # effective_rotations tracks frame-corrected rotations across layers.
+    # effective_rotations: Dict[int, PauliRotation] = {
+    #     r.idx: r for r in conv.program.rotations
+    # }
+    # frame    = FrameState()
+    # executor = LayerExecutor(
+    #     outcome_model=RandomOutcomeModel(seed=seed),
+    #     frame_policy=FrameUpdatePolicy(),
+    # )
+
+    # circuit_profile = collect_circuit_profile(
+    #     n_logicals=n_logicals,
+    #     layers=conv.layers,
+    #     rotations=effective_rotations,
+    #     hw=hw,
+    #     plan=plan,
+    # )
+    # layer_profiles: List[LayerProfile] = []
+    # total_depth: int = 0
+
+    # # ── Stage 6 : Main pipeline loop (lower → schedule → execute) ────────────
+    # print(f"[pipeline]  scheduler={sched_name}  layers={len(conv.layers)}")
+
+    # for layer_id, layer in enumerate(conv.layers):
+
+    #     # 6a. Lowering: PBC layer → operation DAG
+    #     res = lower_one_layer(
+    #         layer_idx=layer_id,
+    #         rotations=effective_rotations,
+    #         rotation_indices=layer,
+    #         hw=hw,
+    #         policies=policies,
+    #     )
+
+    #     # 6b. Scheduling: assign time-steps to DAG nodes
+    #     sched        = get_scheduler(sched_name)
+    #     sched_problem = SchedulingProblem(
+    #         dag=res.dag,
+    #         hw=hw,
+    #         seed=seed,
+    #         policy_name="incident_coupler_blocks_local",
+    #         meta={
+    #             "start_time":        0,
+    #             "layer_idx":         layer_id,
+    #             "tie_breaker":       "duration",
+    #             "cp_sat_time_limit": cp_sat_time_limit,
+    #             "debug_decode":      False,
+    #             "safe_fill":         True,
+    #             "cp_sat_log":        False,
+    #         },
+    #     )
+    #     S = sched.solve(sched_problem)
+
+    #     # 6c. Execution: apply Clifford frame, propagate corrected rotations
+    #     next_idxs = conv.layers[layer_id + 1] if (layer_id + 1) in conv.layers else []
+    #     rot_next  = [effective_rotations[i] for i in next_idxs]
+    #     ex = executor.execute_layer(
+    #         layer=layer_id,
+    #         dag=res.dag,
+    #         schedule=S,
+    #         frame_in=frame,
+    #         next_layer_rotations=rot_next,
+    #     )
+    #     for r in ex.next_rotations_effective:
+    #         effective_rotations[r.idx] = r
+    #     frame = ex.frame_after
+
+    #     lp = collect_layer_profile(
+    #         layer_id=layer_id,
+    #         rotation_indices=layer,
+    #         effective_rotations=effective_rotations,
+    #         res=res,
+    #         S=S,
+    #         ex=ex,
+    #         hw=hw,
+    #         plan=plan,
+    #     )
+    #     layer_profiles.append(lp)
+    #     total_depth += ex.depth
+
+    # # ── Circuit summary ───────────────────────────────────────────────────────
+    # n_layers = circuit_profile.n_layers
+    # sep = "─" * 68
+    # print(f"\n{'='*72}")
+    # print(f"  Circuit summary"
+    #       f"  [{mapper_name}  +  {sched_name}  |  {hw_spec.label()}]")
+    # print(f"  {sep}")
+    # print(f"  Layers            {n_layers}")
+    # print(f"  Total rotations   {circuit_profile.n_rotations_total}")
+    # print(f"  Total depth       {total_depth}")
+    # print(f"  Avg depth/layer   {total_depth / max(n_layers, 1):.1f}")
+    # print(f"  Total rewrites    {sum(lp.n_rewrites        for lp in layer_profiles)}")
+    # print(f"  Support changes   {sum(lp.n_support_changes for lp in layer_profiles)}")
+    # print(f"  Angle flips       {sum(lp.n_angle_flips     for lp in layer_profiles)}")
+    print(f"{'='*72}\n")
+
+    # # ── Single-circuit figures (Fig 1–6) ──────────────────────────────────────
+    fig_dir = pathlib.Path(pbc_path).parent.parent / "figures"
+    print(f"Saving figures to: {fig_dir}/")
+
+    # for fig, name in [
+    #     (plot_circuit_character(circuit_profile, layer_profiles,
+    #         save_path=str(fig_dir / "fig_01_circuit_character.png")),
+    #      "fig_01_circuit_character.png"),
+    #     (plot_depth_profile(layer_profiles,
+    #         save_path=str(fig_dir / "fig_02_depth_profile.png")),
+    #      "fig_02_depth_profile.png"),
+    #     (plot_block_utilization(circuit_profile, layer_profiles,
+    #         save_path=str(fig_dir / "fig_03_block_utilization.png")),
+    #      "fig_03_block_utilization.png"),
+    #     (plot_routing_distances(layer_profiles,
+    #         save_path=str(fig_dir / "fig_04_routing_distances.png")),
+    #      "fig_04_routing_distances.png"),
+    #     (plot_frame_rewrites(layer_profiles,
+    #         save_path=str(fig_dir / "fig_05_frame_rewrites.png")),
+    #      "fig_05_frame_rewrites.png"),
+    #     (plot_parallelism_profile(layer_profiles,
+    #         save_path=str(fig_dir / "fig_06_parallelism_profile.png")),
+    #      "fig_06_parallelism_profile.png"),
+    # ]:
+    #     fig.clf()
+    #     print(f"  [done] {name}")
+
+    # if not run_experiments:
+    #     return
+
+    from modqldpc.pipeline.experiment import (
+        run_algo_comparison,
+        run_sparse_dense_comparison,
+        run_topology_gallery,
     )
-    total_depth: int = 0
 
-    for layer_id, layer in enumerate(conv.layers):
-        res = lower_one_layer(
-            layer_idx=layer_id,
-            rotations=conv.program.rotations,
-            rotation_indices=layer,
-            hw=hw,
-            policies=base_policies,
-        )
-        # dot_str = dag_to_dot(res.dag)
-        # print(dot_str)
-        # sched = get_scheduler("sa_scheduler")
-        sched = get_scheduler("cp_sat")
-        # sched = get_scheduler("sequential_scheduler")
-        problem = SchedulingProblem(
-            dag=res.dag,
-            hw=hw,
-            seed=0,
-            policy_name="incident_coupler_blocks_local",
-            meta={
-                "start_time": 0, 
-                "tie_breaker": "duration", 
-                "sa_iterations": 0, 
-                "sa_initial_temp": 10.0, 
-                "sa_cooling_rate": 0.95, 
-                "sa_neighbor": "mixed", 
-                "debug_decode": False
-            },
-        )
-        S = sched.solve(problem)
+    # # ── Fig 8 : Algorithm comparison (3 mappers × 3 schedulers) ──────────────
+    # print("\nRunning algorithm comparison (9 combos) ...")
+    run_algo_comparison(
+        pbc_path, str(fig_dir),
+        n_logicals=n_logicals,
+        seed=seed,
+        sparse_pct=0.5,
+        verbose=True,
+    )
 
-        next_idxs = conv.layers[layer_id+1] if (layer_id+1) in conv.layers else []
-        rot_next = [conv.program.rotations[i] for i in next_idxs]
-        executor = LayerExecutor(
-            outcome_model=RandomOutcomeModel(seed=42),
-            frame_policy=FrameUpdatePolicy(),
-        )
+    # ── Fig 9 : Sparse vs dense hardware comparison ───────────────────────────
+    # print("\nRunning sparse vs dense hardware comparison ...")
+    # run_sparse_dense_comparison(
+    #     pbc_path, str(fig_dir),
+    #     n_logicals=n_logicals,
+    #     mapper_name=exp_mapper,
+    #     sched_name=exp_scheduler,
+    #     sparse_pct=exp_sparse_pct,
+    #     seed=seed,
+    #     verbose=True,
+    # )
 
-        frame = FrameState()  # empty at start
-        ex = executor.execute_layer(
-            layer=layer_id,
-            dag=res.dag,
-            schedule=S,
-            frame_in=frame,
-            next_layer_rotations=rot_next,
-        )
-
-        # ex0.next_rotations_effective is your "actual next layer" after updates
-        # print("changed:", len(ex.rewrite_log))
-        # print(ex0.rewrite_log)
-        # print(ex0.events)
-        # print("depth:", ex0.depth)
-        total_depth += ex.depth
-        break
-
-        # conv.print_layers()
-
-        # trace.event("run_done")
-    print("Total depth:", total_depth)
+    # # ── Fig 10 : Hardware topology gallery (grid/ring × dense/sparse) ─────────
+    # print("\nBuilding hardware topology gallery ...")
+    # run_topology_gallery(
+    #     str(fig_dir),
+    #     n_logicals=n_logicals,
+    #     sparse_pct=exp_sparse_pct,
+    #     n_data=n_data,
+    #     verbose=True,
+    # )
