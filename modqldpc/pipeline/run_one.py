@@ -6,34 +6,29 @@ import importlib.util
 import os
 import random
 import sys
-from typing import Callable, Dict, List
+from typing import Dict, List
 from modqldpc.core.artifacts import ArtifactStore
 from modqldpc.core.trace import Trace
 from modqldpc.core.types import PipelineConfig
 from modqldpc.frontend.extract_pauli import GoSCConverter
 from modqldpc.frontend.qasm_reader import QiskitCircuitHandler
 from modqldpc.mapping.mapper import MappingConfig, MappingProblem, get_mapper
-from modqldpc.mapping.hardware_gen import make_hardware, HardwareSpec
-from modqldpc.mapping.model import GraphFactory, RingTopology
+from modqldpc.mapping.hardware_gen import make_hardware
 from modqldpc.lowering.keys import KeyNamer
 from modqldpc.lowering.policy import (
     HeuristicRepeatNativePolicy,
     LoweringPolicies,
     ChooseMagicBlockMinId,
     ShortestPathGatherRouting,
-    NativeAllPaulisForNow,
-    MagicPlacementPolicy,
     NativeCostFn,
 )
 from modqldpc.lowering.lower_layer import lower_one_layer
-from modqldpc.core.types import PauliAxis, PauliRotation  # your dataclasses
-from modqldpc.lowering.visualize import dag_to_dot
+from modqldpc.core.types import PauliRotation
 from modqldpc.runtime.frame_policy import FrameState, FrameUpdatePolicy
 from modqldpc.runtime.layer_exec import LayerExecutor
 from modqldpc.runtime.outcomes import RandomOutcomeModel
 from modqldpc.scheduling.factory import get_scheduler
 from modqldpc.scheduling.types import SchedulingProblem
-from modqldpc.scheduling.validate import validate_schedule
 from modqldpc.pipeline.profiling import (
     CircuitProfile, LayerProfile,
     collect_circuit_profile, collect_layer_profile,
@@ -139,119 +134,57 @@ def make_gross_actual_cost_fn(plan, base_dir: str = _ROTATION_SYNCH_DIR, n_data:
     return cost_fn
 
 
-def run_one(qasm_path: str, cfg: PipelineConfig) -> str:
+def run_one(path: str, cfg: PipelineConfig, meta: dict | None = None) -> str:
+    meta = meta or {}
+    if meta.get("compiled", False):
+        run_one_compiled(pbc_path=path, cfg=cfg, meta=meta)
+        return path
+
+    qasm_path = path
+
+    # ── Setup ─────────────────────────────────────────────────────────────────
     run_dir = ArtifactStore.make_run_dir(tag=f"{cfg.run_tag}__seed{cfg.seed}")
-    store = ArtifactStore(run_dir)
-    trace = Trace(f"{run_dir}/trace.ndjson")
+    store   = ArtifactStore(run_dir)
+    trace   = Trace(f"{run_dir}/trace.ndjson")
 
     trace.event("run_start", qasm_path=qasm_path, seed=cfg.seed, run_tag=cfg.run_tag)
     store.put_json("config.json", cfg)
-
     store.copy_in(qasm_path, "input.qasm")
     trace.event("artifact_written", name="input.qasm")
 
-    # Stage 1: QASM -> CircuitIR
-    qc_handler = QiskitCircuitHandler()
-    qc, num_logicals = qc_handler.load_and_transpile(path=qasm_path, demo=False)
+    # ── Stage 1 : QASM → CircuitIR ───────────────────────────────────────────
+    qc_handler     = QiskitCircuitHandler()
+    qc, n_logicals = qc_handler.load_and_transpile(path=qasm_path, demo=False)
+
     cnt = Counter(inst.operation.name for inst in qc.data)
-    print("t:", cnt["t"], "tdg:", cnt["tdg"], "total T-like:", cnt["t"]+cnt["tdg"])
-    print(cnt)
-    # print(qc_handler.gate_histogram(qc))
-    conv = GoSCConverter(verbose=False)
+    print(f"[frontend]  qubits={qc.num_qubits}  clbits={qc.num_clbits}"
+          f"  T={cnt['t']}  Tdg={cnt['tdg']}  T-like={cnt['t'] + cnt['tdg']}")
+
+    conv    = GoSCConverter(verbose=False)
     program = conv.convert(qc=qc)
-    layers = conv.greedy_layering()
-    # conv.print_rotations()
-    # conv.print_measurements()
-    conv.print_layers()
+    _       = conv.greedy_layering()
 
-    compact = True #will come from configs
-    if compact == True:
-        payload = conv.to_compact_payload()
-        store.put_json("stage_frontend/PBC.json", payload)
-    else:
-        payload = conv.to_cache_payload()
-        store.put_json("stage_frontend/PBC.json", payload)
-    # conv.save_cache_json(abspath, compact=True)
-    # store.put_json("stage_frontend/PBC.json", conv.to_cache_payload())
-    trace.event("stage_frontend_done", n_qubits=num_logicals, n_rots=len(program.rotations))
+    print(f"[frontend]  n_logicals={n_logicals}"
+          f"  layers={len(conv.layers)}"
+          f"  rotations={len(program.rotations)}")
+    # conv.print_layers()
 
-    # hw = GraphFactory().build(topology=GridTopology(2,2), block_ids=[1,2,3,4], coupler_capacity=1)
-    hw = GraphFactory().build(topology=RingTopology(), block_ids=[1,2,3,4,5], coupler_capacity=1)
-    print(qc.num_qubits)
-    print(qc.num_clbits)
-    problem = MappingProblem(n_logicals=num_logicals) 
-    cfg = MappingConfig(seed=123, sa_steps=10000, sa_t0=1e5, sa_tend=0.05)
-    mapper = get_mapper("simulated_annealing")
-    plan = mapper.solve(problem, hw, cfg, {
-        "rotations": conv.program.rotations,
-        "verbose": True, 
-        "debug": True,
-    })
-    # print(plan.meta)
+    # ── Stage 2 : Save PBC JSON ───────────────────────────────────────────────
+    compact  = bool(meta.get("compact", True))
+    payload  = conv.to_compact_payload() if compact else conv.to_cache_payload()
+    pbc_rel  = "stage_frontend/PBC.json"
+    store.put_json(pbc_rel, payload)
+    pbc_path = str(pathlib.Path(run_dir) / pbc_rel)
+    trace.event("stage_frontend_done",
+                n_qubits=n_logicals,
+                n_rots=len(program.rotations),
+                compact=compact,
+                pbc_path=pbc_path)
+    print(f"[frontend]  PBC saved → {pbc_path}")
 
-    base_policies = LoweringPolicies(
-        namer=KeyNamer(),
-        magic=ChooseMagicBlockMinId(),
-        routing=ShortestPathGatherRouting(),
-        native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
-    )
-
-    total_depth: int = 0
-    effective_rotations: Dict[int, PauliRotation] = {r.idx: r for r in conv.program.rotations}
-    frame = FrameState()
-    executor = LayerExecutor(
-        outcome_model=RandomOutcomeModel(seed=42),
-        frame_policy=FrameUpdatePolicy(),
-    )
-    trace.event("lowering_start")
-    for layer_id, layer in enumerate(conv.layers):
-        res = lower_one_layer(
-            layer_idx=layer_id,
-            rotations=effective_rotations,
-            rotation_indices=layer,
-            hw=hw,
-            policies=base_policies,
-        )
-        # dot_str = dag_to_dot(res.dag)
-        # print(dot_str)
-        # sched = get_scheduler("sa_scheduler")
-        # sched = get_scheduler("sequential_scheduler")
-        sched = get_scheduler("cp_sat")
-        problem = SchedulingProblem(
-            dag=res.dag,
-            hw=hw,
-            seed=0,
-            policy_name="incident_coupler_blocks_local",
-            meta={"start_time": 0, "tie_breaker": "duration", "sa_iterations": 0, "sa_initial_temp": 10.0, "sa_cooling_rate": 0.95, "sa_neighbor": "mixed"},
-        )
-        S = sched.solve(problem)
-
-        next_idxs = conv.layers[layer_id+1] if (layer_id+1) in conv.layers else []
-        rot_next = [effective_rotations[i] for i in next_idxs]
-        ex = executor.execute_layer(
-            layer=layer_id,
-            dag=res.dag,
-            schedule=S,
-            frame_in=frame,
-            next_layer_rotations=rot_next,
-        )
-
-        for r in ex.next_rotations_effective:
-            effective_rotations[r.idx] = r
-        frame = ex.frame_after
-
-        # print("changed:", len(ex.rewrite_log))
-        # print(ex.rewrite_log)
-        # print(ex.events)
-        # print("depth:", ex.depth)
-        trace.event("layer_executed", layer_id=layer_id, depth=ex.depth, num_rewrites=len(ex.rewrite_log), sched='sequential_scheduler')
-        total_depth += ex.depth
-
-        # conv.print_layers()
-
-        # trace.event("run_done")
-    trace.event("run_done", total_depth=total_depth)
-    return "run_dir"
+    # ── Stages 3–8 : delegate to compiled pipeline ───────────────────────────
+    run_one_compiled(pbc_path=pbc_path, cfg=cfg, meta=meta)
+    return run_dir
 
 
 def run_one_compiled(
@@ -308,7 +241,7 @@ def run_one_compiled(
     sa_t0             = float(meta.get("sa_t0",            1e5))
     sa_tend           = float(meta.get("sa_tend",          1.1))
     cp_sat_time_limit = float(meta.get("cp_sat_time_limit", 120.0))
-    run_experiments   = bool(meta.get("run_experiments",   True))
+    run_experiments   = bool(meta.get("run_experiments",   False))
     exp_sparse_pct    = float(meta.get("exp_sparse_pct",   0.7))
     exp_mapper        = str(meta.get("exp_mapper",        "simulated_annealing"))
     exp_scheduler     = str(meta.get("exp_scheduler",     "greedy_critical"))
@@ -323,170 +256,170 @@ def run_one_compiled(
     pauli_str  = first_rot.axis.to_label().lstrip("+-")
     n_logicals = len(pauli_str)
 
-    # print(f"[frontend]  n_logicals={n_logicals}"
-    #       f"  layers={len(conv.layers)}"
-    #       f"  rotations={len(conv.program.rotations)}")
+    print(f"[frontend]  n_logicals={n_logicals}"
+          f"  layers={len(conv.layers)}"
+          f"  rotations={len(conv.program.rotations)}")
 
     # # ── Stage 2 : Build hardware ──────────────────────────────────────────────
     # # make_hardware handles both grid and ring topologies, choosing the minimum
     # # number of blocks required for the requested fill rate.
-    # hw, hw_spec = make_hardware(
-    #     n_logicals,
-    #     topology=topology,
-    #     sparse_pct=sparse_pct,
-    #     n_data=n_data,
-    #     coupler_capacity=coupler_cap,
-    # )
-    # print(f"[hardware]  {hw_spec.label()}"
-    #       f"  topology={topology}"
-    #       f"  sparse_pct={sparse_pct:.0%}"
-    #       f"  n_data={n_data}")
+    hw, hw_spec = make_hardware(
+        n_logicals,
+        topology=topology,
+        sparse_pct=sparse_pct,
+        n_data=n_data,
+        coupler_capacity=coupler_cap,
+    )
+    print(f"[hardware]  {hw_spec.label()}"
+          f"  topology={topology}"
+          f"  sparse_pct={sparse_pct:.0%}"
+          f"  n_data={n_data}")
 
     # # ── Stage 3 : Mapping ─────────────────────────────────────────────────────
-    # map_cfg     = MappingConfig(seed=seed, sa_steps=sa_steps, sa_t0=sa_t0, sa_tend=sa_tend)
-    # map_problem = MappingProblem(n_logicals=n_logicals)
-    # mapper      = get_mapper(mapper_name)
-    # plan        = mapper.solve(map_problem, hw, map_cfg, {
-    #     "rotations": conv.program.rotations,
-    #     "verbose":   False,
-    #     "debug":     False,
-    # })
-    # print(f"[mapping]   {mapper_name}  →  cost={plan.meta.get('cost', '?')}")
+    map_cfg     = MappingConfig(seed=seed, sa_steps=sa_steps, sa_t0=sa_t0, sa_tend=sa_tend)
+    map_problem = MappingProblem(n_logicals=n_logicals)
+    mapper      = get_mapper(mapper_name)
+    plan        = mapper.solve(map_problem, hw, map_cfg, {
+        "rotations": conv.program.rotations,
+        "verbose":   False,
+        "debug":     False,
+    })
+    print(f"[mapping]   {mapper_name}  →  cost={plan.meta.get('cost', '?')}")
 
     # # ── Stage 4 : Lowering policies ───────────────────────────────────────────
-    # policies = LoweringPolicies(
-    #     namer=KeyNamer(),
-    #     magic=ChooseMagicBlockMinId(),
-    #     routing=ShortestPathGatherRouting(),
-    #     native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
-    # )
+    policies = LoweringPolicies(
+        namer=KeyNamer(),
+        magic=ChooseMagicBlockMinId(),
+        routing=ShortestPathGatherRouting(),
+        native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
+    )
 
     # # ── Stage 5 : Execution state ─────────────────────────────────────────────
     # # effective_rotations tracks frame-corrected rotations across layers.
-    # effective_rotations: Dict[int, PauliRotation] = {
-    #     r.idx: r for r in conv.program.rotations
-    # }
-    # frame    = FrameState()
-    # executor = LayerExecutor(
-    #     outcome_model=RandomOutcomeModel(seed=seed),
-    #     frame_policy=FrameUpdatePolicy(),
-    # )
+    effective_rotations: Dict[int, PauliRotation] = {
+        r.idx: r for r in conv.program.rotations
+    }
+    frame    = FrameState()
+    executor = LayerExecutor(
+        outcome_model=RandomOutcomeModel(seed=seed),
+        frame_policy=FrameUpdatePolicy(),
+    )
 
-    # circuit_profile = collect_circuit_profile(
-    #     n_logicals=n_logicals,
-    #     layers=conv.layers,
-    #     rotations=effective_rotations,
-    #     hw=hw,
-    #     plan=plan,
-    # )
-    # layer_profiles: List[LayerProfile] = []
-    # total_depth: int = 0
+    circuit_profile = collect_circuit_profile(
+        n_logicals=n_logicals,
+        layers=conv.layers,
+        rotations=effective_rotations,
+        hw=hw,
+        plan=plan,
+    )
+    layer_profiles: List[LayerProfile] = []
+    total_depth: int = 0
 
     # # ── Stage 6 : Main pipeline loop (lower → schedule → execute) ────────────
-    # print(f"[pipeline]  scheduler={sched_name}  layers={len(conv.layers)}")
+    print(f"[pipeline]  scheduler={sched_name}  layers={len(conv.layers)}")
 
-    # for layer_id, layer in enumerate(conv.layers):
+    for layer_id, layer in enumerate(conv.layers):
 
-    #     # 6a. Lowering: PBC layer → operation DAG
-    #     res = lower_one_layer(
-    #         layer_idx=layer_id,
-    #         rotations=effective_rotations,
-    #         rotation_indices=layer,
-    #         hw=hw,
-    #         policies=policies,
-    #     )
+        # 6a. Lowering: PBC layer → operation DAG
+        res = lower_one_layer(
+            layer_idx=layer_id,
+            rotations=effective_rotations,
+            rotation_indices=layer,
+            hw=hw,
+            policies=policies,
+        )
 
-    #     # 6b. Scheduling: assign time-steps to DAG nodes
-    #     sched        = get_scheduler(sched_name)
-    #     sched_problem = SchedulingProblem(
-    #         dag=res.dag,
-    #         hw=hw,
-    #         seed=seed,
-    #         policy_name="incident_coupler_blocks_local",
-    #         meta={
-    #             "start_time":        0,
-    #             "layer_idx":         layer_id,
-    #             "tie_breaker":       "duration",
-    #             "cp_sat_time_limit": cp_sat_time_limit,
-    #             "debug_decode":      False,
-    #             "safe_fill":         True,
-    #             "cp_sat_log":        False,
-    #         },
-    #     )
-    #     S = sched.solve(sched_problem)
+        # 6b. Scheduling: assign time-steps to DAG nodes
+        sched        = get_scheduler(sched_name)
+        sched_problem = SchedulingProblem(
+            dag=res.dag,
+            hw=hw,
+            seed=seed,
+            policy_name="incident_coupler_blocks_local",
+            meta={
+                "start_time":        0,
+                "layer_idx":         layer_id,
+                "tie_breaker":       "duration",
+                "cp_sat_time_limit": cp_sat_time_limit,
+                "debug_decode":      False,
+                "safe_fill":         True,
+                "cp_sat_log":        False,
+            },
+        )
+        S = sched.solve(sched_problem)
 
-    #     # 6c. Execution: apply Clifford frame, propagate corrected rotations
-    #     next_idxs = conv.layers[layer_id + 1] if (layer_id + 1) in conv.layers else []
-    #     rot_next  = [effective_rotations[i] for i in next_idxs]
-    #     ex = executor.execute_layer(
-    #         layer=layer_id,
-    #         dag=res.dag,
-    #         schedule=S,
-    #         frame_in=frame,
-    #         next_layer_rotations=rot_next,
-    #     )
-    #     for r in ex.next_rotations_effective:
-    #         effective_rotations[r.idx] = r
-    #     frame = ex.frame_after
+        # 6c. Execution: apply Clifford frame, propagate corrected rotations
+        next_idxs = conv.layers[layer_id + 1] if (layer_id + 1) in conv.layers else []
+        rot_next  = [effective_rotations[i] for i in next_idxs]
+        ex = executor.execute_layer(
+            layer=layer_id,
+            dag=res.dag,
+            schedule=S,
+            frame_in=frame,
+            next_layer_rotations=rot_next,
+        )
+        for r in ex.next_rotations_effective:
+            effective_rotations[r.idx] = r
+        frame = ex.frame_after
 
-    #     lp = collect_layer_profile(
-    #         layer_id=layer_id,
-    #         rotation_indices=layer,
-    #         effective_rotations=effective_rotations,
-    #         res=res,
-    #         S=S,
-    #         ex=ex,
-    #         hw=hw,
-    #         plan=plan,
-    #     )
-    #     layer_profiles.append(lp)
-    #     total_depth += ex.depth
+        lp = collect_layer_profile(
+            layer_id=layer_id,
+            rotation_indices=layer,
+            effective_rotations=effective_rotations,
+            res=res,
+            S=S,
+            ex=ex,
+            hw=hw,
+            plan=plan,
+        )
+        layer_profiles.append(lp)
+        total_depth += ex.depth
 
-    # # ── Circuit summary ───────────────────────────────────────────────────────
-    # n_layers = circuit_profile.n_layers
-    # sep = "─" * 68
-    # print(f"\n{'='*72}")
-    # print(f"  Circuit summary"
-    #       f"  [{mapper_name}  +  {sched_name}  |  {hw_spec.label()}]")
-    # print(f"  {sep}")
-    # print(f"  Layers            {n_layers}")
-    # print(f"  Total rotations   {circuit_profile.n_rotations_total}")
-    # print(f"  Total depth       {total_depth}")
-    # print(f"  Avg depth/layer   {total_depth / max(n_layers, 1):.1f}")
-    # print(f"  Total rewrites    {sum(lp.n_rewrites        for lp in layer_profiles)}")
-    # print(f"  Support changes   {sum(lp.n_support_changes for lp in layer_profiles)}")
-    # print(f"  Angle flips       {sum(lp.n_angle_flips     for lp in layer_profiles)}")
+    # ── Circuit summary ───────────────────────────────────────────────────────
+    n_layers = circuit_profile.n_layers
+    sep = "─" * 68
+    print(f"\n{'='*72}")
+    print(f"  Circuit summary"
+          f"  [{mapper_name}  +  {sched_name}  |  {hw_spec.label()}]")
+    print(f"  {sep}")
+    print(f"  Layers            {n_layers}")
+    print(f"  Total rotations   {circuit_profile.n_rotations_total}")
+    print(f"  Total depth       {total_depth}")
+    print(f"  Avg depth/layer   {total_depth / max(n_layers, 1):.1f}")
+    print(f"  Total rewrites    {sum(lp.n_rewrites        for lp in layer_profiles)}")
+    print(f"  Support changes   {sum(lp.n_support_changes for lp in layer_profiles)}")
+    print(f"  Angle flips       {sum(lp.n_angle_flips     for lp in layer_profiles)}")
     print(f"{'='*72}\n")
 
     # # ── Single-circuit figures (Fig 1–6) ──────────────────────────────────────
     fig_dir = pathlib.Path(pbc_path).parent.parent / "figures"
     print(f"Saving figures to: {fig_dir}/")
 
-    # for fig, name in [
-    #     (plot_circuit_character(circuit_profile, layer_profiles,
-    #         save_path=str(fig_dir / "fig_01_circuit_character.png")),
-    #      "fig_01_circuit_character.png"),
-    #     (plot_depth_profile(layer_profiles,
-    #         save_path=str(fig_dir / "fig_02_depth_profile.png")),
-    #      "fig_02_depth_profile.png"),
-    #     (plot_block_utilization(circuit_profile, layer_profiles,
-    #         save_path=str(fig_dir / "fig_03_block_utilization.png")),
-    #      "fig_03_block_utilization.png"),
-    #     (plot_routing_distances(layer_profiles,
-    #         save_path=str(fig_dir / "fig_04_routing_distances.png")),
-    #      "fig_04_routing_distances.png"),
-    #     (plot_frame_rewrites(layer_profiles,
-    #         save_path=str(fig_dir / "fig_05_frame_rewrites.png")),
-    #      "fig_05_frame_rewrites.png"),
-    #     (plot_parallelism_profile(layer_profiles,
-    #         save_path=str(fig_dir / "fig_06_parallelism_profile.png")),
-    #      "fig_06_parallelism_profile.png"),
-    # ]:
-    #     fig.clf()
-    #     print(f"  [done] {name}")
+    for fig, name in [
+        (plot_circuit_character(circuit_profile, layer_profiles,
+            save_path=str(fig_dir / "fig_01_circuit_character.png")),
+         "fig_01_circuit_character.png"),
+        (plot_depth_profile(layer_profiles,
+            save_path=str(fig_dir / "fig_02_depth_profile.png")),
+         "fig_02_depth_profile.png"),
+        (plot_block_utilization(circuit_profile, layer_profiles,
+            save_path=str(fig_dir / "fig_03_block_utilization.png")),
+         "fig_03_block_utilization.png"),
+        (plot_routing_distances(layer_profiles,
+            save_path=str(fig_dir / "fig_04_routing_distances.png")),
+         "fig_04_routing_distances.png"),
+        (plot_frame_rewrites(layer_profiles,
+            save_path=str(fig_dir / "fig_05_frame_rewrites.png")),
+         "fig_05_frame_rewrites.png"),
+        (plot_parallelism_profile(layer_profiles,
+            save_path=str(fig_dir / "fig_06_parallelism_profile.png")),
+         "fig_06_parallelism_profile.png"),
+    ]:
+        fig.clf()
+        print(f"  [done] {name}")
 
-    # if not run_experiments:
-    #     return
+    if not run_experiments:
+        return
 
     from modqldpc.pipeline.experiment import (
         run_algo_comparison,
@@ -505,23 +438,23 @@ def run_one_compiled(
     )
 
     # ── Fig 9 : Sparse vs dense hardware comparison ───────────────────────────
-    # print("\nRunning sparse vs dense hardware comparison ...")
-    # run_sparse_dense_comparison(
-    #     pbc_path, str(fig_dir),
-    #     n_logicals=n_logicals,
-    #     mapper_name=exp_mapper,
-    #     sched_name=exp_scheduler,
-    #     sparse_pct=exp_sparse_pct,
-    #     seed=seed,
-    #     verbose=True,
-    # )
+    print("\nRunning sparse vs dense hardware comparison ...")
+    run_sparse_dense_comparison(
+        pbc_path, str(fig_dir),
+        n_logicals=n_logicals,
+        mapper_name=exp_mapper,
+        sched_name=exp_scheduler,
+        sparse_pct=exp_sparse_pct,
+        seed=seed,
+        verbose=True,
+    )
 
     # # ── Fig 10 : Hardware topology gallery (grid/ring × dense/sparse) ─────────
-    # print("\nBuilding hardware topology gallery ...")
-    # run_topology_gallery(
-    #     str(fig_dir),
-    #     n_logicals=n_logicals,
-    #     sparse_pct=exp_sparse_pct,
-    #     n_data=n_data,
-    #     verbose=True,
-    # )
+    print("\nBuilding hardware topology gallery ...")
+    run_topology_gallery(
+        str(fig_dir),
+        n_logicals=n_logicals,
+        sparse_pct=exp_sparse_pct,
+        n_data=n_data,
+        verbose=True,
+    )

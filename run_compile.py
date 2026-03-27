@@ -10,7 +10,7 @@ Usage:
 import argparse
 
 from modqldpc.core.types import PipelineConfig
-from modqldpc.pipeline.run_one import run_one_compiled
+from modqldpc.pipeline.run_one import run_one
 
 # ── Default meta knobs ────────────────────────────────────────────────────────
 # All keys are optional; unrecognised keys are silently ignored.
@@ -35,6 +35,7 @@ META: dict = {
     "cp_sat_time_limit": 120.0,    # CP-SAT per-layer budget in seconds
 
     # ── Experiment flags (Fig 8 / 9 / 10) ────────────────────────────────────
+    "compiled":          True,      # set False to run from QASM instead
     "run_experiments":   True,     # set False to skip Fig 8/9/10 (faster)
     "exp_sparse_pct":    0.7,      # sparsity used in Fig 9 sparse-vs-dense run
     "exp_mapper":        "simulated_annealing",   # mapper used in Fig 9
@@ -48,7 +49,7 @@ PBC_PATHS: dict[str, str] = {
     "test_rotations": "runs/test-rotations/PBC.json",
 }
 
-ACTIVE_RUN = "rand_50q_1kt"   # ← change this to switch circuits
+ACTIVE_RUN = "randon_10_100t"   # ← change this to switch circuits
 
 
 def _parse_args() -> dict:
@@ -64,6 +65,7 @@ def _parse_args() -> dict:
     parser.add_argument("--pbc",              default=None,
                         help="Override PBC path (overrides ACTIVE_RUN)")
     parser.add_argument("--seed",             type=int,   default=None)
+    parser.add_argument("--tag",              type=str,   default="tag")
     parser.add_argument("--topology",         default=None, choices=["grid", "ring"])
     parser.add_argument("--sparse_pct",       type=float, default=None)
     parser.add_argument("--n_data",           type=int,   default=None)
@@ -74,6 +76,8 @@ def _parse_args() -> dict:
     parser.add_argument("--sa_steps",         type=int,   default=None)
     parser.add_argument("--sa_t0",            type=float, default=None)
     parser.add_argument("--sa_tend",          type=float, default=None)
+    parser.add_argument("--compiled",         type=lambda x: x.lower() != "false",
+                        default=None, metavar="true|false")
     parser.add_argument("--run_experiments",  type=lambda x: x.lower() != "false",
                         default=None, metavar="true|false")
     parser.add_argument("--exp_sparse_pct",   type=float, default=None)
@@ -93,8 +97,9 @@ if __name__ == "__main__":
 
     # Resolve PBC path
     pbc_path = pbc_override or PBC_PATHS[ACTIVE_RUN]
+    tag = meta.get("tag", ACTIVE_RUN)
 
-    cfg = PipelineConfig(seed=meta.get("seed", 42), run_tag=ACTIVE_RUN)
+    cfg = PipelineConfig(seed=meta.get("seed", 42), run_tag=tag)
 
     print(f"PBC path   : {pbc_path}")
     print(f"Topology   : {meta['topology']}  sparse_pct={meta['sparse_pct']:.0%}")
@@ -103,4 +108,4 @@ if __name__ == "__main__":
     print(f"Experiments: {meta['run_experiments']}")
     print()
 
-    run_one_compiled(pbc_path=pbc_path, cfg=cfg, meta=meta)
+    run_one(pbc_path, cfg=cfg, meta=meta)

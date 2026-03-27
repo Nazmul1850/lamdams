@@ -1,0 +1,2 @@
+{"ts": "2026-03-24T19:53:38.038052+00:00", "t": "run_start", "qasm_path": "./circuits/Test/qft_20.qasm", "seed": 42, "run_tag": "qft20"}
+{"ts": "2026-03-24T19:53:38.053713+00:00", "t": "artifact_written", "name": "input.qasm"}
