@@ -171,7 +171,7 @@ class LayerExecutor:
         rewrite_log: List[AxisRewriteLog] = []
         next_eff: List[PauliRotation] = []
         for r in next_layer_rotations:
-            Q = PauliAxis(sign=1 if r.angle>=0 else -1, tensor=r.axis.to_label())
+            Q = PauliAxis(sign=1 if r.angle>=0 else -1, tensor=r.axis.lstrip("+-"))
             ang = r.angle
             Q2, ang2, reason = self.frame_policy.rewrite_axis(Q, ang, st)
             # print(f"Before: {Q.tensor}, After: {Q2.tensor}")

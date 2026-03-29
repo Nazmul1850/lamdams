@@ -20,13 +20,12 @@ from ..model import HardwareGraph, BlockId, LogicalId, LocalId
 def _rotation_support(rot) -> Set[LogicalId]:
     """
     Return the set of logical qubit indices (0-based) where rot.axis is non-identity.
-    rot.axis is a Qiskit Pauli; .to_label() returns a string like 'IXYZ'
-    where the RIGHTMOST character is qubit 0.
+    rot.axis is a Pauli word string like 'IXYZ' where the RIGHTMOST character is qubit 0.
     """
-    word = rot.axis.to_label()
+    word = rot.axis.lstrip("+-")
     supp: Set[LogicalId] = set()
     for k, ch in enumerate(reversed(word)):
-        if ch not in ("I", "-", "+"):
+        if ch != "I":
             supp.add(k)
     return supp
 
@@ -348,7 +347,7 @@ def _score(
 
         if ENABLE_DEBUG:
             supp = _rotation_support(rot)
-            word = getattr(rot.axis, "to_label", lambda: str(rot.axis))()
+            word = rot.axis.lstrip("+-")
             debug_rows.append(RotationDebug(
                 ridx=ridx,
                 layer=getattr(rot, "layer", None),

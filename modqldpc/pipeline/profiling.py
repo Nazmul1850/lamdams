@@ -52,10 +52,7 @@ class LayerProfile:
 
 def _pauli_label(r: PauliRotation) -> str:
     """Return the bare Pauli tensor string (no sign prefix) from a PauliRotation."""
-    label = r.axis.to_label()
-    if label and label[0] in ("+", "-"):
-        label = label[1:]
-    return label
+    return r.axis.lstrip("+-")
 
 
 def collect_circuit_profile(

@@ -1,6 +1,6 @@
 from __future__ import annotations
-from collections import Counter
 import hashlib
+import math
 import pathlib
 import importlib.util
 import os
@@ -11,7 +11,7 @@ from modqldpc.core.artifacts import ArtifactStore
 from modqldpc.core.trace import Trace
 from modqldpc.core.types import PipelineConfig
 from modqldpc.frontend.extract_pauli import GoSCConverter
-from modqldpc.frontend.qasm_reader import QiskitCircuitHandler
+from modqldpc.frontend.qasm_reader import load_qasm_file
 from modqldpc.mapping.mapper import MappingConfig, MappingProblem, get_mapper
 from modqldpc.mapping.hardware_gen import make_hardware
 from modqldpc.lowering.keys import KeyNamer
@@ -152,18 +152,17 @@ def run_one(path: str, cfg: PipelineConfig, meta: dict | None = None) -> str:
     store.copy_in(qasm_path, "input.qasm")
     trace.event("artifact_written", name="input.qasm")
 
-    # ── Stage 1 : QASM → CircuitIR ───────────────────────────────────────────
-    qc_handler     = QiskitCircuitHandler()
-    qc, n_logicals = qc_handler.load_and_transpile(path=qasm_path, demo=False)
+    # ── Stage 1 : QASM → PauliProgram ────────────────────────────────────────
+    qasm_str   = load_qasm_file(qasm_path)
+    conv       = GoSCConverter(verbose=False)
+    program    = conv.convert_qasm(qasm_str)
+    n_logicals = conv.num_qubits
+    _          = conv.greedy_layering()
 
-    cnt = Counter(inst.operation.name for inst in qc.data)
-    print(f"[frontend]  qubits={qc.num_qubits}  clbits={qc.num_clbits}"
-          f"  T={cnt['t']}  Tdg={cnt['tdg']}  T-like={cnt['t'] + cnt['tdg']}")
-
-    conv    = GoSCConverter(verbose=False)
-    program = conv.convert(qc=qc)
-    _       = conv.greedy_layering()
-
+    t_count  = sum(1 for r in program.rotations if abs(r.angle) < math.pi / 2 - 1e-9)
+    p2_count = len(program.rotations) - t_count
+    print(f"[frontend]  qubits={n_logicals}"
+          f"  T-gates={t_count}  pi2-rots={p2_count}")
     print(f"[frontend]  n_logicals={n_logicals}"
           f"  layers={len(conv.layers)}"
           f"  rotations={len(program.rotations)}")
@@ -253,7 +252,7 @@ def run_one_compiled(
     # Infer n_logicals from the Pauli string length of the first rotation.
     # The string may carry a sign prefix (+/-) which is stripped before measuring.
     first_rot  = next(iter(conv.program.rotations))
-    pauli_str  = first_rot.axis.to_label().lstrip("+-")
+    pauli_str  = first_rot.axis.lstrip("+-")
     n_logicals = len(pauli_str)
 
     print(f"[frontend]  n_logicals={n_logicals}"

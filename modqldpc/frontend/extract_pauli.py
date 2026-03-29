@@ -1,469 +1,346 @@
+from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
 import json
 import math
-import os
+from fractions import Fraction
 from typing import Any, Dict, List, Optional, Set, Tuple
+
+from lsqecc.pauli_rotations.circuit import PauliOpCircuit
+from lsqecc.pauli_rotations.rotation import (
+    Measurement as LsqMeasurement,
+    PauliOperator,
+    PauliRotation as LsqRotation,
+)
+
 from modqldpc.core.types import PauliAxis, PauliMeasurement, PauliProgram, PauliRotation
-from qiskit import QuantumCircuit
-from qiskit.quantum_info import Pauli, Clifford
+from modqldpc.frontend.qasm_reader import load_qasm_file, parse_qasm
 
 
+# ── Constants ─────────────────────────────────────────────────────────────────
 
-# -----------------------------
-# Pauli-word utilities
-# -----------------------------
+_PI_OVER_2 = math.pi / 2.0
+_PI_OVER_8 = math.pi / 8.0
 
-def pauli_to_word(p: Pauli) -> str:
-    """Return a compact Pauli word like 'IXYZ' (Qiskit uses little-endian internally; we print qubit0 on the right by default)."""
-    # Qiskit Pauli str is like 'IXYZ' with leftmost = highest qubit index.
-    return p.to_label()
+
+# ── Pauli-word utilities ──────────────────────────────────────────────────────
 
 def word_support(word: str) -> Set[int]:
-    """Support indices where word != 'I'. Here index 0 is the RIGHTMOST char (qubit 0)."""
-    supp = set()
-    n = len(word)
-    for k, ch in enumerate(reversed(word)):
-        if ch != "I" and ch != "-":
-            supp.add(k)
-    return supp
+    """Indices where the Pauli word is not 'I'."""
+    return {i for i, ch in enumerate(word) if ch != "I"}
 
-def paulis_commute(p: Pauli, q: Pauli) -> bool:
-    """True if p and q commute."""
-    # Qiskit Pauli has commutes() in newer versions; fallback to symplectic check if needed.
-    try:
-        return p.commutes(q)
-    except Exception:
-        # symplectic: commute iff (x1·z2 + z1·x2) mod2 ==0
-        x1 = p.x.astype(int)
-        z1 = p.z.astype(int)
-        x2 = q.x.astype(int)
-        z2 = q.z.astype(int)
-        s = int((x1 @ z2 + z1 @ x2) % 2)
-        return s == 0
 
-def pauli_mul_up_to_phase(p: Pauli, q: Pauli) -> Pauli:
+def paulis_commute(p: str, q: str) -> bool:
     """
-    Multiply Paulis and drop the global phase (i, -1, etc.).
-    This matches the paper's "i P P'" style axis update: axis is defined up to phase.
+    True iff two Pauli word strings commute (symplectic check).
+
+    Two Pauli products commute iff the number of qubit positions where
+    they each have a non-identity operator AND those operators differ
+    (i.e. single-qubit anticommute) is even.
     """
-    r = p @ q
-    # Qiskit Pauli keeps a phase in Pauli.phase sometimes. Converting to label drops it.
-    return Pauli(r.to_label())
+    anti = sum(1 for a, b in zip(p, q) if a != "I" and b != "I" and a != b)
+    return anti % 2 == 0
 
 
-def clifford_conj_pauli(C: Clifford, P: Pauli) -> Pauli:
+# ── lsqecc ↔ modqldpc conversion helpers ─────────────────────────────────────
+
+def _lsq_word(op: LsqRotation | LsqMeasurement) -> str:
     """
-    Return C * P * C†  (Heisenberg action).
-    Works across Qiskit versions by trying Pauli.evolve frames.
+    Build a Pauli word string from an lsqecc ops_list.
+
+    lsqecc stores qubit-0 at index 0 (left to right).
+    Qiskit Pauli labels are right-to-left (qubit-0 is the rightmost character).
+    We reverse so that Pauli("IXYZ") in Qiskit matches lsqecc qubit ordering.
     """
-    # Most common API: Pauli.evolve(other, frame=...)
-    for frame in ("s", "h"):  # we'll detect which matches C P C†
-        try:
-            out = P.evolve(C, frame=frame)
-            
-            # quick self-consistency: if C is identity, output should equal input
-            # (this is always true, so it's not a strong check, but keeps us safe)
-            # print(f"Conjugation out={out.to_label()}, frame = {frame}")
-            return Pauli(out.to_label())  # drop any global phase, keep axis
-        except TypeError:
-            pass
-
-    # Older API sometimes omits the frame kwarg
-    try:
-        out = P.evolve(C)
-        # print(f"Conjugation out={out.to_label()}, no frame")
-        return Pauli(out.to_label())
-    except Exception as e:
-        raise RuntimeError(
-            "Could not conjugate Pauli by Clifford. "
-            "Your Qiskit version does not support Pauli.evolve(Clifford)."
-        ) from e
-
-def clifford_conj_pauli_adjoint(C: Clifford, P: Pauli) -> Pauli:
-    """Return C† * P * C."""
-    return clifford_conj_pauli(C.adjoint(), P)
+    return "".join(o.value for o in reversed(op.ops_list))
 
 
+def _lsq_sign(rot: LsqRotation) -> int:
+    """Return +1 if rotation_amount > 0, else -1."""
+    return 1 if rot.rotation_amount > 0 else -1
+
+
+def _lsq_denom(rot: LsqRotation) -> int:
+    """
+    Return the exact denominator of the rotation_amount Fraction.
+
+    Expected values after Litinski transform:
+      2  → π/2  Clifford Pauli rotation (survives transform)
+      4  → π/4  should be zero (absorbed by Litinski)
+      8  → π/8  T-gate (magic state required)
+      ≥16 → high-precision rotation from small-angle gates (e.g. QFT CPhase)
+
+    NOTE: do NOT use limit_denominator — it rounds high-precision fractions
+    (e.g. 1/524288) to 0, producing a spurious denom=1 and angle=π.
+    """
+    return Fraction(abs(rot.rotation_amount)).denominator
+
+
+def _lsq_rot_to_modqldpc(rot: LsqRotation, idx: int) -> PauliRotation:
+    """Convert one lsqecc PauliRotation to a modqldpc PauliRotation."""
+    word  = _lsq_word(rot)
+    sign  = _lsq_sign(rot)
+    denom = _lsq_denom(rot)
+    angle = sign * math.pi / denom
+    return PauliRotation(axis=word, angle=angle, source="", idx=idx)
+
+
+def _lsq_meas_to_modqldpc(
+    meas: LsqMeasurement,
+    idx: int,
+    qbit: int,
+    cbit: Optional[int],
+) -> PauliMeasurement:
+    """Convert one lsqecc Measurement to a modqldpc PauliMeasurement."""
+    return PauliMeasurement(axis=_lsq_word(meas), cbit=cbit, qbit=qbit, idx=idx)
+
+
+# ── Main converter ────────────────────────────────────────────────────────────
 
 class GoSCConverter:
     """
-    Maintains a running Clifford frame C consisting of all Clifford gates encountered so far.
-    When a T on qubit i occurs, emit rotation about (C Z_i C†) with angle +/- pi/8.
+    Compiles a QASM 2.0 circuit into Pauli-product rotations via the
+    Litinski / lsqecc pipeline:
 
-    This directly implements the paper's idea:
-    - commute Cliffords to the end,
-    - turn Z_{pi/8} into Pauli product rotations via conjugation by Cliffords,
-    - absorb final Clifford into Pauli product measurements.
+      1. Parse QASM with PyZX → PauliOpCircuit
+      2. Inject Z-basis measurements if absent (required for Litinski)
+      3. to_y_free_equivalent()  — replace Y with X + flanking ±π/4 Z
+      4. apply_transformation()  — push and remove all ±π/4 (Litinski game)
+      5. Classify ops: π/2 and π/8 kept; π/4 warned and dropped (should be 0)
+      6. Greedy first-fit layering
+
+    Public interface
+    ----------------
+    convert_qasm(qasm_str)  → PauliProgram
+    greedy_layering()       → List[List[int]]
+    to_cache_payload()      → dict   (verbose JSON)
+    to_compact_payload()    → dict   (compact JSON v2)
+    load_cache_json(path)   → dict   (auto-detects schema v1 / v2)
     """
+
+    # Schema identifiers — v1 kept for reading legacy files.
     CACHE_SCHEMA         = "modqldpc.pauli_program_cache.v1"
-    COMPACT_CACHE_SCHEMA = "modqldpc.pauli_program_cache.v1.compact"
+    COMPACT_CACHE_SCHEMA = "modqldpc.pauli_program_cache.v2.compact"
+    _LEGACY_COMPACT      = "modqldpc.pauli_program_cache.v1.compact"
 
     def __init__(self, verbose: bool = False):
-        self.verbose = verbose
-        self.program: PauliProgram = None
-        self.layers: List[List[int]] = None
+        self.verbose  = verbose
+        self.program:    Optional[PauliProgram]  = None
+        self.layers:     Optional[List[List[int]]] = None
+        self.num_qubits: int = 0
 
-    def log(self, msg: str):
+    def log(self, msg: str) -> None:
         if self.verbose:
             print(msg)
 
-    @staticmethod
-    def gate_is_supported(name: str) -> bool:
-        return name in {
-            "h", "s", "sdg", "x", "y", "z",
-            "cx", "cz", "swap",
-            "t", "tdg",
-            "barrier",
-            "measure",
-        }
+    # ── Primary entry point ───────────────────────────────────────────────────
 
-    @staticmethod
-    def is_clifford_gate(name: str) -> bool:
-        return name in {"h", "s", "sdg", "x", "y", "z", "cx", "cz", "swap"}
-
-    @staticmethod
-    def is_t_gate(name: str) -> bool:
-        return name in {"t", "tdg"}
-
-    @staticmethod
-    def z_on_qubit(n: int, q: int) -> Pauli:
+    def convert_qasm(self, qasm_str: str) -> PauliProgram:
         """
-        Return Pauli Z on qubit q in an n-qubit system.
-        Qiskit Pauli label leftmost is highest index, so:
-          qubit 0 is rightmost char.
+        Full Litinski compilation pipeline on a raw QASM 2.0 string.
+
+        Populates self.program and self.num_qubits.
+        Call greedy_layering() afterwards to populate self.layers.
         """
-        label = ["I"] * n
-        label[n - 1 - q] = "Z"
-        return Pauli("".join(label))
+        # 1. Parse
+        circuit, meas_map = parse_qasm(qasm_str)
+        self.num_qubits = circuit.qubit_num
+        self.log(f"[parse]  qubits={self.num_qubits}  ops={len(circuit.ops)}")
 
-    @staticmethod
-    def _jsonable(obj: Any) -> Any:
-        if is_dataclass(obj):
-            return asdict(obj)
-        if isinstance(obj, dict):
-            return {str(k): GoSCConverter._jsonable(v) for k, v in obj.items()}
-        if isinstance(obj, (list, tuple)):
-            return [GoSCConverter._jsonable(x) for x in obj]
-        # NOTE: final_clifford may be a Qiskit object; you likely can't JSON it directly.
-        # Store str(obj) as a fallback so the cache is still writable.
-        try:
-            json.dumps(obj)
-            return obj
-        except Exception:
-            return {"__repr__": repr(obj), "__type__": type(obj).__name__}
-    
-    @staticmethod
-    def _axis_from_word(word: str) -> PauliAxis:
-        # word may have leading '-' or '+'
-        if word.startswith("-"):
-            return PauliAxis(sign=-1, tensor=word[1:])
-        if word.startswith("+"):
-            return PauliAxis(sign=+1, tensor=word[1:])
-        return PauliAxis(sign=+1, tensor=word)
-    
-    @staticmethod
-    def _axis_to_dict(axis) -> dict:
-        word = pauli_to_word(axis)   # always returns string like "-XIZI"
-        if word.startswith("-"):
-            return {"sign": -1, "tensor": word[1:]}
-        elif word.startswith("+"):
-            return {"sign": +1, "tensor": word[1:]}
-        else:
-            return {"sign": +1, "tensor": word}
+        # 2. Inject synthetic Z measurements if the circuit has none.
+        #    Litinski's transform can only absorb ±π/4 when measurements exist.
+        if not circuit.circuit_has_measurements():
+            self.log("[inject] No measurements found — injecting synthetic Z-basis measurements.")
+            for q in range(circuit.qubit_num):
+                ops = [PauliOperator.I] * circuit.qubit_num
+                ops[q] = PauliOperator.Z
+                circuit.add_pauli_block(LsqMeasurement.from_list(ops))
+            # Synthetic measurements: qbit=q, cbit=None
+            meas_map = [(q, None) for q in range(circuit.qubit_num)]
 
-    def clifford_of_instruction(self, n: int, inst_name: str, qargs: List[int]) -> Clifford:
-        """Build a Clifford for one supported Clifford instruction."""
-        qc = QuantumCircuit(n)
-        if inst_name == "h":
-            qc.h(qargs[0])
-        elif inst_name == "s":
-            qc.s(qargs[0])
-        elif inst_name == "sdg":
-            qc.sdg(qargs[0])
-        elif inst_name == "x":
-            qc.x(qargs[0])
-        elif inst_name == "y":
-            qc.y(qargs[0])
-        elif inst_name == "z":
-            qc.z(qargs[0])
-        elif inst_name == "cx":
-            qc.cx(qargs[0], qargs[1])
-        elif inst_name == "cz":
-            qc.cz(qargs[0], qargs[1])
-        elif inst_name == "swap":
-            qc.swap(qargs[0], qargs[1])
-        else:
-            raise ValueError(f"Not a Clifford gate: {inst_name}")
-        return Clifford(qc)
+        # 3. Replace Y operators with X + flanking ±π/4 Z rotations.
+        #    MUST happen before Litinski so those π/4s get absorbed too.
+        circuit = circuit.to_y_free_equivalent()
+        self.log(f"[y_free] ops after to_y_free_equivalent: {len(circuit.ops)}")
 
-    def convert(self, qc: QuantumCircuit) -> PauliProgram:
-        n = qc.num_qubits
-        C = Clifford(QuantumCircuit(n))  # identity frame
+        # 4. Litinski transform: push all ±π/4 to end and remove them.
+        #    After this: only π/2 and π/8 rotations survive (+ measurements).
+        #    NEVER call to_y_free_equivalent() again after this point.
+        circuit.apply_transformation()
+        self.log(f"[litinski] ops after apply_transformation: {len(circuit.ops)}")
 
-        rotations: List[PauliRotation] = []
-        final_meas: List[Tuple[int, Optional[int]]] = []  # (qbit, cbit)
+        # 5. Extract rotations and measurements.
+        rotations: List[PauliRotation]    = []
+        final_meas: List[PauliMeasurement] = []
+        meas_iter = iter(meas_map)
+        pi4_count = 0
 
-        # Validate "final measurements only"
-        seen_measure = False
+        for op in circuit.ops:
+            if isinstance(op, LsqMeasurement):
+                qbit, cbit = next(meas_iter, (0, None))
+                pm = _lsq_meas_to_modqldpc(op, idx=len(final_meas), qbit=qbit, cbit=cbit)
+                final_meas.append(pm)
 
-        self.log(f"[init] n={n}, starting Clifford frame C = I")
+            elif isinstance(op, LsqRotation):
+                denom = _lsq_denom(op)
 
-        for k, ci in enumerate(qc.data):
-            inst = ci.operation
-            qargs = ci.qubits
-            cargs = ci.clbits
-            name = inst.name
+                if denom == 1:
+                    # exp(i*pi*P) = -I  (global phase), physically trivial.
+                    continue
 
-            if not self.gate_is_supported(name):
-                raise ValueError(
-                    f"Unsupported gate '{name}' at op#{k}. "
-                    f"Transpile to basis {{h,s,sdg,x,y,z,cx,cz,swap,t,tdg,measure}} first."
-                )
+                if denom == 4:
+                    # Should be zero after correct Litinski — warn and skip.
+                    pi4_count += 1
+                    continue
 
-            if name == "barrier":
-                self.log(f"[op#{k}] barrier (ignored)")
-                continue
+                # Keep all other rotations:
+                #   denom=2  → π/2  Clifford Pauli (no magic state, but real time step)
+                #   denom=8  → π/8  T-gate (magic state required)
+                #   denom≥16 → high-precision rotation (QFT small-angle CPhase etc.)
+                #              needs T-gate synthesis on fault-tolerant hardware;
+                #              contributes to depth; AQFT truncates these below a threshold.
+                pr = _lsq_rot_to_modqldpc(op, idx=len(rotations))
+                rotations.append(pr)
 
-            if name == "measure":
-                seen_measure = True
-                q = qc.find_bit(qargs[0]).index
-                c = qc.find_bit(cargs[0]).index if cargs else None
-                final_meas.append((q, c))
-                self.log(f"[op#{k}] measure q[{q}] -> c[{c}] (recorded for final absorption)")
-                continue
-
-            if seen_measure:
-                raise ValueError(
-                    f"Found gate '{name}' after a measurement at op#{k}. "
-                    f"This script assumes measurements are final only."
-                )
-
-            qidx = [qc.find_bit(q).index for q in qargs]
-
-            if self.is_clifford_gate(name):
-                G = self.clifford_of_instruction(n, name, qidx)
-                # Update running frame: applying gate after current C means new C = G ∘ C
-                C = C.compose(G)
-                self.log(f"[op#{k}] Clifford {name} {qidx} -> update frame C := G ∘ C")
-                continue
-
-            if self.is_t_gate(name):
-                q = qidx[0]
-                sign = +1.0 if name == "t" else -1.0
-                angle = sign * (math.pi / 8.0)
-
-                # The paper: commuting Cliffords to end maps Z_{π/8} -> (C Z C†)_{π/8}
-                Zq = self.z_on_qubit(n, q)
-                axis = clifford_conj_pauli(C, Zq)
-
-                rotations.append(
-                    PauliRotation(axis=axis, angle=angle, source=f"{name} q[{q}]", idx=len(rotations))
-                )
-
-                self.log(
-                    f"[op#{k}] {name} on q[{q}]: emit rotation axis = C Z[{q}] C† = {pauli_to_word(axis)}, angle={angle:+.6f}"
-                )
-                continue
-
-            raise RuntimeError(f"Unhandled instruction '{name}' (should not happen).")
-
-        # Absorb final Clifford into measurements: measure C† Z_i C (equivalently conjugate Z by C†).
-        # Here we have U = (rotations) * C, then measure Z. Equivalent to measure (C† Z C) after rotations.
-        measurements: List[PauliMeasurement] = []
-
-        if not final_meas:
-            self.log("[final] No measurements found. (You can still inspect rotations.)")
-
-        for mi, (q, c) in enumerate(final_meas):
-            Zq = self.z_on_qubit(n, q)
-            axis = clifford_conj_pauli_adjoint(C, Zq)  # C† Z C
-            measurements.append(PauliMeasurement(axis=axis, cbit=c, qbit=q, idx=mi))
-            self.log(
-                f"[final] absorb Clifford into meas q[{q}]: axis = C† Z[{q}] C = {pauli_to_word(axis)} -> c[{c}]"
+        if pi4_count:
+            print(
+                f"[WARNING] {pi4_count} pi/4 rotation(s) survived Litinski transform. "
+                "This should not happen — check circuit structure."
             )
-        program = PauliProgram(rotations=rotations, final_meas=measurements, final_clifford=C)
-        self.program = program
-        return program
-    
+
+        t_count  = sum(1 for r in rotations if abs(abs(r.angle) - _PI_OVER_8) < 1e-9)
+        p2_count = sum(1 for r in rotations if abs(abs(r.angle) - _PI_OVER_2) < 1e-9)
+        hp_count = len(rotations) - t_count - p2_count
+        self.log(
+            f"[extract] rotations={len(rotations)} "
+            f"(pi8={t_count}, pi2={p2_count}, high-precision={hp_count})"
+            f"  measurements={len(final_meas)}"
+        )
+
+        self.program = PauliProgram(
+            rotations=rotations,
+            final_meas=final_meas,
+            final_clifford=None,
+        )
+        return self.program
+
+    # ── Layering ──────────────────────────────────────────────────────────────
 
     def greedy_layering(self) -> List[List[int]]:
         """
-        Make a naive layering then repeatedly move commuting rotations earlier,
-        matching the pseudocode near Fig. 6.
+        First-fit greedy layer assignment (program order).
 
-        Returns: layers as lists of rotation indices.
+        For each rotation in order: place it in the first existing layer
+        where it commutes with every rotation already there.  If none found,
+        open a new layer.
+
+        Strictly better than bubble-merge: can skip to an earlier compatible
+        layer without being blocked by intermediate anticommuting rotations.
+
+        Returns layer_ids: List[List[rotation_index]].
         """
-        if not self.program:
-            raise ValueError(
-                f"Convert the circuit first to get greedy layering"
-            )
-        # start naive: each rotation in its own layer
+        if self.program is None:
+            raise ValueError("Call convert_qasm() first.")
+
         rotations = self.program.rotations
-        layers: List[List[int]] = [[r.idx] for r in rotations]
+        layers: List[List[int]] = []
 
-        def layer_commutes_with(layer: List[int], ridx: int) -> bool:
-            pr = rotations[ridx].axis
-            for j in layer:
-                if not paulis_commute(pr, rotations[j].axis):
-                    return False
-            return True
+        for rot in rotations:
+            placed = False
+            for layer in layers:
+                if all(paulis_commute(rot.axis, rotations[j].axis) for j in layer):
+                    layer.append(rot.idx)
+                    placed = True
+                    break
+            if not placed:
+                layers.append([rot.idx])
 
-        changed = True
-        while changed:
-            changed = False
-            i = 0
-            while i + 1 < len(layers):
-                # Try moving elements from layer i+1 to layer i if they commute with all in layer i
-                moved_any = False
-                j = 0
-                while j < len(layers[i + 1]):
-                    ridx = layers[i + 1][j]
-                    if layer_commutes_with(layers[i], ridx):
-                        layers[i].append(ridx)
-                        layers[i + 1].pop(j)
-                        moved_any = True
-                        changed = True
-                    else:
-                        j += 1
-
-                if len(layers[i + 1]) == 0:
-                    layers.pop(i + 1)
-                    changed = True
-                    continue
-
-                if not moved_any:
-                    i += 1
         self.layers = layers
+        self.log(f"[layers] {len(layers)} layers for {len(rotations)} rotations.")
         return layers
 
-    # -----------------------------
-    # Visualization helpers (text-based; optional matplotlib for graph)
-    # -----------------------------
+    # ── JSON serialisation ────────────────────────────────────────────────────
 
-    def print_rotations(self):
-        print("\n=== π/8 Pauli-product rotations (in order) ===")
-        for r in self.program.rotations:
-            word = pauli_to_word(r.axis)
-            supp = sorted(word_support(word))
-            print(f" R{r.idx:03d}: ({word})_{r.angle:+.6f}   supp={supp}   src={r.source}")
-
-    def print_measurements(self):
-        print("\n=== Final Pauli-product measurements (absorbing final Clifford) ===")
-        for m in self.program.final_meas:
-            word = pauli_to_word(m.axis)
-            supp = sorted(word_support(word))
-            print(f"  M{m.idx:03d}: measure {word}   supp={supp}   (from Z on q[{m.qbit}]) -> c[{m.cbit}]")
-
-    def print_layers(self):
-        print("\n=== Greedy commuting layers (\"T layers\") ===")
-        for i, layer in enumerate(self.layers):
-            words = [pauli_to_word(self.program.rotations[j].axis) for j in layer]
-            print(f"  L{i:02d} (size={len(layer)}): " + ", ".join(f"R{j:03d}:{w}" for j, w in zip(layer, words)))
-
-    # JSON helpers
+    @staticmethod
+    def _axis_to_dict(axis: str) -> dict:
+        """Split a Pauli word string (no sign prefix expected) into sign+tensor dict."""
+        if axis.startswith("-"):
+            return {"sign": -1, "tensor": axis[1:]}
+        if axis.startswith("+"):
+            return {"sign": +1, "tensor": axis[1:]}
+        return {"sign": +1, "tensor": axis}
 
     def to_cache_payload(self) -> Dict[str, Any]:
+        """Verbose JSON payload (schema v1)."""
         if self.program is None:
             raise ValueError("self.program is None. Nothing to export.")
+        if self.layers is None:
+            raise ValueError("Call greedy_layering() before serialising.")
 
-        # Store core program in your dataclass form (JSONable via asdict),
-        # plus *derived* fields to match the printed view (word/support).
         rotations_view = []
         for r in self.program.rotations:
-            w = pauli_to_word(r.axis)
-            rotations_view.append(
-                {
-                    "idx": r.idx,
-                    "word": w,
-                    "support": sorted(word_support(w)),
-                    "angle": r.angle,
-                    "source": r.source,
-                    # canonical axis (sign,tensor) so load is exact even if word formatting changes
-                    "axis": self._axis_to_dict(r.axis),
-                }
-            )
+            d    = self._axis_to_dict(r.axis)
+            word = ("" if d["sign"] == 1 else "-") + d["tensor"]
+            rotations_view.append({
+                "idx":     r.idx,
+                "word":    word,
+                "support": sorted(word_support(d["tensor"])),
+                "angle":   r.angle,
+                "source":  r.source,
+                "axis":    d,
+            })
 
         meas_view = []
         for m in self.program.final_meas:
-            w = pauli_to_word(m.axis)
-            meas_view.append(
-                {
-                    "idx": m.idx,
-                    "word": w,
-                    "support": sorted(word_support(w)),
-                    "qbit": m.qbit,
-                    "cbit": m.cbit,
-                    "axis": self._axis_to_dict(m.axis),
-                }
-            )
+            d = self._axis_to_dict(m.axis)
+            word = ("" if d["sign"] == 1 else "-") + d["tensor"]
+            meas_view.append({
+                "idx":     m.idx,
+                "word":    word,
+                "support": sorted(word_support(d["tensor"])),
+                "qbit":    m.qbit,
+                "cbit":    m.cbit,
+                "axis":    d,
+            })
 
         layers_view = []
         for li, layer in enumerate(self.layers):
-            items = []
-            for ridx in layer:
-                # layer uses rotation indices; build word lookup (robust)
-                # (assumes indices are unique)
-                rot = next(rr for rr in self.program.rotations if rr.idx == ridx)
-                items.append({"ridx": ridx, "word": pauli_to_word(rot.axis)})
+            items = [
+                {"ridx": ridx, "word": ("" if self._axis_to_dict(self.program.rotations[ridx].axis)["sign"] == 1 else "-") + self._axis_to_dict(self.program.rotations[ridx].axis)["tensor"]}
+                for ridx in layer
+            ]
             layers_view.append({"layer": li, "size": len(layer), "rotations": items})
 
-        payload = {
-            "schema": self.CACHE_SCHEMA,
-            # "program": {
-            #     "rotations": GoSCConverter._jsonable(self.program.rotations),
-            #     "final_meas": GoSCConverter._jsonable(self.program.final_meas),
-            #     "final_clifford": GoSCConverter._jsonable(self.program.final_clifford),
-            # },
-            # "printed_view": {
-            "rotations": rotations_view,
+        return {
+            "schema":             self.CACHE_SCHEMA,
+            "rotations":          rotations_view,
             "final_measurements": meas_view,
-            "layers": layers_view,
-            "layer_ids": self.layers
-            # },
-            # "layers": GoSCConverter._jsonable(self.layers),  # canonical layer indices
+            "layers":             layers_view,
+            "layer_ids":          self.layers,
         }
-        return payload
-
-    def to_cache_json_string(self) -> str:
-        return json.dumps(self.to_cache_payload(), indent=2, sort_keys=True)
-
-    # def save_cache_json(self, *, compact: bool = False) -> str:
-    #     if compact:
-    #         payload = self.to_compact_payload()
-    #         return payload
-    #         # s = json.dumps(payload, separators=(",", ":"))  # no whitespace
-    #     else:
-    #         payload = self.to_cache_payload()
-    #         return payload
-            # s = json.dumps(payload, indent=2, sort_keys=True)
-        # os.makedirs(os.path.dirname(path), exist_ok=True)
-        # with open(path, "w", encoding="utf-8") as f:
-        #     f.write(s)
-
-    # -------------- Compact format --------------
 
     def to_compact_payload(self) -> Dict[str, Any]:
         """
-        Minimal serialisation of the PauliProgram.
+        Compact JSON payload (schema v2).
 
-        Compact encoding:
-          rotations    : [[axis_sign, tensor, t_sign], ...]
-                         axis_sign = ±1 (leading sign of the Pauli word)
-                         tensor    = Pauli word without the sign prefix
-                         t_sign    = ±1  (+1 → T gate, -1 → Tdg gate)
-                         angle is exactly t_sign * π/8 — reconstructed on load.
-          measurements : [[axis_sign, tensor, qbit, cbit_or_null], ...]
-          layer_ids    : [[r_idx, ...], ...]  — unchanged
+        Rotation entry : [sign, tensor, denominator]
+            sign        = ±1 (sign of the rotation angle)
+            tensor      = Pauli word without sign prefix
+            denominator = 2 | 4 | 8  (π/denom)
+
+        Measurement entry : [sign, tensor, qbit, cbit_or_null]
         """
         if self.program is None:
             raise ValueError("self.program is None. Nothing to export.")
+        if self.layers is None:
+            raise ValueError("Call greedy_layering() before serialising.")
 
         rotations_compact = []
         for r in self.program.rotations:
-            d = self._axis_to_dict(r.axis)
-            t_sign = 1 if r.angle >= 0 else -1
-            rotations_compact.append([d["sign"], d["tensor"], t_sign])
+            d    = self._axis_to_dict(r.axis)
+            sign = 1 if r.angle >= 0 else -1
+            # Reconstruct denominator from angle: angle = sign * π / denom
+            denom = round(math.pi / abs(r.angle)) if abs(r.angle) > 1e-12 else 1
+            rotations_compact.append([sign, d["tensor"], denom])
 
         measurements_compact = []
         for m in self.program.final_meas:
@@ -471,88 +348,112 @@ class GoSCConverter:
             measurements_compact.append([d["sign"], d["tensor"], m.qbit, m.cbit])
 
         return {
-            "schema": self.COMPACT_CACHE_SCHEMA,
-            "rotations": rotations_compact,
+            "schema":       self.COMPACT_CACHE_SCHEMA,
+            "rotations":    rotations_compact,
             "measurements": measurements_compact,
-            "layer_ids": self.layers,
+            "layer_ids":    self.layers,
         }
 
-    def _load_compact(self, payload: Dict[str, Any]) -> None:
-        """Restore self.program and self.layers from a compact payload."""
-        rotations: List[PauliRotation] = []
-        for i, entry in enumerate(payload.get("rotations", [])):
-            axis_sign, tensor, t_sign = entry
-            axis = Pauli(str(axis_sign) + str(tensor))
-            rotations.append(
-                PauliRotation(
-                    axis=axis,
-                    angle=t_sign * (math.pi / 8.0),
-                    source="",
-                    idx=i,
-                )
-            )
+    def to_cache_json_string(self) -> str:
+        return json.dumps(self.to_cache_payload(), indent=2, sort_keys=True)
 
-        final_meas: List[PauliMeasurement] = []
-        for i, entry in enumerate(payload.get("measurements", [])):
-            axis_sign, tensor, qbit, cbit = entry
-            axis = Pauli(str(axis_sign) + str(tensor))
-            final_meas.append(
-                PauliMeasurement(
-                    axis=axis,
-                    cbit=None if cbit is None else int(cbit),
-                    qbit=int(qbit),
-                    idx=i,
-                )
-            )
-
-        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=None)
-        self.layers = [[int(x) for x in layer] for layer in payload.get("layer_ids", [])]
-
-    # -------------- Import --------------
+    # ── JSON loading ──────────────────────────────────────────────────────────
 
     def load_cache_json(self, path: str) -> Dict[str, Any]:
         """
-        Load a PBC JSON file.  Automatically detects verbose vs compact format
-        from the 'schema' field — no caller changes needed after switching formats.
+        Load a PBC JSON file.  Auto-detects schema:
+          - v1 verbose        → "modqldpc.pauli_program_cache.v1"
+          - v1 compact (legacy) → "modqldpc.pauli_program_cache.v1.compact"
+          - v2 compact        → "modqldpc.pauli_program_cache.v2.compact"
         """
         with open(path, "r", encoding="utf-8") as f:
             payload = json.load(f)
 
-        schema = payload.get("schema")
+        schema = payload.get("schema", "")
 
         if schema == self.COMPACT_CACHE_SCHEMA:
-            self._load_compact(payload)
-            return payload
-
-        if schema != self.CACHE_SCHEMA:
-            raise ValueError(f"Unknown cache schema: {schema!r}")
-
-        # Verbose format (original)
-        rotations: List[PauliRotation] = []
-        for r in payload.get("rotations"):
-            axis = Pauli(str(r["axis"]["sign"]) + str(r["axis"]["tensor"]))
-            rotations.append(
-                PauliRotation(
-                    axis=axis,
-                    angle=float(r["angle"]),
-                    source=str(r["source"]),
-                    idx=int(r["idx"]),
-                )
-            )
-
-        final_meas: List[PauliMeasurement] = []
-        for m in payload.get("final_measurements"):
-            axis = Pauli(str(m["axis"]["sign"]) + str(m["axis"]["tensor"]))
-            final_meas.append(
-                PauliMeasurement(
-                    axis=axis,
-                    cbit=None if m["cbit"] is None else int(m["cbit"]),
-                    qbit=int(m["qbit"]),
-                    idx=int(m["idx"]),
-                )
-            )
-
-        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=None)
-        self.layers = [[int(x) for x in layer] for layer in payload.get("layer_ids", [])]
+            self._load_compact_v2(payload)
+        elif schema == self._LEGACY_COMPACT:
+            self._load_compact_v1(payload)
+        elif schema == self.CACHE_SCHEMA:
+            self._load_verbose_v1(payload)
+        else:
+            raise ValueError(f"Unknown PBC cache schema: {schema!r}")
 
         return payload
+
+    # ── Private load helpers ──────────────────────────────────────────────────
+
+    def _load_compact_v2(self, payload: Dict[str, Any]) -> None:
+        """Decode v2 compact: rotation entry = [sign, tensor, denominator]."""
+        rotations: List[PauliRotation] = []
+        for i, entry in enumerate(payload.get("rotations", [])):
+            sign, tensor, denom = entry
+            rotations.append(PauliRotation(
+                axis=tensor,
+                angle=sign * math.pi / denom,
+                source="",
+                idx=i,
+            ))
+
+        final_meas: List[PauliMeasurement] = []
+        for i, entry in enumerate(payload.get("measurements", [])):
+            _sign, tensor, qbit, cbit = entry
+            final_meas.append(PauliMeasurement(
+                axis=tensor,
+                cbit=None if cbit is None else int(cbit),
+                qbit=int(qbit),
+                idx=i,
+            ))
+
+        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=None)
+        self.layers  = [[int(x) for x in layer] for layer in payload.get("layer_ids", [])]
+
+    def _load_compact_v1(self, payload: Dict[str, Any]) -> None:
+        """
+        Decode legacy v1 compact: rotation entry = [axis_sign, tensor, t_sign]
+        where angle = t_sign * π/8.
+
+        The combined sign is axis_sign * t_sign absorbed into angle.
+        """
+        rotations: List[PauliRotation] = []
+        for i, entry in enumerate(payload.get("rotations", [])):
+            axis_sign, tensor, t_sign = entry
+            angle = axis_sign * t_sign * _PI_OVER_8
+            rotations.append(PauliRotation(axis=tensor, angle=angle, source="", idx=i))
+
+        final_meas: List[PauliMeasurement] = []
+        for i, entry in enumerate(payload.get("measurements", [])):
+            _axis_sign, tensor, qbit, cbit = entry
+            final_meas.append(PauliMeasurement(
+                axis=tensor,
+                cbit=None if cbit is None else int(cbit),
+                qbit=int(qbit),
+                idx=i,
+            ))
+
+        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=None)
+        self.layers  = [[int(x) for x in layer] for layer in payload.get("layer_ids", [])]
+
+    def _load_verbose_v1(self, payload: Dict[str, Any]) -> None:
+        """Decode verbose v1 format."""
+        rotations: List[PauliRotation] = []
+        for r in payload.get("rotations", []):
+            rotations.append(PauliRotation(
+                axis=r["axis"]["tensor"],
+                angle=float(r["angle"]),
+                source=str(r.get("source", "")),
+                idx=int(r["idx"]),
+            ))
+
+        final_meas: List[PauliMeasurement] = []
+        for m in payload.get("final_measurements", []):
+            final_meas.append(PauliMeasurement(
+                axis=m["axis"]["tensor"],
+                cbit=None if m["cbit"] is None else int(m["cbit"]),
+                qbit=int(m["qbit"]),
+                idx=int(m["idx"]),
+            ))
+
+        self.program = PauliProgram(rotations=rotations, final_meas=final_meas, final_clifford=None)
+        self.layers  = [[int(x) for x in layer] for layer in payload.get("layer_ids", [])]

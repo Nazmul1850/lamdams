@@ -8,7 +8,6 @@ from .ir import ExecDAG
 from .policy import LoweringPolicies, plan_rotation_lowering
 from .magic_gadget import emit_pi8_gadget, GadgetLoweringResult
 from ..core.types import PauliRotation, PauliAxis  # your dataclasses
-from qiskit.quantum_info import Pauli
 
 @dataclass(frozen=True)
 class LayerLoweringResult:
@@ -37,11 +36,9 @@ def lower_one_layer(
 
     for ridx in rotation_indices:
         r = rotations[ridx]
-        sign = -1 if r.angle < 0 else 1
-        tensor = r.axis.to_label()
-        if '-' in tensor:
-            tensor = tensor[1:]
-        axis = PauliAxis(sign=sign, tensor=tensor)
+        sign   = -1 if r.angle < 0 else 1
+        tensor = r.axis.lstrip("+-")
+        axis   = PauliAxis(sign=sign, tensor=tensor)
         plan = plan_rotation_lowering(
             layer=layer_idx,
             ridx=ridx,
