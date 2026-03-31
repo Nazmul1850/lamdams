@@ -106,7 +106,7 @@ class GreedyCriticalScheduler(BaseScheduler):
         deadlock prevention (no speculative admission).
     """
     name: str = "greedy_critical"
-    use_safe_fill: bool = True
+    use_safe_fill: bool = True  # legacy field, no longer used by cycle-detection logic
 
     # ------------------------------------------------------------------ #
     # Public entry point                                                   #
@@ -431,7 +431,6 @@ class GreedyCriticalScheduler(BaseScheduler):
         in_progress_multiblock: Set[int],
         comp_init_started: Set[int],
         dbg: bool,
-        use_phase2: bool = True,
     ) -> bool:
         """
         Returns True iff the ownership tracker allows this node to start.
@@ -439,74 +438,66 @@ class GreedyCriticalScheduler(BaseScheduler):
         all other node kinds operate on resources already owned by their
         component (enforced by DAG dependencies and prior claims).
 
-        Phase 1 — Deadlock prevention:
+        N-cycle deadlock prevention:
           Before admitting the first init_pivot of multiblock component B,
-          check every in-progress multiblock component A for a hold-and-wait
-          cycle (R_B ∩ P_A ≠ ∅  AND  R_A ∩ P_B ≠ ∅).
-
-        Phase 2 — Safe-fill exception:
-          Even if a hold-and-wait would occur, B may be admitted safely if
-          its projected Xm completion (t + bottom_max_B) is at or before the
-          lower-bound start of A's link node.  In that case B finishes and
-          releases P_B before A ever needs to traverse its route.
-          Uses _link_frontier_lb (O(|preds of link|)) and the precomputed
-          component_metrics["bottom_max"] — no new stored state.
+          check if adding B to the in-progress set would create a directed
+          cycle in the "waits-for" graph:
+            edge A→X means R_A ∩ P_X ≠ ∅ (A's link cannot start until X
+            releases its participant blocks with end=INF ownership).
+          A cycle (even A→B→C→A with N≥3) means no component in the cycle
+          can complete, producing a hard deadlock. DFS from B: if B can
+          reach itself via directed edges in the combined graph, block B.
         """
         kind = node.kind
 
         if kind == K_INIT_PIVOT:
-            # ---- Phase 1 + 2: deadlock prevention with safe-fill exception ----
+            # ---- N-cycle deadlock prevention ----
+            # Before admitting the first init_pivot of multiblock component B,
+            # check if doing so would create a directed cycle in the "waits-for"
+            # dependency graph where edge A→X means R_A ∩ P_X ≠ ∅ (A's link
+            # cannot start until X releases its participant blocks).
+            #
+            # Phase 1 (legacy) only caught 2-cycles (A→B and B→A simultaneously).
+            # With sparse hardware and roundrobin, long routes create 3+-component
+            # cycles (A→B→C→A) that Phase 1 misses, causing a hard deadlock.
+            #
+            # Fix: DFS from B in the combined graph (existing in-progress + B).
+            # If B can reach itself via at least one edge, admitting B would close
+            # a cycle → block B until an in-progress component completes.
             is_first_init = cid not in comp_init_started
-            if is_first_init and prep.comp_is_multiblock[cid]:
-                P_B = prep.comp_participant_blocks[cid]
+            if is_first_init and prep.comp_is_multiblock[cid] and in_progress_multiblock:
                 R_B = prep.comp_route_blocks[cid]
-                # Estimate B's Xm completion from current time.
-                # bottom_max = longest path in component = time until B is fully done.
-                b_xm_est = t + prep.comp_metrics[cid]["bottom_max"]
+                P_B = prep.comp_participant_blocks[cid]
+                all_nodes = in_progress_multiblock | {cid}
 
-                for a_cid in in_progress_multiblock:
-                    P_A = prep.comp_participant_blocks[a_cid]
-                    R_A = prep.comp_route_blocks[a_cid]
-                    if not (R_B & P_A) or not (R_A & P_B):
-                        continue  # no hold-and-wait risk with this A
+                # Seed DFS with B's direct successors among in-progress components.
+                visited: Set[int] = set()
+                stack_dfs: List[int] = [
+                    x for x in in_progress_multiblock
+                    if R_B & prep.comp_participant_blocks[x]
+                ]
 
-                    # Phase 2: is B guaranteed to finish before A's link starts?
-                    # Guard: only applies when P_A and P_B are disjoint AND B's route
-                    # does not cross A's participant blocks.
-                    #
-                    # R_B ∩ P_A ≠ ∅ means B's route passes through blocks A has claimed
-                    # with end=INF (until A's PZ). B's link will be blocked waiting for
-                    # A to release those blocks, so b_xm_est is not an independent
-                    # completion estimate — B cannot finish before A's link in that case.
-                    # Since we are always inside R_B ∩ P_A ≠ ∅ here (it is the trigger
-                    # for reaching this code), Phase 2 is disabled for all hold-and-wait
-                    # cases that involve route/participant overlap, preventing circular
-                    # ownership deadlock on sparse (long-route) hardware graphs.
-                    if use_phase2 and not (P_A & P_B) and not (R_B & P_A):
-                        a_link_lb = self._link_frontier_lb(a_cid, prep, dag, entries, t)
-                        if b_xm_est <= a_link_lb:
-                            if dbg:
-                                print(
-                                    f"    [PHASE2_SAFE] {nid} (first-init cid={cid}) "
-                                    f"admitted — B finishes by t={b_xm_est} ≤ "
-                                    f"A(cid={a_cid}) link lb={a_link_lb}  "
-                                    f"R_B∩P_A={sorted(R_B & P_A)}  "
-                                    f"R_A∩P_B={sorted(R_A & P_B)}"
-                                )
-                            continue  # safe: B will release P_B before A needs it
+                cycle_found = False
+                while stack_dfs:
+                    x = stack_dfs.pop()
+                    if x == cid:
+                        cycle_found = True
+                        break
+                    if x in visited:
+                        continue
+                    visited.add(x)
+                    R_x = prep.comp_route_blocks[x]
+                    for y in all_nodes:
+                        if y not in visited and (R_x & prep.comp_participant_blocks[y]):
+                            stack_dfs.append(y)
 
-                    # Genuine deadlock risk (or Phase 2 disabled) — block B.
+                if cycle_found:
                     if dbg:
                         print(
-                            f"    [DEADLOCK_PREVENT] {nid} (first-init cid={cid}) "
-                            f"blocked — hold-and-wait with cid={a_cid}  "
-                            + (
-                                f"b_xm_est={b_xm_est} > "
-                                f"a_link_lb={self._link_frontier_lb(a_cid, prep, dag, entries, t)}  "
-                                if use_phase2 else "(phase2 disabled)  "
-                            )
-                            + f"R_B∩P_A={sorted(R_B & P_A)}  "
-                            f"R_A∩P_B={sorted(R_A & P_B)}"
+                            f"    [CYCLE_PREVENT] {nid} (first-init cid={cid}) "
+                            f"blocked — admitting would create a wait-for cycle  "
+                            f"R_B={sorted(R_B)}  P_B={sorted(P_B)}  "
+                            f"in_progress={sorted(in_progress_multiblock)}"
                         )
                     return False
 
@@ -826,7 +817,6 @@ class GreedyCriticalScheduler(BaseScheduler):
                         nid, node, cid, t, ownership, prep,
                         dag, entries,
                         in_progress_multiblock, comp_init_started, dbg,
-                        use_phase2=self.use_safe_fill,
                     ):
                         blocked.append(nid)
                         continue

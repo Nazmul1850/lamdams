@@ -1,0 +1,14 @@
+{
+  "circuit": "gf2_16_mult",
+  "n_qubits": 48,
+  "n_blocks": 6,
+  "t_count": 1792,
+  "placement": "sa",
+  "scheduler": "cpsat",
+  "seed": 42,
+  "inter_block_rotations": 1054,
+  "logical_depth": 19352,
+  "sa_iterations": 50000,
+  "compile_time_sec": 10917.984,
+  "timestamp": "2026-03-31T00:08:01.766380+00:00"
+}

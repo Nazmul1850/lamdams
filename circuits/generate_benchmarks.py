@@ -17,6 +17,50 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 BENCHMARK_DIR = os.path.join(os.path.dirname(__file__), "benchmarks")
 
+# ccz gate definition (7-T decomposition) to inject when parsing older QASM files
+_CCZ_GATE_DEF = (
+    'gate ccz a,b,c {\n'
+    '  h c; cx b,c; tdg c; cx a,c; t c; cx b,c; tdg c; cx a,c;'
+    '  t b; t c; h c; cx a,b; t a; tdg b; cx a,b;\n'
+    '}\n'
+)
+
+
+def transpile_to_clifford_t(src_qasm_path: str, out_path: str) -> str:
+    """
+    Load a QASM file that may contain higher-level gates (ccz, ccx, etc.),
+    transpile to {h, s, sdg, t, tdg, cx}, and save to out_path.
+    Returns out_path.
+    """
+    from qiskit import qasm2
+    from qiskit.compiler import transpile
+
+    with open(src_qasm_path) as f:
+        qasm_str = f.read()
+
+    # Inject ccz/ccx definitions if present but not defined
+    if 'ccz' in qasm_str and 'gate ccz' not in qasm_str:
+        qasm_str = qasm_str.replace('include "qelib1.inc";',
+                                    'include "qelib1.inc";\n' + _CCZ_GATE_DEF, 1)
+    if 'ccx' in qasm_str and 'gate ccx' not in qasm_str:
+        # ccx = Toffoli; standard qelib1 defines it, reload via loads workaround
+        from qiskit.circuit.library import CCXGate
+        ccx_inst = qasm2.CustomInstruction('ccx', 3, 0, CCXGate)
+        qc = qasm2.loads(qasm_str, custom_instructions=[ccx_inst])
+    else:
+        qc = qasm2.loads(qasm_str)
+
+    qc_ct = transpile(qc, basis_gates=['h', 's', 'sdg', 't', 'tdg', 'cx'],
+                      optimization_level=0)
+    t_count = sum(1 for g in qc_ct.data if g.operation.name in ('t', 'tdg'))
+    print(f'  transpile_to_clifford_t: {os.path.basename(src_qasm_path)}'
+          f'  qubits={qc_ct.num_qubits}  T-gates={t_count}')
+
+    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+    qasm2.dump(qc_ct, out_path)
+    print(f'  -> saved: {out_path}')
+    return out_path
+
 
 # ── QFT circuits ─────────────────────────────────────────────────────────────
 

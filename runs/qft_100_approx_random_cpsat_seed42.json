@@ -1,0 +1,14 @@
+{
+  "circuit": "qft_100_approx",
+  "n_qubits": 100,
+  "n_blocks": 12,
+  "t_count": 297,
+  "placement": "random",
+  "scheduler": "cpsat",
+  "seed": 42,
+  "inter_block_rotations": 91,
+  "logical_depth": 663,
+  "sa_iterations": null,
+  "compile_time_sec": 135.863,
+  "timestamp": "2026-03-31T01:02:23.318581+00:00"
+}

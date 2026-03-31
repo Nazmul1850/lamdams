@@ -1,0 +1,9 @@
+circuit,placement,scheduler,logical_depth,compile_time_sec
+gf2_16_mult,random,greedy_critical,24893,189.662
+gf2_16_mult,random,cpsat,NA,NA
+gf2_16_mult,sa,greedy_critical,23689,1136.002
+gf2_16_mult,sa,cpsat,19352,10917.984
+qft_100_approx,random,greedy_critical,1228,0.6
+qft_100_approx,random,cpsat,663,135.863
+qft_100_approx,sa,greedy_critical,957,118.962
+qft_100_approx,sa,cpsat,489,360.025

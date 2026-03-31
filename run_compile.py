@@ -78,8 +78,8 @@ def _parse_args() -> dict:
     parser.add_argument("--sa_tend",          type=float, default=None)
     parser.add_argument("--compiled",         type=lambda x: x.lower() != "false",
                         default=None, metavar="true|false")
-    parser.add_argument("--run_experiments",  type=lambda x: x.lower() != "false",
-                        default=None, metavar="true|false")
+    parser.add_argument("--run_exp",  type=lambda x: x.lower() != "false",
+                        default=False, metavar="true|false")
     parser.add_argument("--exp_sparse_pct",   type=float, default=None)
     parser.add_argument("--exp_mapper",       default=None)
     parser.add_argument("--exp_scheduler",    default=None)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     print(f"Topology   : {meta['topology']}  sparse_pct={meta['sparse_pct']:.0%}")
     print(f"Mapper     : {meta['mapper']}")
     print(f"Scheduler  : {meta['scheduler']}")
-    print(f"Experiments: {meta['run_experiments']}")
+    print(f"Experiments: {meta['run_exp']}")
     print()
 
     run_one(pbc_path, cfg=cfg, meta=meta)

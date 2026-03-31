@@ -651,8 +651,6 @@ class CPSATScheduler(BaseScheduler):
 
         if not solved:
             if dbg_file is not None: dbg_file.close()
-            for nid in dag.nodes:
-                print(f"  node {nid}: duration={node_dur[nid]}  preds={dag.pred.get(nid, set())}  succs={dag.succ.get(nid, set())}")
             raise RuntimeError(
                 f"CP-SAT could not find a feasible schedule (status={status_name}). "
                 "Check hardware constraints or increase time limit."

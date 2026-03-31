@@ -1,0 +1,14 @@
+{
+  "circuit": "gf2_16_mult",
+  "n_qubits": 48,
+  "n_blocks": 6,
+  "t_count": 1792,
+  "placement": "sa",
+  "scheduler": "greedy_critical",
+  "seed": 42,
+  "inter_block_rotations": 1054,
+  "logical_depth": 23689,
+  "sa_iterations": 50000,
+  "compile_time_sec": 1136.002,
+  "timestamp": "2026-03-30T16:46:06.999670+00:00"
+}

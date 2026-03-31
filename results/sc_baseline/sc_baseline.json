@@ -1,0 +1,26 @@
+[
+  {
+    "circuit": "gf2_16_mult",
+    "n_qubits": 48,
+    "t_count": 1792,
+    "sc_logical_depth": 1792,
+    "sc_tile_count": 5667,
+    "sc_rows": 3,
+    "sc_cols": 1889,
+    "lc_ops_naive": 35633,
+    "elapsed_sec": 0.523,
+    "timestamp": "2026-03-29T10:20:45.815119+00:00"
+  },
+  {
+    "circuit": "qft_100_approx",
+    "n_qubits": 100,
+    "t_count": 297,
+    "sc_logical_depth": 297,
+    "sc_tile_count": 1494,
+    "sc_rows": 3,
+    "sc_cols": 498,
+    "lc_ops_naive": 6150,
+    "elapsed_sec": 0.154,
+    "timestamp": "2026-03-29T10:20:45.973400+00:00"
+  }
+]

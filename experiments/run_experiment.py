@@ -29,6 +29,7 @@ import math
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from typing import Dict, List
 
 # Project root on path
@@ -54,13 +55,19 @@ from modqldpc.scheduling.factory import get_scheduler
 from modqldpc.scheduling.types import SchedulingProblem
 from modqldpc.pipeline.profiling import collect_circuit_profile, collect_layer_profile
 from modqldpc.pipeline.run_one import make_gross_actual_cost_fn
+from modqldpc.core.trace import Trace
 
 # ── Directory layout ──────────────────────────────────────────────────────────
 
-_ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BENCH_DIR   = os.path.join(_ROOT, "circuits", "benchmarks")
-PBC_DIR     = os.path.join(_ROOT, "circuits", "benchmarks", "pbc")
-RESULTS_DIR = os.path.join(_ROOT, "results", "raw")
+_ROOT          = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BENCH_DIR      = os.path.join(_ROOT, "circuits", "benchmarks")
+PBC_DIR        = os.path.join(_ROOT, "circuits", "benchmarks", "pbc")
+EXP_CIRCUITS   = os.path.join(_ROOT, "experiment_circuits")
+RUNS_DIR       = os.path.join(_ROOT, "runs")
+RESULTS_DIR    = os.path.join(_ROOT, "results")
+
+# Trace writer — one JSONL file per orchestrator session
+_trace = Trace(os.path.join(RESULTS_DIR, "trace.jsonl"))
 
 # ── Name mappings ─────────────────────────────────────────────────────────────
 
@@ -71,6 +78,7 @@ PLACEMENT_TO_MAPPER = {
 }
 
 SCHEDULER_TO_FACTORY = {
+    "sequential":      "sequential_scheduler",
     "greedy_critical": "greedy_critical",
     "cpsat":           "cp_sat",
 }
@@ -81,7 +89,7 @@ SCHEDULER_TO_FACTORY = {
 CIRCUITS = {
     "gf2_16_mult":             ("gf2_16_mult.qasm",             48),
     "qft_100_approx":          ("qft_100_approx.qasm",         100),
-    "random_ct_500q_10k":      ("random_ct_500q_10k_validate.qasm", 500),
+    "random_ct_500q_10k":      ("random_ct_500q_10k.qasm",          500),
     # Scaling sweep
     "qft_22_approx":           ("qft_22_approx.qasm",           22),
     "qft_33_approx":           ("qft_33_approx.qasm",           33),
@@ -128,34 +136,37 @@ def build_pbc(circuit_name: str) -> str:
     pbc_path  = os.path.join(PBC_DIR, f"{circuit_name}.json")
 
     if os.path.exists(pbc_path):
-        print(f"  [pbc] {circuit_name}: already cached at {pbc_path}")
+        _trace.event("pbc_cache_hit", circuit=circuit_name, path=pbc_path)
         return pbc_path
 
+    # Prefer experiment_circuits/ over legacy benchmarks dir
+    exp_path = os.path.join(EXP_CIRCUITS, fname)
+    if os.path.exists(exp_path):
+        qasm_path = exp_path
     if not os.path.exists(qasm_path):
         raise FileNotFoundError(
-            f"QASM not found: {qasm_path}\n"
-            f"Run: python circuits/generate_benchmarks.py --all\n"
-            f"  (or copy gf2_16_mult.qasm manually from VOQC-benchmarks)"
+            f"QASM not found in experiment_circuits/ or circuits/benchmarks/: {fname}\n"
+            f"Run: python circuits/generate_benchmarks.py --all"
         )
 
-    print(f"  [pbc] converting {fname} ...")
+    _trace.event("pbc_convert_start", circuit=circuit_name, source=qasm_path)
     qasm_str = load_qasm_file(qasm_path)
     conv     = GoSCConverter(verbose=False)
     program  = conv.convert_qasm(qasm_str)
     _        = conv.greedy_layering()
 
     t_count  = sum(1 for r in program.rotations if abs(r.angle) < math.pi / 2 - 1e-9)
-    print(
-        f"  [pbc] {circuit_name}: qubits={conv.num_qubits}"
-        f"  T-count={t_count}  layers={len(conv.layers)}"
-        f"  rotations={len(program.rotations)}"
+    _trace.event(
+        "pbc_convert_done", circuit=circuit_name,
+        n_qubits=conv.num_qubits, t_count=t_count,
+        n_layers=len(conv.layers), n_rotations=len(program.rotations),
     )
 
     os.makedirs(PBC_DIR, exist_ok=True)
     payload = conv.to_compact_payload()
     with open(pbc_path, "w") as f:
         json.dump(payload, f)
-    print(f"  [pbc] saved → {pbc_path}")
+    _trace.event("pbc_saved", circuit=circuit_name, path=pbc_path)
     return pbc_path
 
 
@@ -194,7 +205,6 @@ def run_one_config(
     cp_sat_time_limit: float = 120.0,
     n_data: int = 11,
     topology: str = "grid",
-    verbose: bool = True,
 ) -> dict:
     """
     Run one (circuit, placement, scheduler, seed) configuration.
@@ -218,11 +228,10 @@ def run_one_config(
     )
     n_blocks = len(hw.blocks)
 
-    if verbose:
-        print(
-            f"  [{circuit_name}]  {placement}+{scheduler}  seed={seed}"
-            f"  blocks={n_blocks}  mapper={mapper_name}"
-        )
+    _trace.event(
+        "run_start", circuit=circuit_name, placement=placement,
+        scheduler=scheduler, seed=seed, n_blocks=n_blocks, mapper=mapper_name,
+    )
 
     t_start = time.perf_counter()
 
@@ -301,11 +310,12 @@ def run_one_config(
 
     compile_time = time.perf_counter() - t_start
 
-    if verbose:
-        print(
-            f"    inter_block={inter_block}  depth={total_depth}"
-            f"  time={compile_time:.1f}s"
-        )
+    _trace.event(
+        "run_done", circuit=circuit_name, placement=placement,
+        scheduler=scheduler, seed=seed,
+        inter_block_rotations=inter_block, logical_depth=total_depth,
+        compile_time_sec=round(compile_time, 3),
+    )
 
     return {
         "circuit":               circuit_name,
@@ -317,24 +327,60 @@ def run_one_config(
         "seed":                  seed,
         "inter_block_rotations": inter_block,
         "logical_depth":         total_depth,
-        "sa_iterations":         sa_steps if placement == "sa" else 0,
+        "sa_iterations":         sa_steps if placement == "sa" else None,
         "compile_time_sec":      round(compile_time, 3),
+        "timestamp":             datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ── Result persistence ────────────────────────────────────────────────────────
+
+_VALID_GATES = {"h", "s", "sdg", "t", "tdg", "cx"}
+
+
+def validate_gate_set(circuit_name: str) -> bool:
+    """
+    Check every gate in the circuit's QASM is in {h, s, sdg, t, tdg, cx}.
+    Returns True on pass, False on fail.  Writes a trace event either way.
+    """
+    fname, _ = CIRCUITS[circuit_name]
+    qasm_path = os.path.join(EXP_CIRCUITS, fname)
+    bad = []
+    with open(qasm_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("//") or line.startswith("OPENQASM") \
+                    or line.startswith("include") or line.startswith("qreg") \
+                    or line.startswith("creg"):
+                continue
+            gate = line.split("(")[0].split()[0].rstrip(";")
+            if gate and gate not in _VALID_GATES:
+                bad.append(gate)
+    passed = len(bad) == 0
+    _trace.event(
+        "gate_set_check", circuit=circuit_name,
+        result="PASS" if passed else "FAIL",
+        invalid_gates=list(set(bad))[:10],
+    )
+    status = "PASS" if passed else f"FAIL {set(bad)}"
+    print(f"  [gate-set] {circuit_name}: {status}")
+    return passed
 
 
 # ── Result persistence ────────────────────────────────────────────────────────
 
 def result_path(circuit: str, placement: str, scheduler: str, seed: int) -> str:
     return os.path.join(
-        RESULTS_DIR, f"{circuit}_{placement}_{scheduler}_seed{seed}.json"
+        RUNS_DIR, f"{circuit}_{placement}_{scheduler}_seed{seed}.json"
     )
 
 
 def save_result(rec: dict) -> str:
-    os.makedirs(RESULTS_DIR, exist_ok=True)
+    os.makedirs(RUNS_DIR, exist_ok=True)
     path = result_path(rec["circuit"], rec["placement"], rec["scheduler"], rec["seed"])
     with open(path, "w") as f:
         json.dump(rec, f, indent=2)
+    _trace.event("result_saved", path=os.path.basename(path))
     return path
 
 
@@ -343,16 +389,16 @@ def load_results(
     placement: str | None = None,
     scheduler: str | None = None,
 ) -> List[dict]:
-    """Load all raw result JSONs, optionally filtered."""
+    """Load all runs/ JSONs, optionally filtered."""
     records = []
-    if not os.path.isdir(RESULTS_DIR):
+    if not os.path.isdir(RUNS_DIR):
         return records
-    for fname in sorted(os.listdir(RESULTS_DIR)):
+    for fname in sorted(os.listdir(RUNS_DIR)):
         if not fname.endswith(".json"):
             continue
-        with open(os.path.join(RESULTS_DIR, fname)) as f:
+        with open(os.path.join(RUNS_DIR, fname)) as f:
             rec = json.load(f)
-        if circuit  and rec.get("circuit")   != circuit:  continue
+        if circuit   and rec.get("circuit")   != circuit:   continue
         if placement and rec.get("placement") != placement: continue
         if scheduler and rec.get("scheduler") != scheduler: continue
         records.append(rec)
@@ -381,11 +427,10 @@ ROBUSTNESS_SEEDS = list(range(1, 31))   # Config E: 30 seeds
 def _run_and_save(circuit, placement, scheduler, seed, skip_existing=True, **kwargs):
     path = result_path(circuit, placement, scheduler, seed)
     if skip_existing and os.path.exists(path):
-        print(f"  [skip] {os.path.basename(path)} already exists")
+        _trace.event("run_skipped", path=os.path.basename(path))
         return
     rec = run_one_config(circuit, placement, scheduler, seed, **kwargs)
-    out = save_result(rec)
-    print(f"  [saved] {out}")
+    save_result(rec)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -413,44 +458,50 @@ def main():
     kwargs = dict(sa_steps=args.sa_steps, cp_sat_time_limit=args.cp_time)
 
     if args.build_pbc:
-        print("Building PBC cache ...")
+        _trace.event("phase_start", phase="build_pbc")
         for name in CIRCUITS:
             fname, _ = CIRCUITS[name]
-            if os.path.exists(os.path.join(BENCH_DIR, fname)):
+            exp_path  = os.path.join(EXP_CIRCUITS, fname)
+            bench_path = os.path.join(BENCH_DIR, fname)
+            if os.path.exists(exp_path) or os.path.exists(bench_path):
                 try:
                     build_pbc(name)
                 except Exception as e:
-                    print(f"  [warn] {name}: {e}")
+                    _trace.event("pbc_error", circuit=name, error=str(e))
         return
 
     if args.phase == 1:
-        print("=== Phase 1: Core benchmarks ===")
+        _trace.event("phase_start", phase=1)
         for circuit in PHASE1_CIRCUITS:
             for placement, scheduler in PHASE1_CONFIGS:
                 _run_and_save(circuit, placement, scheduler, seed=42,
                               skip_existing=skip, **kwargs)
+        _trace.event("phase_done", phase=1)
         return
 
     if args.robustness:
-        print("=== Config E: 30-seed robustness (SA+CP-SAT on qft_100_approx) ===")
+        _trace.event("phase_start", phase="robustness_E")
         for seed in ROBUSTNESS_SEEDS:
             _run_and_save("qft_100_approx", "sa", "cpsat", seed=seed,
                           skip_existing=skip, **kwargs)
+        _trace.event("phase_done", phase="robustness_E")
         return
 
     if args.phase == 2:
-        print("=== Phase 2: Scaling sweep ===")
+        _trace.event("phase_start", phase=2)
         for circuit in PHASE2_CIRCUITS:
             for placement, scheduler in PHASE2_CONFIGS:
                 _run_and_save(circuit, placement, scheduler, seed=42,
                               skip_existing=skip, **kwargs)
+        _trace.event("phase_done", phase=2)
         return
 
     if args.phase == 3:
-        print("=== Phase 3: Large random circuit ===")
+        _trace.event("phase_start", phase=3)
         for placement, scheduler in PHASE2_CONFIGS:
             _run_and_save("random_ct_500q_10k", placement, scheduler, seed=42,
                           skip_existing=skip, **kwargs)
+        _trace.event("phase_done", phase=3)
         return
 
     # Single or multi-seed run

@@ -1,0 +1,60 @@
+{"ts": "2026-03-29T09:16:05.765672+00:00", "t": "gate_set_check", "circuit": "gf2_16_mult", "result": "FAIL", "invalid_gates": ["ccz"]}
+{"ts": "2026-03-29T09:16:05.766231+00:00", "t": "gate_set_check", "circuit": "qft_100_approx", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:16:05.776482+00:00", "t": "gate_set_check", "circuit": "random_ct_500q_10k", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:18:50.342965+00:00", "t": "gate_set_check", "circuit": "gf2_16_mult", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:18:50.343598+00:00", "t": "gate_set_check", "circuit": "qft_100_approx", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:18:50.353107+00:00", "t": "gate_set_check", "circuit": "random_ct_500q_10k", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:23:05.737797+00:00", "t": "gate_set_check", "circuit": "gf2_16_mult", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:23:05.738503+00:00", "t": "gate_set_check", "circuit": "qft_100_approx", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:23:05.748137+00:00", "t": "gate_set_check", "circuit": "random_ct_500q_10k", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:29:51.043947+00:00", "t": "gate_set_check", "circuit": "gf2_16_mult", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:29:51.044638+00:00", "t": "gate_set_check", "circuit": "qft_100_approx", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:29:51.055965+00:00", "t": "gate_set_check", "circuit": "random_ct_500q_10k", "result": "PASS", "invalid_gates": []}
+{"ts": "2026-03-29T09:49:28.824085+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult"]}
+{"ts": "2026-03-29T09:49:28.824644+00:00", "t": "sc_start", "circuit": "gf2_16_mult", "source": "/Users/nazmul/Documents/githubs/lamdams/experiment_circuits/gf2_16_mult.qasm"}
+{"ts": "2026-03-29T10:20:45.291076+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult", "qft_100_approx"]}
+{"ts": "2026-03-29T10:20:45.291677+00:00", "t": "sc_start", "circuit": "gf2_16_mult", "source": "/Users/nazmul/Documents/githubs/lamdams/experiment_circuits/gf2_16_mult.qasm"}
+{"ts": "2026-03-29T10:20:45.814930+00:00", "t": "sc_done", "circuit": "gf2_16_mult", "sc_logical_depth": 1792, "sc_tile_count": 5667, "sc_rows": 3, "sc_cols": 1889, "lc_ops_naive": 35633, "elapsed_sec": 0.523}
+{"ts": "2026-03-29T10:20:45.818679+00:00", "t": "sc_start", "circuit": "qft_100_approx", "source": "/Users/nazmul/Documents/githubs/lamdams/experiment_circuits/qft_100_approx.qasm"}
+{"ts": "2026-03-29T10:20:45.973237+00:00", "t": "sc_done", "circuit": "qft_100_approx", "sc_logical_depth": 297, "sc_tile_count": 1494, "sc_rows": 3, "sc_cols": 498, "lc_ops_naive": 6150, "elapsed_sec": 0.154}
+{"ts": "2026-03-29T10:20:45.974400+00:00", "t": "sc_saved", "path": "/Users/nazmul/Documents/githubs/lamdams/results/sc_baseline/sc_baseline.json", "n": 2}
+{"ts": "2026-03-29T10:21:33.761677+00:00", "t": "pbc_convert_start", "circuit": "gf2_16_mult", "source": "/Users/nazmul/Documents/githubs/lamdams/experiment_circuits/gf2_16_mult.qasm"}
+{"ts": "2026-03-29T10:24:13.036256+00:00", "t": "pbc_convert_done", "circuit": "gf2_16_mult", "n_qubits": 48, "t_count": 1792, "n_layers": 1, "n_rotations": 1792}
+{"ts": "2026-03-29T10:24:13.042115+00:00", "t": "pbc_saved", "circuit": "gf2_16_mult", "path": "/Users/nazmul/Documents/githubs/lamdams/circuits/benchmarks/pbc/gf2_16_mult.json"}
+{"ts": "2026-03-29T10:24:13.044693+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "random", "scheduler": "greedy_critical", "seed": 42, "n_blocks": 6, "mapper": "pure_random"}
+{"ts": "2026-03-29T10:27:22.705673+00:00", "t": "run_done", "circuit": "gf2_16_mult", "placement": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 1057, "logical_depth": 24893, "compile_time_sec": 189.662}
+{"ts": "2026-03-29T10:27:22.739752+00:00", "t": "result_saved", "path": "gf2_16_mult_random_greedy_critical_seed42.json"}
+{"ts": "2026-03-29T10:27:52.495807+00:00", "t": "phase_start", "phase": 1}
+{"ts": "2026-03-29T10:27:52.496200+00:00", "t": "run_skipped", "path": "gf2_16_mult_random_greedy_critical_seed42.json"}
+{"ts": "2026-03-29T10:27:52.499015+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "random", "scheduler": "cpsat", "seed": 42, "n_blocks": 6, "mapper": "pure_random"}
+{"ts": "2026-03-30T00:00:38.285611+00:00", "t": "pbc_convert_start", "circuit": "qft_100_approx", "source": "/Users/nazmul/Documents/githubs/lamdams/experiment_circuits/qft_100_approx.qasm"}
+{"ts": "2026-03-30T00:00:56.713411+00:00", "t": "pbc_convert_done", "circuit": "qft_100_approx", "n_qubits": 100, "t_count": 297, "n_layers": 3, "n_rotations": 297}
+{"ts": "2026-03-30T00:00:56.716593+00:00", "t": "pbc_saved", "circuit": "qft_100_approx", "path": "/Users/nazmul/Documents/githubs/lamdams/circuits/benchmarks/pbc/qft_100_approx.json"}
+{"ts": "2026-03-30T00:00:56.717563+00:00", "t": "run_start", "circuit": "qft_100_approx", "placement": "random", "scheduler": "greedy_critical", "seed": 42, "n_blocks": 12, "mapper": "pure_random"}
+{"ts": "2026-03-30T00:00:57.317183+00:00", "t": "run_done", "circuit": "qft_100_approx", "placement": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 91, "logical_depth": 1228, "compile_time_sec": 0.6}
+{"ts": "2026-03-30T00:00:57.319825+00:00", "t": "result_saved", "path": "qft_100_approx_random_greedy_critical_seed42.json"}
+{"ts": "2026-03-30T04:21:42.219890+00:00", "t": "run_start", "circuit": "qft_100_approx", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 12, "mapper": "pure_random"}
+{"ts": "2026-03-30T04:21:42.502478+00:00", "t": "run_done", "circuit": "qft_100_approx", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 91, "logical_depth": 4808, "compile_time_sec": 0.282}
+{"ts": "2026-03-30T04:21:42.504068+00:00", "t": "result_saved", "path": "qft_100_approx_random_sequential_seed42.json"}
+{"ts": "2026-03-30T04:22:15.671880+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 6, "mapper": "pure_random"}
+{"ts": "2026-03-30T04:23:21.227514+00:00", "t": "run_done", "circuit": "gf2_16_mult", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 1057, "logical_depth": 38373, "compile_time_sec": 65.555}
+{"ts": "2026-03-30T04:23:21.258994+00:00", "t": "result_saved", "path": "gf2_16_mult_random_sequential_seed42.json"}
+{"ts": "2026-03-30T16:27:10.990106+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "sa", "scheduler": "greedy_critical", "seed": 42, "n_blocks": 6, "mapper": "simulated_annealing"}
+{"ts": "2026-03-30T16:46:06.998082+00:00", "t": "run_done", "circuit": "gf2_16_mult", "placement": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 1054, "logical_depth": 23689, "compile_time_sec": 1136.002}
+{"ts": "2026-03-30T16:46:07.032384+00:00", "t": "result_saved", "path": "gf2_16_mult_sa_greedy_critical_seed42.json"}
+{"ts": "2026-03-30T16:46:37.135822+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "sa", "scheduler": "cpsat", "seed": 42, "n_blocks": 6, "mapper": "simulated_annealing"}
+{"ts": "2026-03-30T17:47:23.154648+00:00", "t": "run_start", "circuit": "qft_100_approx", "placement": "sa", "scheduler": "greedy_critical", "seed": 42, "n_blocks": 12, "mapper": "simulated_annealing"}
+{"ts": "2026-03-30T17:49:22.118489+00:00", "t": "run_done", "circuit": "qft_100_approx", "placement": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 83, "logical_depth": 957, "compile_time_sec": 118.962}
+{"ts": "2026-03-30T17:49:22.121957+00:00", "t": "result_saved", "path": "qft_100_approx_sa_greedy_critical_seed42.json"}
+{"ts": "2026-03-30T17:49:36.516805+00:00", "t": "run_start", "circuit": "qft_100_approx", "placement": "sa", "scheduler": "cpsat", "seed": 42, "n_blocks": 12, "mapper": "simulated_annealing"}
+{"ts": "2026-03-30T17:55:36.545912+00:00", "t": "run_done", "circuit": "qft_100_approx", "placement": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 83, "logical_depth": 489, "compile_time_sec": 360.025}
+{"ts": "2026-03-30T17:55:36.552951+00:00", "t": "result_saved", "path": "qft_100_approx_sa_cpsat_seed42.json"}
+{"ts": "2026-03-30T18:50:43.063222+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "sa", "scheduler": "cpsat", "seed": 42, "n_blocks": 6, "mapper": "simulated_annealing"}
+{"ts": "2026-03-30T20:34:06.080542+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "sa", "scheduler": "cpsat", "seed": 42, "n_blocks": 6, "mapper": "simulated_annealing"}
+{"ts": "2026-03-30T21:06:03.929981+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "sa", "scheduler": "cpsat", "seed": 42, "n_blocks": 6, "mapper": "simulated_annealing"}
+{"ts": "2026-03-31T00:08:01.760857+00:00", "t": "run_done", "circuit": "gf2_16_mult", "placement": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 1054, "logical_depth": 19352, "compile_time_sec": 10917.984}
+{"ts": "2026-03-31T00:08:01.816384+00:00", "t": "result_saved", "path": "gf2_16_mult_sa_cpsat_seed42.json"}
+{"ts": "2026-03-31T01:00:07.450107+00:00", "t": "run_start", "circuit": "qft_100_approx", "placement": "random", "scheduler": "cpsat", "seed": 42, "n_blocks": 12, "mapper": "pure_random"}
+{"ts": "2026-03-31T01:01:22.157297+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "random", "scheduler": "cpsat", "seed": 42, "n_blocks": 6, "mapper": "pure_random"}
+{"ts": "2026-03-31T01:02:23.317441+00:00", "t": "run_done", "circuit": "qft_100_approx", "placement": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 91, "logical_depth": 663, "compile_time_sec": 135.863}
+{"ts": "2026-03-31T01:02:23.325775+00:00", "t": "result_saved", "path": "qft_100_approx_random_cpsat_seed42.json"}

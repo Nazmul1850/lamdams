@@ -25,6 +25,7 @@ from modqldpc.lowering.policy import (
 )
 from modqldpc.lowering.lower_layer import lower_one_layer
 from modqldpc.core.types import PauliRotation
+from modqldpc.mapping.model import HardwareGraph
 from modqldpc.runtime.frame_policy import FrameState, FrameUpdatePolicy
 from modqldpc.runtime.layer_exec import LayerExecutor
 from modqldpc.runtime.outcomes import RandomOutcomeModel

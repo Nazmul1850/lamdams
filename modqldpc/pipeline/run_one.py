@@ -240,7 +240,7 @@ def run_one_compiled(
     sa_t0             = float(meta.get("sa_t0",            1e5))
     sa_tend           = float(meta.get("sa_tend",          1.1))
     cp_sat_time_limit = float(meta.get("cp_sat_time_limit", 120.0))
-    run_experiments   = bool(meta.get("run_experiments",   False))
+    run_experiments   = bool(meta.get("run_exp",   False))
     exp_sparse_pct    = float(meta.get("exp_sparse_pct",   0.7))
     exp_mapper        = str(meta.get("exp_mapper",        "simulated_annealing"))
     exp_scheduler     = str(meta.get("exp_scheduler",     "greedy_critical"))

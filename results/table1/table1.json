@@ -1,0 +1,63 @@
+{
+  "description": "Table 1: SC vs qLDPC physical qubit and depth comparison",
+  "methodology": {
+    "sc_physical_qubits": "data-only tiles \u00d7 (2\u00b7d\u00b2 - 1); data tiles = 6\u00b7n_qubits (magic patches excluded for fair comparison)",
+    "sc_data_tiles": "3 rows \u00d7 2\u00b7n_qubits cols  (SimplePreDistilledStates layout)",
+    "sc_magic_tiles": "3 rows \u00d7 (T_count + 1) cols  (excluded from qubit comparison)",
+    "qldpc_physical_qubits": "n_blocks \u00d7 (288 + 103) + n_couplers \u00d7 24",
+    "sc_depth": "T-count (Litinski transform: each T = 1 lattice-surgery round)",
+    "qldpc_naive_depth": "logical depth under sequential (one-at-a-time) scheduling",
+    "code_distance": 12
+  },
+  "generated_at": "2026-03-30T05:03:23.109072+00:00",
+  "rows": [
+    {
+      "circuit": "gf2_16_mult",
+      "n_logical_qubits": 48,
+      "t_count": 1792,
+      "sc_data_tiles": 288,
+      "sc_magic_tiles": 5379,
+      "sc_total_tiles": 5667,
+      "sc_physical_qubits": 82656,
+      "sc_physical_qubits_total": 1626429,
+      "sc_depth": 1792,
+      "code_distance_d": 12,
+      "phys_per_tile": 287,
+      "n_blocks": 6,
+      "n_couplers": 7,
+      "qldpc_block_qubits": 2346,
+      "qldpc_bridge_qubits": 168,
+      "qldpc_physical_qubits": 2514,
+      "qldpc_naive_depth": 38373,
+      "qldpc_placement": "random",
+      "qldpc_scheduler": "sequential",
+      "seed": 42,
+      "qubit_reduction": 32.88,
+      "depth_overhead": 21.41
+    },
+    {
+      "circuit": "qft_100_approx",
+      "n_logical_qubits": 100,
+      "t_count": 297,
+      "sc_data_tiles": 600,
+      "sc_magic_tiles": 894,
+      "sc_total_tiles": 1494,
+      "sc_physical_qubits": 172200,
+      "sc_physical_qubits_total": 428778,
+      "sc_depth": 297,
+      "code_distance_d": 12,
+      "phys_per_tile": 287,
+      "n_blocks": 12,
+      "n_couplers": 17,
+      "qldpc_block_qubits": 4692,
+      "qldpc_bridge_qubits": 408,
+      "qldpc_physical_qubits": 5100,
+      "qldpc_naive_depth": 4808,
+      "qldpc_placement": "random",
+      "qldpc_scheduler": "sequential",
+      "seed": 42,
+      "qubit_reduction": 33.76,
+      "depth_overhead": 16.19
+    }
+  ]
+}
