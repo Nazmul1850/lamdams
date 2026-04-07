@@ -30,13 +30,13 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 _ROOT      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_DIR    = os.path.join(_ROOT, "results", "raw")
+RUNS_DIR   = os.path.join(_ROOT, "runs")
 SC_DIR     = os.path.join(_ROOT, "results", "sc_baseline")
 FIG_DIR    = os.path.join(_ROOT, "results", "figures")
 
 # ── Style constants ───────────────────────────────────────────────────────────
 
-PLACEMENT_LABELS = {"random": "Random", "greedy": "Greedy (RR)", "sa": "SA (ours)"}
+MAPPING_LABELS = {"random": "Random", "sa": "SA (ours)"}
 SCHEDULER_LABELS = {"greedy_critical": "Greedy", "cpsat": "CP-SAT"}
 
 CONFIG_LABELS = {
@@ -72,36 +72,39 @@ _RC = {
 # ── Data loading helpers ──────────────────────────────────────────────────────
 
 def load_results(
-    circuit=None, placement=None, scheduler=None, seed=None
+    circuit=None, mapping=None, scheduler=None, seed=None
 ) -> List[dict]:
     records = []
-    if not os.path.isdir(RAW_DIR):
+    if not os.path.isdir(RUNS_DIR):
         return records
-    for fname in sorted(os.listdir(RAW_DIR)):
+    for fname in sorted(os.listdir(RUNS_DIR)):
         if not fname.endswith(".json"):
             continue
-        with open(os.path.join(RAW_DIR, fname)) as f:
+        with open(os.path.join(RUNS_DIR, fname)) as f:
             rec = json.load(f)
-        if circuit   and rec.get("circuit")   != circuit:   continue
-        if placement and rec.get("placement") != placement: continue
+        # backwards-compat: old files used "placement" key
+        if "mapping" not in rec and "placement" in rec:
+            rec["mapping"] = rec["placement"]
+        if circuit   and rec.get("circuit")  != circuit:  continue
+        if mapping   and rec.get("mapping")  != mapping:  continue
         if scheduler and rec.get("scheduler") != scheduler: continue
-        if seed is not None and rec.get("seed") != seed:    continue
+        if seed is not None and rec.get("seed") != seed:   continue
         records.append(rec)
     return records
 
 
-def _single(circuit, placement, scheduler, seed=42) -> dict | None:
-    recs = load_results(circuit=circuit, placement=placement, scheduler=scheduler, seed=seed)
+def _single(circuit, mapping, scheduler, seed=42) -> dict | None:
+    recs = load_results(circuit=circuit, mapping=mapping, scheduler=scheduler, seed=seed)
     return recs[0] if recs else None
 
 
-def _require(circuit, placement, scheduler, seed=42) -> dict:
-    rec = _single(circuit, placement, scheduler, seed)
+def _require(circuit, mapping, scheduler, seed=42) -> dict:
+    rec = _single(circuit, mapping, scheduler, seed)
     if rec is None:
         raise FileNotFoundError(
-            f"Missing result: {circuit} | {placement} | {scheduler} | seed={seed}\n"
+            f"Missing result: {circuit} | {mapping} | {scheduler} | seed={seed}\n"
             f"Run: python experiments/run_experiment.py --circuit {circuit}"
-            f" --placement {placement} --scheduler {scheduler} --seed {seed}"
+            f" --mapping {mapping} --scheduler {scheduler} --seed {seed}"
         )
     return rec
 
@@ -131,20 +134,17 @@ def build_fig1(circuits=None, save=True):
         fig, ax = plt.subplots(figsize=(6, 3.5))
 
         any_data = False
-        for i, (placement, color) in enumerate(zip(placements, colors)):
+        for i, (mapping, color) in enumerate(zip(placements, colors)):
             vals = []
             for circuit in circuits:
-                # Use greedy_critical scheduler for placement comparison
-                # (scheduler doesn't affect inter_block_rotations, but we
-                # need a result to have n_blocks / mapping info)
-                rec = _single(circuit, placement, "greedy_critical") or \
-                      _single(circuit, placement, "cpsat")
+                rec = _single(circuit, mapping, "greedy_critical") or \
+                      _single(circuit, mapping, "cpsat")
                 vals.append(rec["inter_block_rotations"] if rec else 0)
             if any(v > 0 for v in vals):
                 any_data = True
             bars = ax.bar(
                 x + i * width, vals, width,
-                label=PLACEMENT_LABELS[placement],
+                label=MAPPING_LABELS[mapping],
                 color=color, alpha=0.85, edgecolor="white", linewidth=0.5,
             )
 
@@ -184,8 +184,8 @@ def build_fig2(circuit="qft_100_approx", save=True):
         # Box plots (SA, 30 seeds)
         box_data = []
         box_labels = []
-        for placement, scheduler in configs_box:
-            recs = load_results(circuit=circuit, placement=placement, scheduler=scheduler)
+        for mapping, scheduler in configs_box:
+            recs = load_results(circuit=circuit, mapping=mapping, scheduler=scheduler)
             depths = [r["logical_depth"] for r in recs if r.get("logical_depth", 0) > 0]
             if depths:
                 box_data.append(depths)
@@ -193,13 +193,13 @@ def build_fig2(circuit="qft_100_approx", save=True):
 
         # Baseline bars (single seed, shown as horizontal lines)
         baseline_lines = []
-        for placement, scheduler in configs_bar:
-            rec = _single(circuit, placement, scheduler)
+        for mapping, scheduler in configs_bar:
+            rec = _single(circuit, mapping, scheduler)
             if rec and rec.get("logical_depth", 0) > 0:
                 baseline_lines.append((
                     rec["logical_depth"],
-                    f"{PLACEMENT_LABELS[placement]}+{SCHEDULER_LABELS[scheduler]}",
-                    CONFIG_COLORS[(placement, scheduler)],
+                    f"{MAPPING_LABELS[mapping]}+{SCHEDULER_LABELS[scheduler]}",
+                    CONFIG_COLORS[(mapping, scheduler)],
                 ))
 
         positions = list(range(1, len(box_data) + 1))
@@ -262,10 +262,10 @@ def build_fig3(circuits=None, save=True):
 
         any_data = False
         for cfg, offset in zip(configs, offsets):
-            placement, scheduler = cfg
+            mapping, scheduler = cfg
             vals = []
             for circuit in circuits:
-                rec = _single(circuit, placement, scheduler)
+                rec = _single(circuit, mapping, scheduler)
                 vals.append(rec["logical_depth"] if rec else 0)
             if any(v > 0 for v in vals):
                 any_data = True
@@ -323,8 +323,8 @@ def build_fig4(circuits=None, save=True):
         for circuit in circuits:
             marker = markers.get(circuit, "D")
             for cfg in configs:
-                placement, scheduler = cfg
-                rec = _single(circuit, placement, scheduler)
+                mapping, scheduler = cfg
+                rec = _single(circuit, mapping, scheduler)
                 if rec and rec.get("logical_depth", 0) > 0 and rec.get("compile_time_sec", 0) > 0:
                     any_data = True
                     label = CONFIG_LABELS[cfg] if cfg not in plotted_configs else None
@@ -476,7 +476,7 @@ def print_table1(circuits=None):
 
     for circuit in circuits:
         # qLDPC results
-        naive_rec = _single(circuit, "random", "greedy_critical")
+        naive_rec = _single(circuit, "random", "sequential")
         best_rec  = _single(circuit, "sa", "cpsat")
 
         n_qubits = naive_rec["n_qubits"] if naive_rec else "?"

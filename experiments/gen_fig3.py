@@ -47,8 +47,8 @@ CIRCUITS = [
 
 # ── Load helpers ──────────────────────────────────────────────────────────────
 
-def load_run(circuit: str, placement: str, scheduler: str, seed: int = 42):
-    path = os.path.join(RUNS_DIR, f"{circuit}_{placement}_{scheduler}_seed{seed}.json")
+def load_run(circuit: str, mapping: str, scheduler: str, seed: int = 42):
+    path = os.path.join(RUNS_DIR, f"{circuit}_{mapping}_{scheduler}_seed{seed}.json")
     if not os.path.exists(path):
         return None
     with open(path) as f:
@@ -215,13 +215,13 @@ def make_figure(depths: dict, sc_depths: dict):
 # ── CSV output ────────────────────────────────────────────────────────────────
 
 def write_csv(depths: dict, compile_times: dict):
-    lines = ["circuit,placement,scheduler,logical_depth,compile_time_sec"]
+    lines = ["circuit,mapping,scheduler,logical_depth,compile_time_sec"]
     for circuit, _ in CIRCUITS:
-        for placement, scheduler, _, _ in CONFIGS:
-            d = depths[circuit].get((placement, scheduler))
-            t = compile_times[circuit].get((placement, scheduler))
+        for mapping, scheduler, _, _ in CONFIGS:
+            d = depths[circuit].get((mapping, scheduler))
+            t = compile_times[circuit].get((mapping, scheduler))
             lines.append(
-                f"{circuit},{placement},{scheduler},"
+                f"{circuit},{mapping},{scheduler},"
                 f"{d if d is not None else 'NA'},"
                 f"{t if t is not None else 'NA'}"
             )
@@ -241,15 +241,15 @@ def main():
     missing = []
     for circuit, _ in CIRCUITS:
         sc_depths[circuit] = load_sc_depth(circuit)
-        for placement, scheduler, _, _ in CONFIGS:
-            run = load_run(circuit, placement, scheduler)
+        for mapping, scheduler, _, _ in CONFIGS:
+            run = load_run(circuit, mapping, scheduler)
             if run is not None:
-                depths[circuit][(placement, scheduler)]        = run["logical_depth"]
-                compile_times[circuit][(placement, scheduler)] = run.get("compile_time_sec")
+                depths[circuit][(mapping, scheduler)]        = run["logical_depth"]
+                compile_times[circuit][(mapping, scheduler)] = run.get("compile_time_sec")
             else:
-                depths[circuit][(placement, scheduler)]        = None
-                compile_times[circuit][(placement, scheduler)] = None
-                missing.append(f"{circuit} {placement}+{scheduler}")
+                depths[circuit][(mapping, scheduler)]        = None
+                compile_times[circuit][(mapping, scheduler)] = None
+                missing.append(f"{circuit} {mapping}+{scheduler}")
 
     if missing:
         print(f"WARNING: missing run data for: {', '.join(missing)}")

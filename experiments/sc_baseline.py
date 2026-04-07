@@ -332,7 +332,7 @@ def _print_run_status(all_circuits: list[str], existing_sc: dict) -> None:
         for c, _ in missing_runs:
             print(
                 f"  python experiments/run_experiment.py"
-                f" --circuit {c} --placement {PLACEMENT}"
+                f" --circuit {c} --mapping {PLACEMENT}"
                 f" --scheduler {SCHEDULER} --seed {SEED}"
             )
     else:

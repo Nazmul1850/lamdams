@@ -230,10 +230,10 @@ class RotationDebug:
 @dataclass
 class ScoreBreakdown:
     total: float
-    unused_blocks_pen: float   # W_UNUSED_BLOCKS * n_unused — primary: use all blocks
-    multi_block_pen: float     # W_MULTI_BLOCK  * num_multiblock — secondary: reduce inter-block
-    mst_pen: float             # W_MST          * total_mst — tertiary: spatial compactness
-    split_pen: float           # W_SPLIT        * total_split — quaternary: balance support
+    unused_blocks_pen: float   # 1e7 * n_unused      — primary:    use all blocks
+    multi_block_pen: float     # 1e4 * num_multiblock — secondary:  reduce inter-block
+    mst_pen: float             # 1e2 * total_mst      — tertiary:   spatial compactness
+    split_pen: float           # 1e2 * total_split    — quaternary: balance support
     block_loads: Dict[BlockId, int] = field(default_factory=dict)
     num_multiblock: int = 0
     n_unused_blocks: int = 0
@@ -245,78 +245,55 @@ def _score(
     rotations: list,
     hw: HardwareGraph,
     *,
-    W_PEAK: float = 1e4,
-    W_RANGE: float = 5e3,
-    W_STD: float = 0.0,
-    W_DISCONNECTED: float = 0.0,
-    W_MST: float = 0.0,
-    W_SPLIT: float = 1e2,
-    W_SPAN: float = 1e3,
+    W_UNUSED_BLOCKS: float = 1e7,   # primary:    use all blocks
+    W_MULTI_BLOCK: float  = 1e4,    # secondary:  reduce inter-block rotations
+    W_MST: float          = 1e2,    # tertiary:   keep inter-block spans spatially close
+    W_SPLIT: float        = 1e2,    # quaternary: balance support across touched blocks
     SPLIT_MODE: str = "l2",
     RETURN_TOP_K: int = 10,
     ENABLE_DEBUG: bool = False,
 ) -> ScoreBreakdown:
     """
-    Energy to minimise.  For each PauliRotation, find S = set of blocks its
-    support touches under the current mapping.
+    Energy function to minimise.
 
-    Weight hierarchy: W_PEAK > W_RANGE > W_DISCONNECTED > W_MST > W_SPLIT
-    (W_SPAN=0.0 by default — span count alone is not penalised directly)
+    Weight priority (each tier dominates all lower tiers):
 
-      - peak_load_pen:     W_PEAK * max(load) over active blocks
-                           PRIMARY: prevent one block becoming global bottleneck.
-      - range_load_pen:    W_RANGE * (max - min) load over active blocks
-                           SECONDARY: reduce load imbalance across blocks.
-      - std_load_pen:      W_STD * std(load) over active blocks (off by default).
-      - disconnected_pen:  W_DISCONNECTED * count of disconnected multi-block spans
-                           HARD CONSTRAINT: disconnected is always worst.
-      - mst_pen:           W_MST * sum of MST hop-lengths for multi-block rotations
-                           TERTIARY: compactness when multi-block unavoidable.
-      - split_pen:         W_SPLIT * support-imbalance over multi-block rotations
-                           QUATERNARY: prefer equal qubit split across blocks.
-      - span_pen:          W_SPAN * (k-1) per rotation (disabled by default).
+      W_UNUSED_BLOCKS  (1e7)  — penalise blocks with no qubits assigned.
+                                 Primary: every block must be used.
+
+      W_MULTI_BLOCK    (1e4)  — count of PauliRotations whose support spans ≥2 blocks.
+                                 Secondary: reduce inter-block communication.
+
+      W_MST            (1e2)  — sum of MST hop-lengths for multi-block rotations.
+                                 Tertiary: when multi-block is unavoidable, keep it local.
+
+      W_SPLIT          (1e2)  — support-imbalance (std of per-block qubit counts) for
+                                 multi-block rotations.
+                                 Quaternary: prefer equal qubit split across touched blocks.
 
     SPLIT_MODE: "l1" (max-min counts), "l2" (std of counts), "pairwise" (max |ci-cj|).
     """
-    span = 0.0
-    disconn = 0.0
-    mst = 0.0
-    split = 0.0
-
-    load: Dict[BlockId, int] = {b: 0 for b in hw.blocks}
-    num_multiblock = 0
-    num_disconnected = 0
+    mst_total  = 0.0
+    split_total = 0.0
+    num_multiblock   = 0
     max_blocks_touched = 0
     debug_rows: List[RotationDebug] = []
 
     for ridx, rot in enumerate(rotations):
         S = _blocks_touched(rot, hw)
         k = len(S)
-        for b in S:
-            load[b] += 1
         if k > max_blocks_touched:
             max_blocks_touched = k
 
-        raw_span = float(k - 1) if k > 1 else 0.0
-        raw_disconnected = 0.0
         raw_mst = 0.0
         raw_split_val = 0.0
         per_block_counts: Dict[BlockId, int] = {}
 
         if k > 1:
             num_multiblock += 1
-            span += k - 1
+            raw_mst = float(_mst_len(S, hw))
+            mst_total += raw_mst
 
-            if not _is_connected(S, hw):
-                disconn += 1.0
-                raw_disconnected = 1.0
-                num_disconnected += 1
-
-            mst_val = _mst_len(S, hw)
-            mst += mst_val
-            raw_mst = float(mst_val)
-
-            # per-block qubit support counts for split penalty
             per_block_counts = {b: 0 for b in S}
             for q in _rotation_support(rot):
                 b = hw.logical_to_block.get(q)
@@ -337,71 +314,52 @@ def _score(
                         for i in range(len(counts))
                         for j in range(i + 1, len(counts)))
                 )
-            split += raw_split_val
+            split_total += raw_split_val
 
         if ENABLE_DEBUG:
             supp = _rotation_support(rot)
-            word = rot.axis.lstrip("+-")
             debug_rows.append(RotationDebug(
                 ridx=ridx,
                 layer=getattr(rot, "layer", None),
-                word=word,
+                word=rot.axis.lstrip("+-"),
                 support=tuple(sorted(supp)),
                 touched_blocks=tuple(sorted(S)),
                 k=k,
                 support_size=len(supp),
                 per_block_counts=dict(per_block_counts),
-                raw_span=raw_span,
-                raw_disconnected=raw_disconnected,
                 raw_mst=raw_mst,
                 raw_split=raw_split_val,
-                span_pen=W_SPAN * raw_span,
-                disconnected_pen=W_DISCONNECTED * raw_disconnected,
+                multi_block_pen=W_MULTI_BLOCK * float(k > 1),
                 mst_pen=W_MST * raw_mst,
                 split_pen=W_SPLIT * raw_split_val,
-                total_pen=(W_SPAN * raw_span + W_DISCONNECTED * raw_disconnected
-                           + W_MST * raw_mst + W_SPLIT * raw_split_val),
+                total_pen=(W_MULTI_BLOCK * float(k > 1)
+                           + W_MST * raw_mst
+                           + W_SPLIT * raw_split_val),
             ))
 
-    # load-balance penalties over active blocks only
     active_blocks = {hw.logical_to_block[q] for q in hw.logical_to_block}
-    active_loads = [load[b] for b in active_blocks] if active_blocks else [0]
-    peak = float(max(active_loads))
-    load_range = float(max(active_loads) - min(active_loads)) if len(active_loads) > 1 else 0.0
-    if len(active_loads) > 1:
-        mean_load = sum(active_loads) / len(active_loads)
-        std_load = math.sqrt(
-            sum((x - mean_load) ** 2 for x in active_loads) / len(active_loads)
-        )
-    else:
-        std_load = 0.0
+    n_unused = sum(1 for b in hw.blocks if b not in active_blocks)
 
     top_rotations: List[RotationDebug] = []
     if ENABLE_DEBUG and debug_rows:
         top_rotations = sorted(debug_rows, key=lambda r: r.total_pen, reverse=True)[:RETURN_TOP_K]
 
     total = (
-        W_PEAK * peak
-        + W_RANGE * load_range
-        + W_STD * std_load
-        + W_DISCONNECTED * disconn
-        + W_MST * mst
-        + W_SPLIT * split
-        + W_SPAN * span
+        W_UNUSED_BLOCKS * n_unused
+        + W_MULTI_BLOCK * num_multiblock
+        + W_MST * mst_total
+        + W_SPLIT * split_total
     )
 
     return ScoreBreakdown(
         total=total,
-        peak_load_pen=W_PEAK * peak,
-        range_load_pen=W_RANGE * load_range,
-        std_load_pen=W_STD * std_load,
-        span_pen=W_SPAN * span,
-        disconnected_pen=W_DISCONNECTED * disconn,
-        mst_pen=W_MST * mst,
-        split_pen=W_SPLIT * split,
-        block_loads=load,
+        unused_blocks_pen=W_UNUSED_BLOCKS * n_unused,
+        multi_block_pen=W_MULTI_BLOCK * num_multiblock,
+        mst_pen=W_MST * mst_total,
+        split_pen=W_SPLIT * split_total,
+        block_loads={b: 0 for b in hw.blocks},   # kept for compat, not used in scoring
         num_multiblock=num_multiblock,
-        num_disconnected=num_disconnected,
+        n_unused_blocks=n_unused,
         max_blocks_touched=max_blocks_touched,
         top_rotations=top_rotations,
     )
@@ -418,21 +376,12 @@ def print_score_debug(
     print(f"\n{bar}")
     print(f"  {title}")
     print(bar)
-    print(f"  total             : {score.total:.2f}")
-    print(f"  peak_load_pen     : {score.peak_load_pen:.2f}")
-    print(f"  range_load_pen    : {score.range_load_pen:.2f}")
-    print(f"  std_load_pen      : {score.std_load_pen:.2f}")
-    print(f"  disconnected_pen  : {score.disconnected_pen:.2f}")
-    print(f"  mst_pen           : {score.mst_pen:.2f}")
-    print(f"  split_pen         : {score.split_pen:.2f}")
-    print(f"  span_pen          : {score.span_pen:.2f}")
-    print(f"  num_multiblock    : {score.num_multiblock}")
-    print(f"  num_disconnected  : {score.num_disconnected}")
-    print(f"  max_blocks_touched: {score.max_blocks_touched}")
-    if score.block_loads:
-        print(f"\n  Block loads (rotation count per block):")
-        for b, cnt in sorted(score.block_loads.items()):
-            print(f"    block {b:>4}: {cnt}")
+    print(f"  total              : {score.total:.2f}")
+    print(f"  unused_blocks_pen  : {score.unused_blocks_pen:.2f}  (n_unused={score.n_unused_blocks})")
+    print(f"  multi_block_pen    : {score.multi_block_pen:.2f}  (n_multiblock={score.num_multiblock})")
+    print(f"  mst_pen            : {score.mst_pen:.2f}")
+    print(f"  split_pen          : {score.split_pen:.2f}")
+    print(f"  max_blocks_touched : {score.max_blocks_touched}")
     if score.top_rotations:
         k = min(show_top_k, len(score.top_rotations))
         print(f"\n  Top-{k} rotations by penalty:")
@@ -441,7 +390,7 @@ def print_score_debug(
                 f"    [{i+1:2d}] ridx={r.ridx} layer={r.layer} k={r.k} "
                 f"supp={r.support_size} blocks={r.touched_blocks} "
                 f"pen={r.total_pen:.2f} "
-                f"(disc={r.raw_disconnected:.0f} mst={r.raw_mst:.0f} split={r.raw_split:.2f})"
+                f"(mst={r.raw_mst:.0f} split={r.raw_split:.2f})"
             )
     print(bar)
 
@@ -494,9 +443,8 @@ def _debug_state(rotations: list, hw: HardwareGraph, cfg: MappingConfig) -> None
 
     # initial score
     s = _score(rotations, hw, ENABLE_DEBUG=True)
-    print(f"  initial score  total={s.total:.1f}  peak={s.peak_load_pen:.1f}  "
-          f"range={s.range_load_pen:.1f}  disconn={s.disconnected_pen:.1f}  "
-          f"mst={s.mst_pen:.1f}  split={s.split_pen:.1f}")
+    print(f"  initial score  total={s.total:.1f}  unused_blocks={s.unused_blocks_pen:.1f}  "
+          f"multi_block={s.multi_block_pen:.1f}  mst={s.mst_pen:.1f}  split={s.split_pen:.1f}")
 
     # check 10 random moves and their score deltas
     import random as _random
@@ -581,8 +529,8 @@ def _anneal(
             print(
                 f"[SA-mapping] it={it:6d}  T={T:.4f}  "
                 f"cur={cur.total:.1f}  best={best.total:.1f}  "
-                f"(peak={cur.peak_load_pen:.0f} range={cur.range_load_pen:.0f} "
-                f"disconn={cur.disconnected_pen:.0f} split={cur.split_pen:.0f})  "
+                f"(unused={cur.unused_blocks_pen:.0f} multi={cur.multi_block_pen:.0f} "
+                f"mst={cur.mst_pen:.0f} split={cur.split_pen:.0f})  "
                 f"accept={n_accept}  reject={n_reject}  noop={n_noop}"
             )
             n_noop = n_accept = n_reject = 0
@@ -666,20 +614,18 @@ class SimulatedAnnealingMapper(BaseMapper):
             out_b,
             out_l,
             meta={
-                "mapper": self.name,
-                "init_mapper": self.init_mapper_name,
-                "sa_steps": cfg.sa_steps,
-                "sa_t0": cfg.sa_t0,
-                "sa_t_end": cfg.sa_tend,
-                "best_score_total": best_score.total,
-                "best_score_peak_load": best_score.peak_load_pen,
-                "best_score_range_load": best_score.range_load_pen,
-                "best_score_disconnected": best_score.disconnected_pen,
-                "best_score_mst": best_score.mst_pen,
-                "best_score_split": best_score.split_pen,
-                "best_score_span": best_score.span_pen,
-                "num_multiblock": best_score.num_multiblock,
-                "num_disconnected": best_score.num_disconnected,
-                "n_rotations": len(rotations),
+                "mapper":                    self.name,
+                "init_mapper":               self.init_mapper_name,
+                "sa_steps":                  cfg.sa_steps,
+                "sa_t0":                     cfg.sa_t0,
+                "sa_tend":                   cfg.sa_tend,
+                "best_score_total":          best_score.total,
+                "best_score_unused_blocks":  best_score.unused_blocks_pen,
+                "best_score_multi_block":    best_score.multi_block_pen,
+                "best_score_mst":            best_score.mst_pen,
+                "best_score_split":          best_score.split_pen,
+                "n_unused_blocks":           best_score.n_unused_blocks,
+                "num_multiblock":            best_score.num_multiblock,
+                "n_rotations":               len(rotations),
             },
         )

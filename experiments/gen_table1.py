@@ -61,12 +61,12 @@ def discover_circuits() -> list[str]:
     return sorted(names)
 
 
-def run_path(circuit: str, placement: str, scheduler: str) -> str:
-    return os.path.join(RUNS_DIR, f"{circuit}_{placement}_{scheduler}_seed{SEED}.json")
+def run_path(circuit: str, mapping: str, scheduler: str) -> str:
+    return os.path.join(RUNS_DIR, f"{circuit}_{mapping}_{scheduler}_seed{SEED}.json")
 
 
-def load_run(circuit: str, placement: str, scheduler: str) -> dict | None:
-    p = run_path(circuit, placement, scheduler)
+def load_run(circuit: str, mapping: str, scheduler: str) -> dict | None:
+    p = run_path(circuit, mapping, scheduler)
     if not os.path.exists(p):
         return None
     with open(p) as f:
@@ -143,17 +143,17 @@ if missing_sc:
 if missing_naive:
     print("\n[TO DO — naive runs]")
     for c in missing_naive:
-        print(f"  python experiments/run_experiment.py --circuit {c} --placement random --scheduler sequential --seed {SEED}")
+        print(f"  python experiments/run_experiment.py --circuit {c} --mapping random --scheduler sequential --seed {SEED}")
 
 if missing_sa_greedy:
     print("\n[TO DO — SA+Greedy runs (config C)]")
     for c in missing_sa_greedy:
-        print(f"  python experiments/run_experiment.py --circuit {c} --placement sa --scheduler greedy_critical --seed {SEED}")
+        print(f"  python experiments/run_experiment.py --circuit {c} --mapping sa --scheduler greedy_critical --seed {SEED}")
 
 if missing_sa:
     print("\n[TO DO — SA+CPSAT runs (config D)]")
     for c in missing_sa:
-        print(f"  python experiments/run_experiment.py --circuit {c} --placement sa --scheduler cpsat --seed {SEED}")
+        print(f"  python experiments/run_experiment.py --circuit {c} --mapping sa --scheduler cpsat --seed {SEED}")
 
 print()
 

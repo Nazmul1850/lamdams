@@ -243,7 +243,7 @@ def _anneal_with_checkpoints(
 
 def run_placement(
     circuit_name: str,
-    placement: str,
+    mapping: str,
     seed: int,
     *,
     sa_steps: int = SA_PROD["steps"],
@@ -252,29 +252,27 @@ def run_placement(
     sa_score_kwargs: Optional[Dict[str, float]] = None,
     n_data: int = N_DATA,
 ) -> Dict[str, Any]:
-    """Run placement only (no scheduling). Fast diagnostic tool."""
+    """Run mapping only (no scheduling). Fast diagnostic tool."""
     n_logicals, rotations, conv = load_pbc(circuit_name)
     hw, _ = make_hardware(n_logicals, topology="grid", sparse_pct=0.0,
                           n_data=n_data, coupler_capacity=1)
     score_kw = sa_score_kwargs or {}
     t_sa = time.perf_counter()
 
-    if placement == "random":
+    if mapping == "random":
         plan = get_mapper("pure_random").solve(
             MappingProblem(n_logicals=n_logicals), hw,
             MappingConfig(seed=seed),
         )
         sa_metrics: Dict[str, Any] = {}
 
-    elif placement == "sa":
+    elif mapping == "sa":
         # Init with round-robin (same as production)
         get_mapper("auto_round_robin_mapping").solve(
             MappingProblem(n_logicals=n_logicals), hw, MappingConfig(seed=seed)
         )
         init_score = _score(rotations, hw, **score_kw)
         print(f"  [SA] initial_energy={init_score.total:.1f}"
-              f"  peak={init_score.peak_load_pen:.0f}"
-              f"  span={init_score.span_pen:.1f}"
               f"  mst={init_score.mst_pen:.1f}")
 
         best_score, energy_log, best_map = _anneal_with_checkpoints(
@@ -305,7 +303,7 @@ def run_placement(
               f"  reduction={reduction_pct:.1f}%")
 
     else:
-        raise ValueError(f"Unknown placement: {placement!r}")
+        raise ValueError(f"Unknown mapping: {mapping!r}")
 
     elapsed = time.perf_counter() - t_sa
 
@@ -314,15 +312,15 @@ def run_placement(
 
     rec = {
         "circuit":                 circuit_name,
-        "placement":               placement,
+        "mapping":                 mapping,
         "scheduler":               None,
         "seed":                    seed,
-        "sa_steps":                sa_steps if placement == "sa" else None,
-        "sa_t0":                   sa_t0    if placement == "sa" else None,
-        "sa_tend":                 sa_tend  if placement == "sa" else None,
+        "sa_steps":                sa_steps if mapping == "sa" else None,
+        "sa_t0":                   sa_t0    if mapping == "sa" else None,
+        "sa_tend":                 sa_tend  if mapping == "sa" else None,
         "inter_block_all":         iblk_all,
         "inter_block_t_only":      iblk_t,
-        "placement_time_sec":      round(elapsed, 3),
+        "mapping_time_sec":        round(elapsed, 3),
         "logical_depth":           None,
         "layer_depths":            [],
         "timestamp":               datetime.now(timezone.utc).isoformat(),
@@ -339,7 +337,7 @@ def run_placement(
 
 def run_full_pipeline(
     circuit_name: str,
-    placement: str,
+    mapping: str,
     scheduler: str,
     seed: int,
     *,
@@ -357,7 +355,7 @@ def run_full_pipeline(
     Prints layer-by-layer scheduling progress and SA energy checkpoints.
     Result is saved to results/sensitivity/ and skipped on re-run.
     """
-    rpath = _result_path(phase, circuit_name, placement, scheduler, seed,
+    rpath = _result_path(phase, circuit_name, mapping, scheduler, seed,
                          sa_steps, sa_t0, sa_tend, sa_score_kwargs)
     if not force and os.path.exists(rpath):
         print(f"  [skip] {os.path.basename(rpath)}")
@@ -371,12 +369,12 @@ def run_full_pipeline(
     t_start  = time.perf_counter()
     sa_metrics: Dict[str, Any] = {}
 
-    # ── Placement ──────────────────────────────────────────────────────────────
-    if placement == "random":
+    # ── Mapping ────────────────────────────────────────────────────────────────
+    if mapping == "random":
         plan = get_mapper("pure_random").solve(
             MappingProblem(n_logicals=n_logicals), hw, MappingConfig(seed=seed),
         )
-    elif placement == "sa":
+    elif mapping == "sa":
         get_mapper("auto_round_robin_mapping").solve(
             MappingProblem(n_logicals=n_logicals), hw, MappingConfig(seed=seed)
         )
@@ -407,14 +405,14 @@ def run_full_pipeline(
         print(f"  [SA] final_energy={best_score.total:.1f}"
               f"  reduction={reduction_pct:.1f}%")
     else:
-        raise ValueError(f"Unknown placement: {placement!r}")
+        raise ValueError(f"Unknown mapping: {mapping!r}")
 
     t_after_map = time.perf_counter()
 
     # ── Inter-block count ──────────────────────────────────────────────────────
     iblk_all = count_inter_block(rotations, plan, t_only=False)
     iblk_t   = count_inter_block(rotations, plan, t_only=True)
-    print(f"  [placement] inter_block_all={iblk_all}  inter_block_T={iblk_t}"
+    print(f"  [mapping] inter_block_all={iblk_all}  inter_block_T={iblk_t}"
           f"  map_time={t_after_map - t_start:.1f}s")
 
     # ── Scheduling pipeline (matches run_experiment.py) ───────────────────────
@@ -500,12 +498,12 @@ def run_full_pipeline(
 
     rec = {
         "circuit":               circuit_name,
-        "placement":             placement,
+        "mapping":               mapping,
         "scheduler":             scheduler,
         "seed":                  seed,
-        "sa_steps":              sa_steps if placement == "sa" else None,
-        "sa_t0":                 sa_t0    if placement == "sa" else None,
-        "sa_tend":               sa_tend  if placement == "sa" else None,
+        "sa_steps":              sa_steps if mapping == "sa" else None,
+        "sa_t0":                 sa_t0    if mapping == "sa" else None,
+        "sa_tend":               sa_tend  if mapping == "sa" else None,
         "sa_score_kwargs":       sa_score_kwargs,
         "inter_block_all":       iblk_all,
         "inter_block_t_only":    iblk_t,
@@ -532,7 +530,7 @@ def _sci(v: float) -> str:
 def _result_path(
     phase: str,
     circuit: str,
-    placement: str,
+    mapping: str,
     scheduler: Optional[str],
     seed: int,
     sa_steps: int,
@@ -551,7 +549,7 @@ def _result_path(
             if v != 0.0
         )
     fname = (
-        f"p{phase}_{circuit}_{placement}_{sched_tag}"
+        f"p{phase}_{circuit}_{mapping}_{sched_tag}"
         f"_t0={_sci(sa_t0)}_tend={_sci(sa_tend)}_steps={sa_steps}"
         f"_seed{seed}{kw_tag}.json"
     )
@@ -818,11 +816,11 @@ def phase3_cpsat_validation(
     results: List[Dict[str, Any]] = []
 
     for circuit in circuits:
-        for placement, scheduler in [("sa", "greedy_critical"), ("sa", "cp_sat"),
-                                      ("random", "greedy_critical"), ("random", "cp_sat")]:
-            print(f"\n  [{circuit}  {placement}+{scheduler}]")
+        for mapping, scheduler in [("sa", "greedy_critical"), ("sa", "cp_sat"),
+                                    ("random", "greedy_critical"), ("random", "cp_sat")]:
+            print(f"\n  [{circuit}  {mapping}+{scheduler}]")
             r = run_full_pipeline(
-                circuit, placement, scheduler, seed,
+                circuit, mapping, scheduler, seed,
                 sa_steps=best_steps, sa_t0=best_t0, sa_tend=best_tend,
                 cp_time=cp_time, phase="3", force=force,
             )
@@ -835,7 +833,7 @@ def _print_phase3_table(results: List[Dict[str, Any]]) -> None:
     print(f"\n{'='*100}")
     print(f"  Phase 3 — Updated Table 1 (best hyperparameters)")
     print(f"{'─'*100}")
-    print(f"  {'circuit':<20}  {'placement':>10}  {'scheduler':>15}"
+    print(f"  {'circuit':<20}  {'mapping':>10}  {'scheduler':>15}"
           f"  {'depth':>7}  {'iblk_T':>6}  {'map_t':>7}  {'beat?':>5}")
     print(f"{'─'*100}")
     for r in results:
@@ -845,7 +843,7 @@ def _print_phase3_table(results: List[Dict[str, Any]]) -> None:
         # Check vs random+cpsat baseline
         baseline = BASELINES.get((r["circuit"], "random", "cpsat"), {})
         beat = "YES" if (baseline.get("depth") and depth < baseline["depth"]) else "   "
-        print(f"  {r['circuit']:<20}  {r['placement']:>10}  {r['scheduler']:>15}"
+        print(f"  {r['circuit']:<20}  {r.get('mapping', r.get('placement', '?')):>10}  {r['scheduler']:>15}"
               f"  {depth:>7}  {iblk:>6}  {t_map:>7.1f}  {beat:>5}")
     print(f"{'='*100}")
 
@@ -939,21 +937,21 @@ def phase5_scaling(
     results: List[Dict[str, Any]] = []
 
     for circuit in available:
-        for placement, scheduler in [("random", "greedy_critical"),
-                                      ("sa",     "cp_sat")]:
-            print(f"\n  [{circuit}  {placement}+{scheduler}]")
+        for mapping, scheduler in [("random", "greedy_critical"),
+                                    ("sa",     "cp_sat")]:
+            print(f"\n  [{circuit}  {mapping}+{scheduler}]")
             r = run_full_pipeline(
-                circuit, placement, scheduler, seed,
+                circuit, mapping, scheduler, seed,
                 sa_steps=best_steps, sa_t0=best_t0, sa_tend=best_tend,
                 cp_time=cp_time, phase="5", force=force,
             )
             results.append(r)
 
     print(f"\n{'─'*75}")
-    print(f"  {'circuit':<22}  {'placement':>10}  {'scheduler':>15}  {'depth':>8}")
+    print(f"  {'circuit':<22}  {'mapping':>10}  {'scheduler':>15}  {'depth':>8}")
     print(f"{'─'*75}")
     for r in results:
-        print(f"  {r['circuit']:<22}  {r['placement']:>10}  "
+        print(f"  {r['circuit']:<22}  {r.get('mapping', r.get('placement', '?')):>10}  "
               f"{r['scheduler']:>15}  {r.get('logical_depth',0):>8}")
     print(f"{'─'*75}")
 
