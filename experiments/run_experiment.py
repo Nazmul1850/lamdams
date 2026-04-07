@@ -62,7 +62,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modqldpc.frontend.extract_pauli import GoSCConverter
 from modqldpc.frontend.qasm_reader import load_qasm_file
-from modqldpc.mapping.mapper import MappingConfig, MappingProblem, get_mapper
+from modqldpc.mapping.mapper import MappingConfig, MappingPlan, MappingProblem, get_mapper
 from modqldpc.mapping.hardware_gen import make_hardware
 from modqldpc.lowering.keys import KeyNamer
 from modqldpc.lowering.policy import (
@@ -88,6 +88,7 @@ PBC_DIR      = os.path.join(_ROOT, "circuits", "benchmarks", "pbc")
 EXP_CIRCUITS = os.path.join(_ROOT, "experiment_circuits")
 BENCH_DIR    = os.path.join(_ROOT, "circuits", "benchmarks")
 RUNS_DIR     = os.path.join(_ROOT, "runs")
+MAPPINGS_DIR = os.path.join(_ROOT, "runs", "mappings")
 RESULTS_DIR  = os.path.join(_ROOT, "results")
 
 _trace = Trace(os.path.join(RESULTS_DIR, "trace.jsonl"))
@@ -269,20 +270,21 @@ def _run_scheduling(
     seed: int,
     *,
     cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-    n_data: int = 11,
 ) -> tuple:
     """
     Run the scheduling phase for a fixed mapping (plan/hw) and return:
-        (logical_depth, scheduling_time_sec, n_cpsat_fallbacks)
+        (logical_depth, scheduling_time_sec, fallback_layers, suboptimal_layers)
 
-    If scheduler == "cpsat" and a layer hits the time limit or is infeasible,
-    that layer falls back to greedy_critical and execution continues.
+    fallback_layers  : list of (layer_id, reason_str) where CP-SAT found no
+                       solution and fell back to greedy_critical.
+    suboptimal_layers: list of (layer_id, obj, obj_lb) where CP-SAT found a
+                       FEASIBLE but not OPTIMAL solution within the time limit.
     """
     sched_name     = SCHEDULER_TO_FACTORY[scheduler]
     fallback_name  = SCHEDULER_TO_FACTORY[CPSAT_FALLBACK_SCHED]
     is_cpsat       = scheduler == "cpsat"
 
-    cost_fn    = make_gross_actual_cost_fn(plan, n_data=n_data)
+    cost_fn    = make_gross_actual_cost_fn(plan)  # n_data=11 (Gross code), not block data count
     policies   = LoweringPolicies(
         namer=KeyNamer(),
         magic=ChooseMagicBlockMinId(),
@@ -298,8 +300,9 @@ def _run_scheduling(
         outcome_model=RandomOutcomeModel(seed=seed),
         frame_policy=FrameUpdatePolicy(),
     )
-    total_depth      = 0
-    n_cpsat_fallbacks = 0
+    total_depth       = 0
+    fallback_layers:   list = []   # (layer_id, reason)
+    suboptimal_layers: list = []   # (layer_id, obj, obj_lb)
 
     t0 = time.perf_counter()
     for layer_id, layer in enumerate(conv.layers):
@@ -327,16 +330,37 @@ def _run_scheduling(
 
         try:
             S = get_scheduler(sched_name).solve(sched_problem)
+            # Check if CP-SAT stopped early with only a feasible (not optimal) solution
+            if is_cpsat and S.meta.get("cp_sat_status") == "FEASIBLE":
+                obj    = S.meta.get("cp_sat_obj", -1)
+                obj_lb = S.meta.get("cp_sat_obj_lb", -1)
+                gap_pct = (
+                    round(100.0 * (obj - obj_lb) / max(obj_lb, 1), 1)
+                    if obj >= 0 and obj_lb >= 0 else None
+                )
+                gap_str = f"{gap_pct}%" if gap_pct is not None else "?"
+                print(
+                    f"\n  [cpsat suboptimal] layer {layer_id}: "
+                    f"FEASIBLE within time limit — obj={obj}  lb={obj_lb}  gap≈{gap_str}"
+                )
+                _trace.event(
+                    "cpsat_suboptimal", layer=layer_id,
+                    obj=obj, obj_lb=obj_lb, gap_pct=gap_pct,
+                    time_limit=cp_sat_time_limit,
+                )
+                suboptimal_layers.append({"layer": layer_id, "obj": obj,
+                                          "obj_lb": obj_lb, "gap_pct": gap_pct})
         except Exception as exc:
             if is_cpsat:
+                reason = str(exc)
                 print(
-                    f"  [cpsat fallback] layer {layer_id}: {exc!r} "
+                    f"\n  [cpsat fallback] layer {layer_id}: {exc!r} "
                     f"— falling back to {CPSAT_FALLBACK_SCHED}"
                 )
                 _trace.event(
-                    "cpsat_fallback", layer=layer_id, reason=str(exc)
+                    "cpsat_fallback", layer=layer_id, reason=reason
                 )
-                n_cpsat_fallbacks += 1
+                fallback_layers.append({"layer": layer_id, "reason": reason})
                 S = get_scheduler(fallback_name).solve(sched_problem)
             else:
                 raise
@@ -353,7 +377,7 @@ def _run_scheduling(
         total_depth += ex.depth
 
     scheduling_time = round(time.perf_counter() - t0, 3)
-    return total_depth, scheduling_time, n_cpsat_fallbacks
+    return total_depth, scheduling_time, fallback_layers, suboptimal_layers
 
 
 # ── Result persistence ─────────────────────────────────────────────────────────
@@ -374,12 +398,20 @@ def _make_record(
     logical_depth: int,
     mapping_time: float,
     scheduling_time: float,
-    n_cpsat_fallbacks: int = 0,
+    fallback_layers: list | None = None,
+    suboptimal_layers: list | None = None,
+    n_couplers: int = 0,
+    qldpc_phys_qubits: int = 0,
 ) -> dict:
+    is_cpsat = scheduler == "cpsat"
+    fb  = fallback_layers   or []
+    sub = suboptimal_layers or []
     return {
         "circuit":               circuit_name,
         "n_qubits":              n_logicals,
         "n_blocks":              n_blocks,
+        "n_couplers":            n_couplers,
+        "qldpc_phys_qubits":     qldpc_phys_qubits,
         "t_count":               t_count,
         "mapping":               mapping,
         "scheduler":             scheduler,
@@ -390,7 +422,11 @@ def _make_record(
         "mapping_time_sec":      mapping_time,
         "scheduling_time_sec":   scheduling_time,
         "compile_time_sec":      round(mapping_time + scheduling_time, 3),
-        "cpsat_fallback_layers": n_cpsat_fallbacks if scheduler == "cpsat" else None,
+        # CP-SAT quality report — None when scheduler != cpsat
+        "cpsat_fallback_count":    len(fb)  if is_cpsat else None,
+        "cpsat_fallback_layers":   fb       if is_cpsat else None,
+        "cpsat_suboptimal_count":  len(sub) if is_cpsat else None,
+        "cpsat_suboptimal_layers": sub      if is_cpsat else None,
         "timestamp":             datetime.now(timezone.utc).isoformat(),
     }
 
@@ -429,6 +465,78 @@ def load_results(
     return records
 
 
+# ── Mapping cache ─────────────────────────────────────────────────────────────
+
+def _mapping_cache_path(circuit: str, mapping: str, seed: int) -> str:
+    return os.path.join(MAPPINGS_DIR, f"{circuit}_{mapping}_seed{seed}.json")
+
+
+def _save_mapping_cache(
+    circuit: str,
+    mapping: str,
+    seed: int,
+    plan,
+    inter_block: int,
+    mapping_time: float,
+    n_logicals: int,
+    n_data: int,
+    coupler_capacity: int,
+    topology: str,
+) -> None:
+    os.makedirs(MAPPINGS_DIR, exist_ok=True)
+    payload = {
+        "circuit":          circuit,
+        "mapping":          mapping,
+        "seed":             seed,
+        "n_logicals":       n_logicals,
+        "n_data":           n_data,
+        "coupler_capacity": coupler_capacity,
+        "topology":         topology,
+        "inter_block_rotations": inter_block,
+        "mapping_time_sec": mapping_time,
+        "logical_to_block": {str(k): v for k, v in plan.logical_to_block.items()},
+        "logical_to_local": {str(k): v for k, v in plan.logical_to_local.items()},
+    }
+    with open(_mapping_cache_path(circuit, mapping, seed), "w") as f:
+        json.dump(payload, f)
+
+
+def _load_mapping_cache(
+    circuit: str,
+    mapping: str,
+    seed: int,
+    n_logicals: int,
+    n_data: int,
+    coupler_capacity: int,
+    topology: str,
+):
+    """
+    Load a cached mapping if it exists and hw parameters match.
+    Returns (plan, hw, inter_block, mapping_time) or None on miss/mismatch.
+    """
+    path = _mapping_cache_path(circuit, mapping, seed)
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        c = json.load(f)
+    if (c.get("n_logicals") != n_logicals or c.get("n_data") != n_data
+            or c.get("coupler_capacity") != coupler_capacity
+            or c.get("topology") != topology):
+        return None  # stale cache — hw params changed
+
+    logical_to_block = {int(k): v for k, v in c["logical_to_block"].items()}
+    logical_to_local = {int(k): v for k, v in c["logical_to_local"].items()}
+    plan = MappingPlan(
+        logical_to_block=logical_to_block,
+        logical_to_local=logical_to_local,
+    )
+    hw, _ = make_hardware(
+        n_logicals, topology=topology, sparse_pct=0.0,
+    )
+    hw.update_plan(logical_to_block, logical_to_local)
+    return plan, hw, c["inter_block_rotations"], c["mapping_time_sec"]
+
+
 # ── High-level runners ────────────────────────────────────────────────────────
 
 def run_mapping_then_schedulers(
@@ -440,7 +548,8 @@ def run_mapping_then_schedulers(
     pbc_path: str | None = None,
     skip_existing: bool = True,
     cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-    n_data: int = 11,
+    n_data: int = 288,
+    coupler_capacity: int = 24,
     topology: str = "grid",
 ) -> None:
     """
@@ -463,47 +572,77 @@ def run_mapping_then_schedulers(
     if not pending:
         return
 
-    # Load PBC
+    # Load PBC (needed for t_count and scheduling regardless of mapping cache)
     conv = load_pbc(circuit_name, pbc_path)
     first_rot  = next(iter(conv.program.rotations))
     n_logicals = len(first_rot.axis.lstrip("+-"))
     t_count    = sum(1 for r in conv.program.rotations if abs(r.angle) < math.pi / 2 - 1e-9)
 
-    # Build hardware
-    hw, _ = make_hardware(
-        n_logicals, topology=topology, sparse_pct=0.0,
-        n_data=n_data, coupler_capacity=1,
+    # Try mapping cache first
+    cached = _load_mapping_cache(
+        circuit_name, mapping, seed,
+        n_logicals, n_data, coupler_capacity, topology,
     )
-    n_blocks = len(hw.blocks)
+    if cached is not None:
+        plan, hw, inter_block, mapping_time = cached
+        n_blocks   = len(hw.blocks)
+        n_couplers = len(hw.couplers)
+        print(f"\n[{circuit_name}] mapping={mapping} seed={seed}  "
+              f"({n_logicals}q / {n_blocks} blocks / {t_count} T-gates)")
+        print(f"  mapping loaded from cache  inter_block={inter_block}")
+    else:
+        # Build hardware and run mapper
+        hw, _ = make_hardware(
+            n_logicals, topology=topology, sparse_pct=0.0,
+        )
+        n_blocks   = len(hw.blocks)
+        n_couplers = len(hw.couplers)
 
-    print(f"\n[{circuit_name}] mapping={mapping} seed={seed}  "
-          f"({n_logicals}q / {n_blocks} blocks / {t_count} T-gates)")
+        print(f"\n[{circuit_name}] mapping={mapping} seed={seed}  "
+              f"({n_logicals}q / {n_blocks} blocks / {t_count} T-gates)")
 
-    # Mapping phase — runs once
-    plan, inter_block, mapping_time = _run_mapping(
-        circuit_name, mapping, seed, conv, hw, n_logicals
-    )
-    print(f"  mapping done in {mapping_time:.1f}s  inter_block={inter_block}")
+        plan, inter_block, mapping_time = _run_mapping(
+            circuit_name, mapping, seed, conv, hw, n_logicals
+        )
+        print(f"  mapping done in {mapping_time:.1f}s  inter_block={inter_block}")
+        _save_mapping_cache(
+            circuit_name, mapping, seed, plan,
+            inter_block, mapping_time,
+            n_logicals, n_data, coupler_capacity, topology,
+        )
+
+    # Physical qubit count (same formula regardless of cache)
+    _n_ancilla = math.ceil(1.3 * n_data)
+    qldpc_phys_qubits = n_blocks * (n_data + _n_ancilla) + n_couplers * coupler_capacity
 
     # Scheduling phase — once per pending scheduler
     for sched in pending:
         print(f"  scheduling: {sched} ...", end="", flush=True)
-        depth, sched_time, n_fallbacks = _run_scheduling(
+        depth, sched_time, fallback_layers, suboptimal_layers = _run_scheduling(
             conv, hw, plan, sched, seed,
-            cp_sat_time_limit=cp_sat_time_limit, n_data=n_data,
+            cp_sat_time_limit=cp_sat_time_limit,
         )
-        fallback_msg = f"  ({n_fallbacks} fallback layers)" if n_fallbacks else ""
-        print(f" depth={depth:,}  time={sched_time:.1f}s{fallback_msg}")
+        status_parts = []
+        if fallback_layers:
+            status_parts.append(f"{len(fallback_layers)} fallback")
+        if suboptimal_layers:
+            status_parts.append(f"{len(suboptimal_layers)} suboptimal")
+        suffix = f"  [{', '.join(status_parts)}]" if status_parts else ""
+        print(f" depth={depth:,}  time={sched_time:.1f}s{suffix}")
         rec = _make_record(
             circuit_name, mapping, sched, seed,
             n_logicals, n_blocks, t_count,
-            inter_block, depth, mapping_time, sched_time, n_fallbacks,
+            inter_block, depth, mapping_time, sched_time,
+            fallback_layers=fallback_layers, suboptimal_layers=suboptimal_layers,
+            n_couplers=n_couplers, qldpc_phys_qubits=qldpc_phys_qubits,
         )
         _trace.event(
             "run_done", circuit=circuit_name, mapping=mapping,
             scheduler=sched, seed=seed,
             inter_block_rotations=inter_block, logical_depth=depth,
             mapping_time_sec=mapping_time, scheduling_time_sec=sched_time,
+            cpsat_fallback_count=len(fallback_layers),
+            cpsat_suboptimal_count=len(suboptimal_layers),
         )
         save_result(rec)
 
@@ -515,7 +654,8 @@ def run_all_configs(
     pbc_path: str | None = None,
     skip_existing: bool = True,
     cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-    n_data: int = 11,
+    n_data: int = 288,
+    coupler_capacity: int = 24,
     topology: str = "grid",
 ) -> None:
     """
@@ -525,7 +665,8 @@ def run_all_configs(
     """
     kwargs = dict(
         pbc_path=pbc_path, skip_existing=skip_existing,
-        cp_sat_time_limit=cp_sat_time_limit, n_data=n_data, topology=topology,
+        cp_sat_time_limit=cp_sat_time_limit, n_data=n_data,
+        coupler_capacity=coupler_capacity, topology=topology,
     )
     run_mapping_then_schedulers(circuit_name, "random", RANDOM_SCHEDULERS, seed, **kwargs)
     run_mapping_then_schedulers(circuit_name, "sa",     SA_SCHEDULERS,     seed, **kwargs)
@@ -541,7 +682,8 @@ def run_one_config(
     *,
     pbc_path: str | None = None,
     cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-    n_data: int = 11,
+    n_data: int = 288,
+    coupler_capacity: int = 24,
     topology: str = "grid",
 ) -> dict:
     """Run a single (circuit, mapping, scheduler, seed) config and return the record."""
@@ -552,21 +694,25 @@ def run_one_config(
 
     hw, _ = make_hardware(
         n_logicals, topology=topology, sparse_pct=0.0,
-        n_data=n_data, coupler_capacity=1,
     )
-    n_blocks = len(hw.blocks)
+    n_blocks   = len(hw.blocks)
+    n_couplers = len(hw.couplers)
+    _n_ancilla = math.ceil(1.3 * n_data)
+    qldpc_phys_qubits = n_blocks * (n_data + _n_ancilla) + n_couplers * coupler_capacity
 
     plan, inter_block, mapping_time = _run_mapping(
         circuit_name, mapping, seed, conv, hw, n_logicals
     )
-    depth, sched_time, n_fallbacks = _run_scheduling(
+    depth, sched_time, fallback_layers, suboptimal_layers = _run_scheduling(
         conv, hw, plan, scheduler, seed,
         cp_sat_time_limit=cp_sat_time_limit, n_data=n_data,
     )
     return _make_record(
         circuit_name, mapping, scheduler, seed,
         n_logicals, n_blocks, t_count,
-        inter_block, depth, mapping_time, sched_time, n_fallbacks,
+        inter_block, depth, mapping_time, sched_time,
+        fallback_layers=fallback_layers, suboptimal_layers=suboptimal_layers,
+        n_couplers=n_couplers, qldpc_phys_qubits=qldpc_phys_qubits,
     )
 
 
@@ -602,8 +748,8 @@ Examples:
                         help="Scheduler (for single-config runs)")
     parser.add_argument("--seed",        type=int, default=42)
     parser.add_argument("--seeds",       help="Seed range, e.g. '1-30'")
-    parser.add_argument("--cp-time",     type=float, default=None,
-                        help="CP-SAT time limit per layer in seconds (default: no limit)")
+    parser.add_argument("--cp-time",     type=float, default=CPSAT_TIME_LIMIT,
+                        help=f"CP-SAT time limit per layer in seconds (default: {CPSAT_TIME_LIMIT})")
     parser.add_argument("--force",       action="store_true",
                         help="Re-run even if result JSON already exists")
     args = parser.parse_args()

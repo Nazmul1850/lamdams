@@ -1,0 +1,1 @@
+{"circuit": "QFT8", "mapping": "sa", "seed": 42, "n_logicals": 8, "n_data": 288, "coupler_capacity": 24, "topology": "grid", "inter_block_rotations": 0, "mapping_time_sec": 0.81, "logical_to_block": {"3": 1, "6": 1, "7": 2, "4": 1, "1": 1, "2": 1, "5": 1, "0": 1}, "logical_to_local": {"3": 6, "6": 0, "7": 1, "4": 1, "1": 4, "2": 2, "5": 5, "0": 3}}

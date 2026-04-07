@@ -1,0 +1,22 @@
+{
+  "circuit": "QFT32",
+  "n_qubits": 32,
+  "n_blocks": 2,
+  "n_couplers": 1,
+  "qldpc_phys_qubits": 1350,
+  "t_count": 0,
+  "mapping": "random",
+  "scheduler": "greedy_critical",
+  "seed": 42,
+  "inter_block_rotations": 0,
+  "logical_depth": 247,
+  "sa_iterations": null,
+  "mapping_time_sec": 0.0,
+  "scheduling_time_sec": 0.039,
+  "compile_time_sec": 0.039,
+  "cpsat_fallback_count": null,
+  "cpsat_fallback_layers": null,
+  "cpsat_suboptimal_count": null,
+  "cpsat_suboptimal_layers": null,
+  "timestamp": "2026-04-07T15:36:22.262560+00:00"
+}

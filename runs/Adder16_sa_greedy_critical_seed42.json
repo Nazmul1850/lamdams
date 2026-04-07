@@ -1,0 +1,22 @@
+{
+  "circuit": "Adder16",
+  "n_qubits": 47,
+  "n_blocks": 6,
+  "n_couplers": 7,
+  "qldpc_phys_qubits": 4146,
+  "t_count": 0,
+  "mapping": "sa",
+  "scheduler": "greedy_critical",
+  "seed": 42,
+  "inter_block_rotations": 0,
+  "logical_depth": 7921,
+  "sa_iterations": 25000,
+  "mapping_time_sec": 84.36,
+  "scheduling_time_sec": 9.023,
+  "compile_time_sec": 93.383,
+  "cpsat_fallback_count": null,
+  "cpsat_fallback_layers": null,
+  "cpsat_suboptimal_count": null,
+  "cpsat_suboptimal_layers": null,
+  "timestamp": "2026-04-07T12:52:40.831987+00:00"
+}
