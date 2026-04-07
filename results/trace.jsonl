@@ -175,3 +175,169 @@
 {"ts": "2026-04-07T09:15:34.216092+00:00", "t": "result_saved", "path": "qft_100_approx_random_sequential_seed1.json"}
 {"ts": "2026-04-07T09:15:35.927805+00:00", "t": "run_done", "circuit": "qft_100_approx", "mapping": "random", "scheduler": "greedy_critical", "seed": 1, "inter_block_rotations": 92, "logical_depth": 1224, "mapping_time_sec": 0.0, "scheduling_time_sec": 1.472}
 {"ts": "2026-04-07T09:15:35.941811+00:00", "t": "result_saved", "path": "qft_100_approx_random_greedy_critical_seed1.json"}
+{"ts": "2026-04-07T10:58:16.544399+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9}
+{"ts": "2026-04-07T10:58:16.546221+00:00", "t": "mapping_start", "circuit": "Adder16", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T10:58:16.546478+00:00", "t": "mapping_done", "circuit": "Adder16", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T10:59:59.041527+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9}
+{"ts": "2026-04-07T11:01:24.277873+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9}
+{"ts": "2026-04-07T11:02:15.491645+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9}
+{"ts": "2026-04-07T11:09:37.733222+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 167926428, "obj_lb": 150911856, "gap_pct": 11.3, "time_limit": 1000.0}
+{"ts": "2026-04-07T11:14:03.348930+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 169741690, "obj_lb": 154293289, "gap_pct": 10.0, "time_limit": 1000.0}
+{"ts": "2026-04-07T11:14:03.358808+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 2370, "mapping_time_sec": 0.0, "scheduling_time_sec": 707.789, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 2}
+{"ts": "2026-04-07T11:14:03.360188+00:00", "t": "result_saved", "path": "Adder16_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T11:14:03.362859+00:00", "t": "mapping_start", "circuit": "Adder16", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T11:14:48.673883+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9}
+{"ts": "2026-04-07T11:14:48.676207+00:00", "t": "mapping_start", "circuit": "Adder16", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T11:14:48.676635+00:00", "t": "mapping_done", "circuit": "Adder16", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T11:15:23.475681+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 23985407, "obj_lb": 23372492, "gap_pct": 2.6, "time_limit": 1000.0}
+{"ts": "2026-04-07T11:15:23.761761+00:00", "t": "cpsat_fallback", "layer": 1, "reason": "CP-SAT could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit."}
+{"ts": "2026-04-07T11:15:24.668918+00:00", "t": "cpsat_fallback", "layer": 2, "reason": "CP-SAT could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit."}
+{"ts": "2026-04-07T11:15:25.213669+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 2417, "mapping_time_sec": 0.0, "scheduling_time_sec": 36.406, "cpsat_fallback_count": 2, "cpsat_suboptimal_count": 1}
+{"ts": "2026-04-07T11:15:25.214404+00:00", "t": "result_saved", "path": "Adder16_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T11:15:25.216024+00:00", "t": "mapping_start", "circuit": "Adder16", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T11:15:53.883008+00:00", "t": "mapping_done", "circuit": "Adder16", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 28.667}
+{"ts": "2026-04-07T11:15:56.964625+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 5178, "mapping_time_sec": 28.667, "scheduling_time_sec": 2.92, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T11:15:56.965462+00:00", "t": "result_saved", "path": "Adder16_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T11:15:59.780347+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 5172, "mapping_time_sec": 28.667, "scheduling_time_sec": 2.614, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T11:15:59.780806+00:00", "t": "result_saved", "path": "Adder16_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T11:15:59.786388+00:00", "t": "mapping_start", "circuit": "Adder32", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T11:15:59.786931+00:00", "t": "mapping_done", "circuit": "Adder32", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T11:20:53.843528+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 165892077, "obj_lb": 150911856, "gap_pct": 9.9, "time_limit": 1000.0}
+{"ts": "2026-04-07T11:37:34.192860+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 169741690, "obj_lb": 154293289, "gap_pct": 10.0, "time_limit": 1000.0}
+{"ts": "2026-04-07T11:37:34.201332+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 2359, "mapping_time_sec": 0.0, "scheduling_time_sec": 2169.828, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 2}
+{"ts": "2026-04-07T11:37:34.202791+00:00", "t": "result_saved", "path": "Adder16_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T11:37:36.635467+00:00", "t": "run_done", "circuit": "Adder32", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 4809, "mapping_time_sec": 0.0, "scheduling_time_sec": 2.347, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T11:37:36.635868+00:00", "t": "result_saved", "path": "Adder32_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T11:54:17.082852+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 189907161, "obj_lb": 188046984, "gap_pct": 1.0, "time_limit": 1000.0}
+{"ts": "2026-04-07T11:59:58.728271+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9}
+{"ts": "2026-04-07T12:00:11.141798+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 203266614, "obj_lb": 188046984, "gap_pct": 8.1, "time_limit": 1000.0}
+{"ts": "2026-04-07T12:00:59.941413+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9}
+{"ts": "2026-04-07T12:00:59.944086+00:00", "t": "mapping_start", "circuit": "Adder16", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T12:00:59.944396+00:00", "t": "mapping_done", "circuit": "Adder16", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T12:10:57.582536+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 1141416715, "obj_lb": 1020406920, "gap_pct": 11.9, "time_limit": 1000.0}
+{"ts": "2026-04-07T12:17:41.056803+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 226065650, "obj_lb": 24334300, "gap_pct": 829.0, "time_limit": 1000.0}
+{"ts": "2026-04-07T12:27:38.269219+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 1363708567, "obj_lb": 1277674933, "gap_pct": 6.7, "time_limit": 1000.0}
+{"ts": "2026-04-07T12:27:38.306873+00:00", "t": "run_done", "circuit": "Adder32", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 4675, "mapping_time_sec": 0.0, "scheduling_time_sec": 3001.578, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 3}
+{"ts": "2026-04-07T12:27:38.308374+00:00", "t": "result_saved", "path": "Adder32_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T12:27:38.313099+00:00", "t": "mapping_start", "circuit": "Adder32", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T12:29:14.135462+00:00", "t": "mapping_done", "circuit": "Adder32", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 95.822}
+{"ts": "2026-04-07T12:29:30.947259+00:00", "t": "run_done", "circuit": "Adder32", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 9900, "mapping_time_sec": 95.822, "scheduling_time_sec": 16.666, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T12:29:30.948767+00:00", "t": "result_saved", "path": "Adder32_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T12:34:23.872549+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 2641164750, "obj_lb": 206597776, "gap_pct": 1178.4, "time_limit": 1000.0}
+{"ts": "2026-04-07T12:46:11.696055+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 285072825, "obj_lb": 277408572, "gap_pct": 2.8, "time_limit": 1000.0}
+{"ts": "2026-04-07T12:51:07.244031+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 2860975618, "obj_lb": 234722152, "gap_pct": 1118.9, "time_limit": 1000.0}
+{"ts": "2026-04-07T12:51:07.291205+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 5568, "mapping_time_sec": 0.0, "scheduling_time_sec": 3007.245, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 3}
+{"ts": "2026-04-07T12:51:07.292854+00:00", "t": "result_saved", "path": "Adder16_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T12:51:07.295010+00:00", "t": "mapping_start", "circuit": "Adder16", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T12:52:31.654811+00:00", "t": "mapping_done", "circuit": "Adder16", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 84.36}
+{"ts": "2026-04-07T12:52:40.832037+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 7921, "mapping_time_sec": 84.36, "scheduling_time_sec": 9.023, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T12:52:40.837708+00:00", "t": "result_saved", "path": "Adder16_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T13:02:53.012649+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 3034816028, "obj_lb": 3010762004, "gap_pct": 0.8, "time_limit": 1000.0}
+{"ts": "2026-04-07T13:09:21.738177+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 145552993, "obj_lb": 14045941, "gap_pct": 936.3, "time_limit": 1000.0}
+{"ts": "2026-04-07T13:19:34.295528+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 2860868178, "obj_lb": 2716961328, "gap_pct": 5.3, "time_limit": 1000.0}
+{"ts": "2026-04-07T13:19:34.334673+00:00", "t": "run_done", "circuit": "Adder32", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 7535, "mapping_time_sec": 95.822, "scheduling_time_sec": 3003.288, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 3}
+{"ts": "2026-04-07T13:19:34.336562+00:00", "t": "result_saved", "path": "Adder32_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T13:19:34.345193+00:00", "t": "mapping_start", "circuit": "Adder64", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T13:19:34.346254+00:00", "t": "mapping_done", "circuit": "Adder64", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.001}
+{"ts": "2026-04-07T13:20:10.363216+00:00", "t": "run_done", "circuit": "Adder64", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 10436, "mapping_time_sec": 0.001, "scheduling_time_sec": 35.848, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T13:20:10.365436+00:00", "t": "result_saved", "path": "Adder64_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T13:26:03.833911+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 2007138958, "obj_lb": 1351674338, "gap_pct": 48.5, "time_limit": 1000.0}
+{"ts": "2026-04-07T13:36:51.482625+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 1460934933, "obj_lb": 1374997584, "gap_pct": 6.2, "time_limit": 1000.0}
+{"ts": "2026-04-07T13:42:45.547039+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 1263239739, "obj_lb": 106752654, "gap_pct": 1083.3, "time_limit": 1000.0}
+{"ts": "2026-04-07T13:42:45.589543+00:00", "t": "run_done", "circuit": "Adder16", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 5126, "mapping_time_sec": 84.36, "scheduling_time_sec": 3004.605, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 3}
+{"ts": "2026-04-07T13:42:45.591385+00:00", "t": "result_saved", "path": "Adder16_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T13:42:45.596450+00:00", "t": "mapping_start", "circuit": "Adder32", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T13:42:45.597041+00:00", "t": "mapping_done", "circuit": "Adder32", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T13:43:54.123269+00:00", "t": "run_done", "circuit": "Adder32", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 15964, "mapping_time_sec": 0.0, "scheduling_time_sec": 68.354, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T13:43:54.125215+00:00", "t": "result_saved", "path": "Adder32_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T14:00:43.837615+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 1485583630, "obj_lb": 1374997584, "gap_pct": 8.0, "time_limit": 1000.0}
+{"ts": "2026-04-07T14:06:20.262607+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 13560674911, "obj_lb": 12697441484, "gap_pct": 6.8, "time_limit": 1000.0}
+{"ts": "2026-04-07T14:06:20.307897+00:00", "t": "run_done", "circuit": "Adder64", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 9842, "mapping_time_sec": 0.001, "scheduling_time_sec": 2769.788, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 2}
+{"ts": "2026-04-07T14:06:20.309302+00:00", "t": "result_saved", "path": "Adder64_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T14:06:20.317292+00:00", "t": "mapping_start", "circuit": "Adder64", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T14:11:44.659981+00:00", "t": "mapping_done", "circuit": "Adder64", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 324.343}
+{"ts": "2026-04-07T14:12:37.431206+00:00", "t": "run_done", "circuit": "Adder64", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 14911, "mapping_time_sec": 324.343, "scheduling_time_sec": 52.557, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T14:12:37.433407+00:00", "t": "result_saved", "path": "Adder64_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T14:17:52.143072+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 12125013831, "obj_lb": 12089131358, "gap_pct": 0.3, "time_limit": 1000.0}
+{"ts": "2026-04-07T14:29:18.812393+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 1668855150, "obj_lb": 1607045700, "gap_pct": 3.8, "time_limit": 1000.0}
+{"ts": "2026-04-07T14:35:00.654431+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 13567553265, "obj_lb": 12697441484, "gap_pct": 6.9, "time_limit": 1000.0}
+{"ts": "2026-04-07T14:35:00.706353+00:00", "t": "run_done", "circuit": "Adder64", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 9892, "mapping_time_sec": 0.001, "scheduling_time_sec": 3066.298, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 3}
+{"ts": "2026-04-07T14:35:00.707691+00:00", "t": "result_saved", "path": "Adder64_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T14:46:01.155293+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 14546516198, "obj_lb": 13638486456, "gap_pct": 6.7, "time_limit": 1000.0}
+{"ts": "2026-04-07T14:51:48.779474+00:00", "t": "cpsat_suboptimal", "layer": 0, "obj": 1668855150, "obj_lb": 1607045700, "gap_pct": 3.8, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:02:44.224665+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 16301553609, "obj_lb": 15939571872, "gap_pct": 2.3, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:02:44.319734+00:00", "t": "run_done", "circuit": "Adder64", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 12861, "mapping_time_sec": 324.343, "scheduling_time_sec": 3006.725, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 3}
+{"ts": "2026-04-07T15:02:44.321433+00:00", "t": "result_saved", "path": "Adder64_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:02:44.323922+00:00", "t": "mapping_start", "circuit": "Adder8", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T15:02:44.324541+00:00", "t": "mapping_done", "circuit": "Adder8", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T15:02:44.774486+00:00", "t": "run_done", "circuit": "Adder8", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 1047, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.305, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:02:44.775377+00:00", "t": "result_saved", "path": "Adder8_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:08:48.998062+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 14546516198, "obj_lb": 13638486456, "gap_pct": 6.7, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:19:25.709616+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 11998854, "obj_lb": 10792620, "gap_pct": 11.2, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:25:49.519903+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 16753257315, "obj_lb": 15939571872, "gap_pct": 5.1, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:25:49.587189+00:00", "t": "run_done", "circuit": "Adder64", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 13007, "mapping_time_sec": 324.343, "scheduling_time_sec": 3048.71, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 3}
+{"ts": "2026-04-07T15:25:49.588165+00:00", "t": "result_saved", "path": "Adder64_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:36:06.213708+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 10932054, "obj_lb": 9797032, "gap_pct": 11.6, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:36:06.221539+00:00", "t": "run_done", "circuit": "Adder8", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 1009, "mapping_time_sec": 0.0, "scheduling_time_sec": 2001.263, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 2}
+{"ts": "2026-04-07T15:36:06.223165+00:00", "t": "result_saved", "path": "Adder8_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:36:06.225114+00:00", "t": "mapping_start", "circuit": "Adder8", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T15:36:16.678122+00:00", "t": "mapping_done", "circuit": "Adder8", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 10.453}
+{"ts": "2026-04-07T15:36:17.756687+00:00", "t": "run_done", "circuit": "Adder8", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 3754, "mapping_time_sec": 10.453, "scheduling_time_sec": 0.915, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:17.757435+00:00", "t": "result_saved", "path": "Adder8_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:36:19.602910+00:00", "t": "run_done", "circuit": "Adder8", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 3736, "mapping_time_sec": 10.453, "scheduling_time_sec": 1.679, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:19.603637+00:00", "t": "result_saved", "path": "Adder8_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:36:19.605398+00:00", "t": "mapping_start", "circuit": "QFT16", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T15:36:19.605938+00:00", "t": "mapping_done", "circuit": "QFT16", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T15:36:19.778137+00:00", "t": "run_done", "circuit": "QFT16", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 121, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.013, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:19.778846+00:00", "t": "result_saved", "path": "QFT16_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:36:20.025615+00:00", "t": "run_done", "circuit": "QFT16", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 118, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.111, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:20.026465+00:00", "t": "result_saved", "path": "QFT16_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:36:20.026990+00:00", "t": "mapping_start", "circuit": "QFT16", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T15:36:21.573955+00:00", "t": "mapping_done", "circuit": "QFT16", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 1.547}
+{"ts": "2026-04-07T15:36:21.741403+00:00", "t": "run_done", "circuit": "QFT16", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 456, "mapping_time_sec": 1.547, "scheduling_time_sec": 0.032, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:21.743283+00:00", "t": "result_saved", "path": "QFT16_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:36:22.075962+00:00", "t": "run_done", "circuit": "QFT16", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 456, "mapping_time_sec": 1.547, "scheduling_time_sec": 0.197, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:22.076638+00:00", "t": "result_saved", "path": "QFT16_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:36:22.077245+00:00", "t": "mapping_start", "circuit": "QFT32", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T15:36:22.077667+00:00", "t": "mapping_done", "circuit": "QFT32", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T15:36:22.262578+00:00", "t": "run_done", "circuit": "QFT32", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 247, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.039, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:22.263215+00:00", "t": "result_saved", "path": "QFT32_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:36:22.904320+00:00", "t": "run_done", "circuit": "QFT32", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 242, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.497, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:22.905257+00:00", "t": "result_saved", "path": "QFT32_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:36:22.905957+00:00", "t": "mapping_start", "circuit": "QFT32", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T15:36:26.367655+00:00", "t": "mapping_done", "circuit": "QFT32", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 3.461}
+{"ts": "2026-04-07T15:36:26.581858+00:00", "t": "run_done", "circuit": "QFT32", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 592, "mapping_time_sec": 3.461, "scheduling_time_sec": 0.063, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:26.582677+00:00", "t": "result_saved", "path": "QFT32_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:36:26.998310+00:00", "t": "run_done", "circuit": "QFT32", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 592, "mapping_time_sec": 3.461, "scheduling_time_sec": 0.275, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:26.999095+00:00", "t": "result_saved", "path": "QFT32_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:36:27.000045+00:00", "t": "mapping_start", "circuit": "QFT64", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T15:36:27.000610+00:00", "t": "mapping_done", "circuit": "QFT64", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T15:36:27.243296+00:00", "t": "run_done", "circuit": "QFT64", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 525, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.107, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:36:27.244205+00:00", "t": "result_saved", "path": "QFT64_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:42:30.304096+00:00", "t": "cpsat_suboptimal", "layer": 1, "obj": 11998854, "obj_lb": 10792620, "gap_pct": 11.2, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:54:06.726249+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 800309, "obj_lb": 769012, "gap_pct": 4.1, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:54:06.731873+00:00", "t": "run_done", "circuit": "QFT64", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 507, "mapping_time_sec": 0.0, "scheduling_time_sec": 1059.353, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 1}
+{"ts": "2026-04-07T15:54:06.733203+00:00", "t": "result_saved", "path": "QFT64_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:54:06.734420+00:00", "t": "mapping_start", "circuit": "QFT64", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T15:54:16.720038+00:00", "t": "mapping_done", "circuit": "QFT64", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 9.985}
+{"ts": "2026-04-07T15:54:17.047403+00:00", "t": "run_done", "circuit": "QFT64", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 1034, "mapping_time_sec": 9.985, "scheduling_time_sec": 0.185, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:54:17.048112+00:00", "t": "result_saved", "path": "QFT64_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:54:17.805136+00:00", "t": "run_done", "circuit": "QFT64", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 986, "mapping_time_sec": 9.985, "scheduling_time_sec": 0.609, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:54:17.805795+00:00", "t": "result_saved", "path": "QFT64_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:54:17.806349+00:00", "t": "mapping_start", "circuit": "QFT8", "mapping": "random", "seed": 42}
+{"ts": "2026-04-07T15:54:17.806691+00:00", "t": "mapping_done", "circuit": "QFT8", "mapping": "random", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.0}
+{"ts": "2026-04-07T15:54:17.936483+00:00", "t": "run_done", "circuit": "QFT8", "mapping": "random", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 57, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.004, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:54:17.937157+00:00", "t": "result_saved", "path": "QFT8_random_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:54:18.135790+00:00", "t": "run_done", "circuit": "QFT8", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 57, "mapping_time_sec": 0.0, "scheduling_time_sec": 0.066, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:54:18.136359+00:00", "t": "result_saved", "path": "QFT8_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:54:18.136695+00:00", "t": "mapping_start", "circuit": "QFT8", "mapping": "sa", "seed": 42}
+{"ts": "2026-04-07T15:54:18.947177+00:00", "t": "mapping_done", "circuit": "QFT8", "mapping": "sa", "seed": 42, "inter_block_rotations": 0, "mapping_time_sec": 0.81}
+{"ts": "2026-04-07T15:54:19.110658+00:00", "t": "run_done", "circuit": "QFT8", "mapping": "sa", "scheduler": "greedy_critical", "seed": 42, "inter_block_rotations": 0, "logical_depth": 201, "mapping_time_sec": 0.81, "scheduling_time_sec": 0.014, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:54:19.113286+00:00", "t": "result_saved", "path": "QFT8_sa_greedy_critical_seed42.json"}
+{"ts": "2026-04-07T15:54:19.350287+00:00", "t": "run_done", "circuit": "QFT8", "mapping": "sa", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 201, "mapping_time_sec": 0.81, "scheduling_time_sec": 0.099, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 0}
+{"ts": "2026-04-07T15:54:19.351116+00:00", "t": "result_saved", "path": "QFT8_sa_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:54:19.351335+00:00", "t": "phase_done", "phase": "all_pbc"}
+{"ts": "2026-04-07T15:59:10.730453+00:00", "t": "cpsat_suboptimal", "layer": 2, "obj": 10932054, "obj_lb": 9797032, "gap_pct": 11.6, "time_limit": 1000.0}
+{"ts": "2026-04-07T15:59:10.735844+00:00", "t": "run_done", "circuit": "Adder8", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 1009, "mapping_time_sec": 0.0, "scheduling_time_sec": 2000.974, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 2}
+{"ts": "2026-04-07T15:59:10.736739+00:00", "t": "result_saved", "path": "Adder8_random_cpsat_seed42.json"}
+{"ts": "2026-04-07T15:59:10.737156+00:00", "t": "phase_done", "phase": "all_pbc"}

@@ -1,0 +1,41 @@
+{
+  "circuit": "Adder32",
+  "n_qubits": 95,
+  "n_blocks": 2,
+  "n_couplers": 1,
+  "qldpc_phys_qubits": 1350,
+  "t_count": 0,
+  "mapping": "random",
+  "scheduler": "cpsat",
+  "seed": 42,
+  "inter_block_rotations": 0,
+  "logical_depth": 4675,
+  "sa_iterations": null,
+  "mapping_time_sec": 0.0,
+  "scheduling_time_sec": 3001.578,
+  "compile_time_sec": 3001.578,
+  "cpsat_fallback_count": 0,
+  "cpsat_fallback_layers": [],
+  "cpsat_suboptimal_count": 3,
+  "cpsat_suboptimal_layers": [
+    {
+      "layer": 0,
+      "obj": 189907161,
+      "obj_lb": 188046984,
+      "gap_pct": 1.0
+    },
+    {
+      "layer": 1,
+      "obj": 1141416715,
+      "obj_lb": 1020406920,
+      "gap_pct": 11.9
+    },
+    {
+      "layer": 2,
+      "obj": 1363708567,
+      "obj_lb": 1277674933,
+      "gap_pct": 6.7
+    }
+  ],
+  "timestamp": "2026-04-07T12:27:38.306841+00:00"
+}

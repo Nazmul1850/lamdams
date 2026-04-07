@@ -1,0 +1,22 @@
+{
+  "circuit": "QFT8",
+  "n_qubits": 8,
+  "n_blocks": 2,
+  "n_couplers": 1,
+  "qldpc_phys_qubits": 1350,
+  "t_count": 0,
+  "mapping": "sa",
+  "scheduler": "cpsat",
+  "seed": 42,
+  "inter_block_rotations": 0,
+  "logical_depth": 201,
+  "sa_iterations": 25000,
+  "mapping_time_sec": 0.81,
+  "scheduling_time_sec": 0.099,
+  "compile_time_sec": 0.909,
+  "cpsat_fallback_count": 0,
+  "cpsat_fallback_layers": [],
+  "cpsat_suboptimal_count": 0,
+  "cpsat_suboptimal_layers": [],
+  "timestamp": "2026-04-07T15:54:19.350264+00:00"
+}
