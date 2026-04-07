@@ -58,3 +58,104 @@
 {"ts": "2026-03-31T01:01:22.157297+00:00", "t": "run_start", "circuit": "gf2_16_mult", "placement": "random", "scheduler": "cpsat", "seed": 42, "n_blocks": 6, "mapper": "pure_random"}
 {"ts": "2026-03-31T01:02:23.317441+00:00", "t": "run_done", "circuit": "qft_100_approx", "placement": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 91, "logical_depth": 663, "compile_time_sec": 135.863}
 {"ts": "2026-03-31T01:02:23.325775+00:00", "t": "result_saved", "path": "qft_100_approx_random_cpsat_seed42.json"}
+{"ts": "2026-03-31T03:35:00.679784+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult"]}
+{"ts": "2026-03-31T03:35:00.679784+00:00", "t": "sc_cache_hit", "circuit": "gf2_16_mult"}
+{"ts": "2026-03-31T03:35:00.679784+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 2}
+{"ts": "2026-03-31T03:36:06.147699+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult"]}
+{"ts": "2026-03-31T03:36:06.148700+00:00", "t": "sc_cache_hit", "circuit": "gf2_16_mult"}
+{"ts": "2026-03-31T03:36:06.149748+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 2}
+{"ts": "2026-03-31T03:36:44.052695+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult"]}
+{"ts": "2026-03-31T03:36:44.052695+00:00", "t": "sc_cache_hit", "circuit": "gf2_16_mult"}
+{"ts": "2026-03-31T03:36:44.052695+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 2}
+{"ts": "2026-03-31T03:36:56.388880+00:00", "t": "sc_phase_start", "circuits": ["rand_500_10k"]}
+{"ts": "2026-03-31T03:36:56.424378+00:00", "t": "sc_start", "circuit": "rand_500_10k", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\random_ct_500q_10k.qasm"}
+{"ts": "2026-03-31T03:37:24.686136+00:00", "t": "sc_done", "circuit": "rand_500_10k", "sc_logical_depth": 9953, "sc_tile_count": 32862, "sc_rows": 3, "sc_cols": 10954, "lc_ops_naive": 288809, "elapsed_sec": 28.262}
+{"ts": "2026-03-31T03:37:24.777452+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 3}
+{"ts": "2026-03-31T03:37:32.333402+00:00", "t": "run_start", "circuit": "rand_500_10k", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 49, "mapper": "pure_random"}
+{"ts": "2026-04-02T04:26:27.262044+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult", "qft_100_approx", "rand_500_10k"]}
+{"ts": "2026-04-02T04:26:27.262044+00:00", "t": "sc_cache_hit", "circuit": "gf2_16_mult"}
+{"ts": "2026-04-02T04:26:27.263045+00:00", "t": "sc_cache_hit", "circuit": "qft_100_approx"}
+{"ts": "2026-04-02T04:26:27.263045+00:00", "t": "sc_cache_hit", "circuit": "rand_500_10k"}
+{"ts": "2026-04-02T04:26:27.265046+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 3}
+{"ts": "2026-04-02T04:26:39.712033+00:00", "t": "sc_pbc_phase_start", "n_files": 9}
+{"ts": "2026-04-02T04:26:39.712033+00:00", "t": "sc_pbc_start", "circuit": "Adder16", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\Adder16_PBC.json"}
+{"ts": "2026-04-02T04:26:39.712033+00:00", "t": "sc_pbc_done", "circuit": "Adder16", "sc_logical_depth": 602, "sc_tile_count": 2091, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.720874+00:00", "t": "sc_pbc_start", "circuit": "Adder32", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\Adder32_PBC.json"}
+{"ts": "2026-04-02T04:26:39.720874+00:00", "t": "sc_pbc_done", "circuit": "Adder32", "sc_logical_depth": 1274, "sc_tile_count": 4395, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.723862+00:00", "t": "sc_pbc_start", "circuit": "Adder64", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\Adder64_PBC.json"}
+{"ts": "2026-04-02T04:26:39.723862+00:00", "t": "sc_pbc_done", "circuit": "Adder64", "sc_logical_depth": 2618, "sc_tile_count": 9003, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.726321+00:00", "t": "sc_pbc_start", "circuit": "Adder8", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\Adder8_PBC.json"}
+{"ts": "2026-04-02T04:26:39.726321+00:00", "t": "sc_pbc_done", "circuit": "Adder8", "sc_logical_depth": 266, "sc_tile_count": 939, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.727703+00:00", "t": "sc_pbc_start", "circuit": "QFT16", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\QFT16_PBC.json"}
+{"ts": "2026-04-02T04:26:39.727703+00:00", "t": "sc_pbc_done", "circuit": "QFT16", "sc_logical_depth": 45, "sc_tile_count": 234, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.728877+00:00", "t": "sc_pbc_start", "circuit": "QFT32", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\QFT32_PBC.json"}
+{"ts": "2026-04-02T04:26:39.729180+00:00", "t": "sc_pbc_done", "circuit": "QFT32", "sc_logical_depth": 93, "sc_tile_count": 474, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.729503+00:00", "t": "sc_pbc_start", "circuit": "QFT64", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\QFT64_PBC.json"}
+{"ts": "2026-04-02T04:26:39.730704+00:00", "t": "sc_pbc_done", "circuit": "QFT64", "sc_logical_depth": 189, "sc_tile_count": 954, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.731850+00:00", "t": "sc_pbc_start", "circuit": "QFT8", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\QFT8_PBC.json"}
+{"ts": "2026-04-02T04:26:39.731850+00:00", "t": "sc_pbc_done", "circuit": "QFT8", "sc_logical_depth": 21, "sc_tile_count": 114, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.738950+00:00", "t": "sc_pbc_start", "circuit": "rand_100_10k", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_100_10k_PBC.json"}
+{"ts": "2026-04-02T04:26:39.741885+00:00", "t": "sc_pbc_done", "circuit": "rand_100_10k", "sc_logical_depth": 10000, "sc_tile_count": 30603, "elapsed_sec": 0.0}
+{"ts": "2026-04-02T04:26:39.745568+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 12}
+{"ts": "2026-04-02T21:02:48.065906+00:00", "t": "run_done", "circuit": "rand_500_10k", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 423987, "compile_time_sec": 235514.472}
+{"ts": "2026-04-02T21:02:48.315607+00:00", "t": "result_saved", "path": "rand_500_10k_random_sequential_seed42.json"}
+{"ts": "2026-04-06T07:59:31.746417+00:00", "t": "sc_pbc_phase_start", "n_files": 9}
+{"ts": "2026-04-06T07:59:31.746417+00:00", "t": "sc_cache_hit", "circuit": "Adder16"}
+{"ts": "2026-04-06T07:59:31.758485+00:00", "t": "sc_cache_hit", "circuit": "Adder32"}
+{"ts": "2026-04-06T07:59:31.758485+00:00", "t": "sc_cache_hit", "circuit": "Adder64"}
+{"ts": "2026-04-06T07:59:31.758485+00:00", "t": "sc_cache_hit", "circuit": "Adder8"}
+{"ts": "2026-04-06T07:59:31.758485+00:00", "t": "sc_cache_hit", "circuit": "QFT16"}
+{"ts": "2026-04-06T07:59:31.758485+00:00", "t": "sc_cache_hit", "circuit": "QFT32"}
+{"ts": "2026-04-06T07:59:31.759854+00:00", "t": "sc_cache_hit", "circuit": "QFT64"}
+{"ts": "2026-04-06T07:59:31.759854+00:00", "t": "sc_cache_hit", "circuit": "QFT8"}
+{"ts": "2026-04-06T07:59:31.759854+00:00", "t": "sc_cache_hit", "circuit": "rand_100_10k"}
+{"ts": "2026-04-06T07:59:31.759854+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult", "qft_100_approx", "rand_100q_10kt_s42"]}
+{"ts": "2026-04-06T07:59:31.761156+00:00", "t": "sc_cache_hit", "circuit": "gf2_16_mult"}
+{"ts": "2026-04-06T07:59:31.761156+00:00", "t": "sc_cache_hit", "circuit": "qft_100_approx"}
+{"ts": "2026-04-06T07:59:31.770472+00:00", "t": "sc_start", "circuit": "rand_100q_10kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\rand_100q_10kt_s42.qasm"}
+{"ts": "2026-04-06T07:59:38.327664+00:00", "t": "sc_done", "circuit": "rand_100q_10kt_s42", "sc_logical_depth": 10000, "sc_tile_count": 30603, "sc_rows": 3, "sc_cols": 10201, "lc_ops_naive": 246416, "elapsed_sec": 6.565}
+{"ts": "2026-04-06T07:59:38.378693+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 13}
+{"ts": "2026-04-06T08:08:41.438944+00:00", "t": "phase_start", "phase": "all_pbc", "n_circuits": 9, "placement": "random", "scheduler": "sequential"}
+{"ts": "2026-04-06T08:08:41.467946+00:00", "t": "run_start", "circuit": "Adder16", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 6, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:08:44.016423+00:00", "t": "run_done", "circuit": "Adder16", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 12947, "compile_time_sec": 2.55}
+{"ts": "2026-04-06T08:08:44.021563+00:00", "t": "result_saved", "path": "Adder16_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:08:44.044509+00:00", "t": "run_start", "circuit": "Adder32", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 9, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:08:54.706968+00:00", "t": "run_done", "circuit": "Adder32", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 27894, "compile_time_sec": 10.659}
+{"ts": "2026-04-06T08:08:54.718364+00:00", "t": "result_saved", "path": "Adder32_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:08:54.732377+00:00", "t": "run_start", "circuit": "Adder64", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 20, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:09:36.891608+00:00", "t": "run_done", "circuit": "Adder64", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 55916, "compile_time_sec": 42.158}
+{"ts": "2026-04-06T08:09:36.914134+00:00", "t": "result_saved", "path": "Adder64_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:09:36.916141+00:00", "t": "run_start", "circuit": "Adder8", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 4, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:09:37.260985+00:00", "t": "run_done", "circuit": "Adder8", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 4668, "compile_time_sec": 0.355}
+{"ts": "2026-04-06T08:09:37.260985+00:00", "t": "result_saved", "path": "Adder8_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:09:37.276103+00:00", "t": "run_start", "circuit": "QFT16", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 2, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:09:37.383644+00:00", "t": "run_done", "circuit": "QFT16", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 624, "compile_time_sec": 0.097}
+{"ts": "2026-04-06T08:09:37.385651+00:00", "t": "result_saved", "path": "QFT16_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:09:37.396646+00:00", "t": "run_start", "circuit": "QFT32", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 4, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:09:37.521266+00:00", "t": "run_done", "circuit": "QFT32", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 1484, "compile_time_sec": 0.125}
+{"ts": "2026-04-06T08:09:37.524332+00:00", "t": "result_saved", "path": "QFT32_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:09:37.530310+00:00", "t": "run_start", "circuit": "QFT64", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 6, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:09:37.753494+00:00", "t": "run_done", "circuit": "QFT64", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 3136, "compile_time_sec": 0.218}
+{"ts": "2026-04-06T08:09:37.755494+00:00", "t": "result_saved", "path": "QFT64_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:09:37.769320+00:00", "t": "run_start", "circuit": "QFT8", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 2, "mapper": "pure_random"}
+{"ts": "2026-04-06T08:09:37.858678+00:00", "t": "run_done", "circuit": "QFT8", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 341, "compile_time_sec": 0.089}
+{"ts": "2026-04-06T08:09:37.861342+00:00", "t": "result_saved", "path": "QFT8_random_sequential_seed42.json"}
+{"ts": "2026-04-06T08:09:37.903166+00:00", "t": "run_start", "circuit": "rand_100_10k", "placement": "random", "scheduler": "sequential", "seed": 42, "n_blocks": 12, "mapper": "pure_random"}
+{"ts": "2026-04-06T09:48:33.309616+00:00", "t": "run_done", "circuit": "rand_100_10k", "placement": "random", "scheduler": "sequential", "seed": 42, "inter_block_rotations": 0, "logical_depth": 368084, "compile_time_sec": 5935.406}
+{"ts": "2026-04-06T09:48:33.323638+00:00", "t": "result_saved", "path": "rand_100_10k_random_sequential_seed42.json"}
+{"ts": "2026-04-06T09:48:33.323638+00:00", "t": "phase_done", "phase": "all_pbc"}
+{"ts": "2026-04-06T16:58:47.411379+00:00", "t": "sc_pbc_phase_start", "n_files": 9}
+{"ts": "2026-04-06T16:58:47.411379+00:00", "t": "sc_cache_hit", "circuit": "Adder16"}
+{"ts": "2026-04-06T16:58:47.412372+00:00", "t": "sc_cache_hit", "circuit": "Adder32"}
+{"ts": "2026-04-06T16:58:47.412372+00:00", "t": "sc_cache_hit", "circuit": "Adder64"}
+{"ts": "2026-04-06T16:58:47.412372+00:00", "t": "sc_cache_hit", "circuit": "Adder8"}
+{"ts": "2026-04-06T16:58:47.413372+00:00", "t": "sc_cache_hit", "circuit": "QFT16"}
+{"ts": "2026-04-06T16:58:47.413372+00:00", "t": "sc_cache_hit", "circuit": "QFT32"}
+{"ts": "2026-04-06T16:58:47.413838+00:00", "t": "sc_cache_hit", "circuit": "QFT64"}
+{"ts": "2026-04-06T16:58:47.413838+00:00", "t": "sc_cache_hit", "circuit": "QFT8"}
+{"ts": "2026-04-06T16:58:47.414907+00:00", "t": "sc_cache_hit", "circuit": "rand_100_10k"}
+{"ts": "2026-04-06T16:58:47.414907+00:00", "t": "sc_phase_start", "circuits": ["gf2_16_mult", "qft_100_approx", "rand_100q_10kt_s42"]}
+{"ts": "2026-04-06T16:58:47.414907+00:00", "t": "sc_cache_hit", "circuit": "gf2_16_mult"}
+{"ts": "2026-04-06T16:58:47.414907+00:00", "t": "sc_cache_hit", "circuit": "qft_100_approx"}
+{"ts": "2026-04-06T16:58:47.415907+00:00", "t": "sc_cache_hit", "circuit": "rand_100q_10kt_s42"}
+{"ts": "2026-04-06T16:58:47.416907+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 13}

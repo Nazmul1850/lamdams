@@ -1,0 +1,46 @@
+{
+  "circuit": "qft_100_approx",
+  "placement": "sa",
+  "scheduler": "greedy_critical",
+  "seed": 42,
+  "sa_steps": 30000,
+  "sa_t0": 100000.0,
+  "sa_tend": 0.05,
+  "sa_score_kwargs": null,
+  "inter_block_all": 81,
+  "inter_block_t_only": 81,
+  "logical_depth": 941,
+  "layer_depths": [
+    128,
+    451,
+    362
+  ],
+  "compile_time_sec": 46.979,
+  "map_time_sec": 46.565,
+  "timestamp": "2026-03-31T19:52:28.471842+00:00",
+  "sa_initial_energy": 479000.0,
+  "sa_final_energy": 426000.0,
+  "sa_energy_reduction_pct": 11.06,
+  "sa_energy_checkpoints": [
+    {
+      "pct": 0.0,
+      "best_energy": 479000.0
+    },
+    {
+      "pct": 24.997499916663887,
+      "best_energy": 444000.0
+    },
+    {
+      "pct": 49.99833327777593,
+      "best_energy": 426000.0
+    },
+    {
+      "pct": 74.99916663888796,
+      "best_energy": 426000.0
+    },
+    {
+      "pct": 100.0,
+      "best_energy": 426000.0
+    }
+  ]
+}

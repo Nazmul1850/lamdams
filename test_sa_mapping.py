@@ -19,12 +19,13 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import math
 import os
 import random
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib
@@ -52,10 +53,16 @@ from modqldpc.scheduling.types import SchedulingProblem
 
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
-DEFAULT_PBC = "runs/rand_50q_1kt__seed42__2026-03-12T06-06-52Z/stage_frontend/PBC.json"
-OUT_FIG         = "test_sa_comparison.png"
-OUT_FIG_WEIGHTS = "test_sa_weights.png"
-OUT_FIG_GAP     = "test_sa_gap_sweep.png"
+DEFAULT_PBC      = "circuits/benchmarks/pbc/gf2_16_mult.json"
+OUT_FIG          = "test_sa_comparison.png"
+OUT_FIG_WEIGHTS  = "test_sa_weights.png"
+OUT_FIG_GAP      = "test_sa_gap_sweep.png"
+GREEDY_CACHE_DIR = "results/sensitivity"
+GREEDY_CACHE_PATH = os.path.join(GREEDY_CACHE_DIR, "last_greedy_sweep.json")
+
+# ── Baseline targets (random+cpsat on gf2_16_mult, seed=42) ───────────────────
+TARGET_DEPTH         = 18_936   # depth to beat
+TARGET_INTER_BLOCK   = 1_057    # inter-block rotations under random mapping
 
 _SYNCH_DIR  = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "modqldpc", "rotation_synch"
@@ -95,12 +102,30 @@ def make_cost_fn(plan: MappingPlan, n_data: int = 11):
     return cost_fn
 
 
+# ── Inter-block rotation count ────────────────────────────────────────────────
+def count_inter_block_rotations(rotations: list, plan: "MappingPlan") -> int:
+    """Count rotations whose support spans ≥ 2 blocks under the given plan."""
+    count = 0
+    for rot in rotations:
+        axis = rot.axis.lstrip("+-")
+        n = len(axis)
+        blocks: set = set()
+        for qi in range(n):
+            if axis[n - 1 - qi] != "I":
+                b = plan.logical_to_block.get(qi)
+                if b is not None:
+                    blocks.add(b)
+        if len(blocks) >= 2:
+            count += 1
+    return count
+
+
 # ── Circuit loading ───────────────────────────────────────────────────────────
 def load_circuit(pbc_path: str):
     conv = GoSCConverter(verbose=False)
     conv.load_cache_json(pbc_path)
     first_rot = next(iter(conv.program.rotations))
-    n_logicals = len(first_rot.axis.to_label().lstrip("+-"))
+    n_logicals = len(first_rot.axis.lstrip("+-"))
     rotations  = list(conv.program.rotations)
     layers     = conv.layers          # List[List[int]]
     print(f"[circuit]  n_logicals={n_logicals}"
@@ -126,6 +151,7 @@ class RunResult:
     default_total: float
     # Depth (the real metric)
     total_depth:   int
+    inter_block:   int = 0          # rotations spanning ≥2 blocks
     layer_depths:  List[int] = field(default_factory=list)
     # Timing
     elapsed_sa_s:    float = 0.0
@@ -332,6 +358,9 @@ def run_full(
         )
     elapsed_sa = time.perf_counter() - t_sa
 
+    # Inter-block rotation count under the chosen mapping
+    inter_block = count_inter_block_rotations(rotations, plan)
+
     # Default-weight score on the final mapping (fair comparison across all runs)
     default_score = _score(rotations, hw)
 
@@ -355,6 +384,7 @@ def run_full(
         num_disconnected = sa_score.num_disconnected,
         default_total    = default_score.total,
         total_depth      = total_depth,
+        inter_block      = inter_block,
         layer_depths     = layer_depths,
         elapsed_sa_s     = elapsed_sa,
         elapsed_depth_s  = elapsed_depth,
@@ -365,10 +395,11 @@ def run_full(
             "seed": seed, "score_kwargs": score_kwargs or {},
         },
     )
-    print(f"  {result.label:<45}  depth={total_depth:>6}"
+    beat_marker = " *** BEATS TARGET ***" if total_depth < TARGET_DEPTH else ""
+    print(f"  {result.label:<45}  depth={total_depth:>6}  iblk={inter_block:>4}"
           f"  sa_score={result.sa_total:>10.1f}"
           f"  default={result.default_total:>10.1f}"
-          f"  SA={elapsed_sa:.1f}s  sched={elapsed_depth:.1f}s")
+          f"  SA={elapsed_sa:.1f}s  sched={elapsed_depth:.1f}s{beat_marker}")
     return result
 
 
@@ -441,6 +472,12 @@ HIERARCHY_PRESETS = [
     ("mst>>rest",           1e3,    1e3,     1e2,     1e2,     1e5  ),
     ("balanced",            1e4,    1e4,     1e4,     1e4,     1e4  ),
     ("peak+span dominant",  1e5,    1e3,     1e5,     1e2,     10.0 ),
+    # span/mst focused – aimed at beating random+cpsat on gf2_16
+    ("span_mst>>peak",      1e2,    1e2,     1e5,     1e2,     1e4  ),
+    ("span_only",           0.0,    0.0,     1e6,     0.0,     0.0  ),
+    ("mst_only",            0.0,    0.0,     0.0,     0.0,     1e6  ),
+    ("span_mst_equal",      1e3,    1e3,     1e5,     1e2,     1e5  ),
+    ("low_peak_high_span",  1e2,    1e3,     1e5,     1e3,     1e3  ),
 ]
 
 
@@ -571,6 +608,9 @@ def build_gap_figure(
                 0.2) for k in range(n)]
     bars = ax.bar(range(n), sorted_depths, color=palette, alpha=0.88, width=0.65)
     ax.bar_label(bars, fmt="%d", fontsize=6, padding=2)
+    ax.axhline(TARGET_DEPTH, color="red", linewidth=1.2, linestyle="--",
+               label=f"random+cpsat={TARGET_DEPTH}")
+    ax.legend(fontsize=6)
     ax.set_xticks(range(n))
     ax.set_xticklabels(sorted_labels, rotation=35, ha="right", fontsize=5)
     ax.set_ylabel("total depth", fontsize=7)
@@ -607,20 +647,48 @@ def build_gap_figure(
     print(f"\n[figure]  saved → {out_path}")
 
 
+# ── Result persistence ────────────────────────────────────────────────────────
+def save_greedy_cache(results: List[RunResult], path: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    rows = []
+    for r in results:
+        d = asdict(r)
+        rows.append(d)
+    with open(path, "w") as f:
+        json.dump(rows, f, indent=2)
+    print(f"[cache]  {len(rows)} greedy results saved → {path}")
+
+
+def load_greedy_cache(path: str) -> List[RunResult]:
+    with open(path) as f:
+        rows = json.load(f)
+    results = []
+    for d in rows:
+        r = RunResult(**d)
+        results.append(r)
+    results.sort(key=lambda r: r.total_depth)
+    print(f"[cache]  loaded {len(results)} greedy results from {path}")
+    return results
+
+
 # ── Print table ───────────────────────────────────────────────────────────────
 def print_table(results: List[RunResult], title: str) -> None:
-    sep = "─" * 110
-    print(f"\n{'='*110}")
-    print(f"  {title}")
+    sep = "─" * 125
+    print(f"\n{'='*125}")
+    print(f"  {title}  (target depth ≤ {TARGET_DEPTH}  inter_block target ≤ {TARGET_INTER_BLOCK})")
     print(sep)
-    print(f"  {'Label':<45}  {'depth':>6}  {'sa_score':>10}  "
-          f"{'default':>10}  {'peak':>8}  {'split':>7}  {'multi':>6}  {'disc':>5}")
+    print(f"  {'Label':<45}  {'depth':>6}  {'beat?':>5}  {'iblk':>5}  "
+          f"{'sa_score':>10}  {'default':>10}  {'peak':>8}  {'split':>7}  {'multi':>6}  {'disc':>5}")
     print(sep)
     for r in results:
-        print(f"  {r.label:<45}  {r.total_depth:>6}  {r.sa_total:>10.1f}  "
-              f"{r.default_total:>10.1f}  {r.sa_peak:>8.0f}  {r.sa_split:>7.1f}"
+        beat = "YES" if r.total_depth < TARGET_DEPTH else "   "
+        iblk_flag = "<" if r.inter_block < TARGET_INTER_BLOCK else " "
+        print(f"  {r.label:<45}  {r.total_depth:>6}  {beat:>5}  "
+              f"{r.inter_block:>4}{iblk_flag}  "
+              f"{r.sa_total:>10.1f}  {r.default_total:>10.1f}  "
+              f"{r.sa_peak:>8.0f}  {r.sa_split:>7.1f}"
               f"  {r.num_multiblock:>6}  {r.num_disconnected:>5}")
-    print(f"{'='*110}")
+    print(f"{'='*125}")
 
 
 # ── Plot helpers ──────────────────────────────────────────────────────────────
@@ -629,6 +697,10 @@ _C = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B2", "#937860"]
 
 def _line(ax, xs, ys, title, xlabel, ylabel="total depth", log_x=False, color="#4C72B0"):
     ax.plot(xs, ys, "o-", color=color, linewidth=1.8, markersize=5)
+    if ylabel == "total depth":
+        ax.axhline(TARGET_DEPTH, color="red", linewidth=1.2, linestyle="--",
+                   label=f"random+cpsat={TARGET_DEPTH}")
+        ax.legend(fontsize=5)
     ax.set_title(title, fontsize=9)
     ax.set_xlabel(xlabel, fontsize=7)
     ax.set_ylabel(ylabel, fontsize=7)
@@ -788,12 +860,16 @@ def build_weight_figure(
         ax.text(idx, depths[idx] * 0.98, ann,
                 ha="center", va="top", fontsize=5, color="white",
                 multialignment="center")
+    ax.axhline(TARGET_DEPTH, color="red", linewidth=1.5, linestyle="--",
+               label=f"random+cpsat target={TARGET_DEPTH}")
+    ax.legend(fontsize=7, loc="upper left")
     ax.set_xticks(range(n))
     ax.set_xticklabels(labels, rotation=28, ha="right", fontsize=7)
     ax.set_ylabel("total depth", fontsize=8)
     ax.set_title(
         "Hierarchy presets — sorted best → worst  (green=best, red=worst)\n"
-        "Weight labels inside bars: Pk=W_PEAK  Rg=W_RANGE  Sp=W_SPAN  Sl=W_SPLIT  Ms=W_MST",
+        "Weight labels inside bars: Pk=W_PEAK  Rg=W_RANGE  Sp=W_SPAN  Sl=W_SPLIT  Ms=W_MST\n"
+        f"Red dashed line = random+cpsat target ({TARGET_DEPTH})",
         fontsize=9,
     )
     ax.tick_params(axis="y", labelsize=7)
@@ -904,103 +980,131 @@ def main():
     parser.add_argument("--sparse_pct",       type=float, default=0.0)
     parser.add_argument("--n_data",           type=int,   default=11)
     parser.add_argument("--seed",             type=int,   default=42)
-    parser.add_argument("--sched",            default="greedy_critical")
+    parser.add_argument("--cp-time",          type=float, default=120.0,
+                        help="CP-SAT time limit per layer in seconds for final validation")
+    parser.add_argument("--top-n",            type=int,   default=5,
+                        help="Top N greedy configs to validate with CP-SAT at the end")
+    parser.add_argument("--phase2-only",      action="store_true",
+                        help="Skip Phase 1; load greedy cache and go straight to CP-SAT")
+    parser.add_argument("--cache",            default=GREEDY_CACHE_PATH,
+                        help="Greedy results cache path (read by --phase2-only, written after Phase 1)")
     parser.add_argument("--verbose",          action="store_true")
     args = parser.parse_args()
 
+    print(f"\n[target]  circuit={args.pbc}")
+    print(f"[target]  random+cpsat depth = {TARGET_DEPTH}  "
+          f"inter_block = {TARGET_INTER_BLOCK}")
+    print(f"[fixed SA]  t0=1e5  tend=0.05  steps=2500")
+
     n_logicals, rotations, layers = load_circuit(args.pbc)
 
-    # Base config shared across all sweeps
     base = dict(
         topology          = args.topology,
         sparse_pct        = args.sparse_pct,
         n_data            = args.n_data,
         coupler_capacity  = 1,
-        sa_steps          = 10_000,
+        sa_steps          = 2_500,
         sa_t0             = 1e5,
-        sa_tend           = 1.1,
+        sa_tend           = 0.05,
         seed              = args.seed,
-        sched_name        = args.sched,
-        cp_sat_time_limit = 30.0,
+        sched_name        = "greedy_critical",
+        cp_sat_time_limit = args.cp_time,
         verbose           = args.verbose,
     )
 
-    # Default score weights (mirrors _score defaults in sa_mapping.py)
     W_DEFAULT = dict(W_PEAK=1e4, W_RANGE=1e4, W_STD=0.0,
                      W_DISCONNECTED=0.0, W_MST=1e2, W_SPLIT=1e2, W_SPAN=1e3)
 
-    # ── SA parameter sweeps ───────────────────────────────────────────────────
-    steps_r = sweep_steps(n_logicals, rotations, layers, base,
-                          [1_000, 5_000, 10_000, 25_000])
-    print_table(steps_r, "Sweep: sa_steps")
+    # ── Phase 1: weight sweeps with greedy (skipped if --phase2-only) ─────────
+    if args.phase2_only:
+        print(f"[phase2-only]  loading greedy cache from {args.cache}\n")
+        all_greedy_sorted = load_greedy_cache(args.cache)
+    else:
+        print(f"[phase 1]  greedy sweeps → find best weight scaling factors")
+        print(f"[phase 2]  cp_sat validation of top {args.top_n} configs"
+              f"  (cp_time={args.cp_time}s/layer)\n")
+        print("=" * 70)
+        print("  PHASE 1 — Weight scaling factor sweeps  (greedy_critical)")
+        print("=" * 70)
 
-    t0_r = sweep_t0(n_logicals, rotations, layers, base,
-                    [1e4, 1e5, 1e6, 1e7, 1e8])
-    print_table(t0_r, "Sweep: sa_t0")
+        w_peak_r = sweep_weight(n_logicals, rotations, layers, base,
+                                "W_PEAK", [0.0, 1e2, 1e3, 1e4, 1e5], W_DEFAULT)
+        print_table(w_peak_r, "Sweep: W_PEAK")
 
-    tend_r = sweep_tend(n_logicals, rotations, layers, base,
-                        [1.0, 5.0, 10.0, 50.0, 100.0])
-    print_table(tend_r, "Sweep: sa_tend")
+        w_split_r = sweep_weight(n_logicals, rotations, layers, base,
+                                 "W_SPLIT", [0.0, 10.0, 1e2, 1e3, 1e4], W_DEFAULT)
+        print_table(w_split_r, "Sweep: W_SPLIT")
 
-    # ── Weight (scaling factor) sweeps ────────────────────────────────────────
-    # Use fewer SA steps for weight sweeps to keep runtime manageable
-    base_w = {**base, "sa_steps": 5_000}
+        w_range_r = sweep_weight(n_logicals, rotations, layers, base,
+                                 "W_RANGE", [0.0, 1e2, 1e3, 5e3, 1e4], W_DEFAULT)
+        print_table(w_range_r, "Sweep: W_RANGE")
 
-    w_peak_r = sweep_weight(n_logicals, rotations, layers, base_w,
-                            "W_PEAK", [1e2, 1e3, 1e4, 1e5, 5e5], W_DEFAULT)
-    print_table(w_peak_r, "Sweep: W_PEAK")
+        w_mst_r = sweep_weight(n_logicals, rotations, layers, base,
+                               "W_MST", [0.0, 10.0, 1e2, 1e3, 1e4, 1e5], W_DEFAULT)
+        print_table(w_mst_r, "Sweep: W_MST")
 
-    w_split_r = sweep_weight(n_logicals, rotations, layers, base_w,
-                             "W_SPLIT", [0.0, 10.0, 1e2, 1e3, 1e4], W_DEFAULT)
-    print_table(w_split_r, "Sweep: W_SPLIT")
+        w_span_r = sweep_weight(n_logicals, rotations, layers, base,
+                                "W_SPAN", [0.0, 1e2, 1e3, 1e4, 1e5, 1e6], W_DEFAULT)
+        print_table(w_span_r, "Sweep: W_SPAN")
 
-    w_range_r = sweep_weight(n_logicals, rotations, layers, base_w,
-                             "W_RANGE", [0.0, 1e2, 1e3, 5e3, 1e4], W_DEFAULT)
-    print_table(w_range_r, "Sweep: W_RANGE")
+        preset_r = sweep_hierarchy_presets(n_logicals, rotations, layers, base)
+        print_table(preset_r, "Sweep: Hierarchy presets")
 
-    w_mst_r = sweep_weight(n_logicals, rotations, layers, base_w,
-                           "W_MST", [0.0, 10.0, 1e2, 1e3, 1e4], W_DEFAULT)
-    print_table(w_mst_r, "Sweep: W_MST")
+        gap_step_factors = [1.5, 3.0, 10.0, 30.0, 100.0]
+        gap_base_scales  = [1e2, 1e3, 1e4]
+        gap_grid = sweep_gap(
+            n_logicals, rotations, layers, base,
+            gap_step_factors, gap_base_scales,
+        )
+        build_gap_figure(gap_grid, gap_step_factors, gap_base_scales, OUT_FIG_GAP)
 
-    w_span_r = sweep_weight(n_logicals, rotations, layers, base_w,
-                            "W_SPAN", [0.0, 1e2, 1e3, 1e4, 1e5], W_DEFAULT)
-    print_table(w_span_r, "Sweep: W_SPAN")
+        build_weight_figure(
+            w_peak_r, w_range_r, w_mst_r, w_split_r, w_span_r,
+            preset_r,
+            OUT_FIG_WEIGHTS,
+        )
 
-    # ── Hierarchy presets ─────────────────────────────────────────────────────
-    preset_r = sweep_hierarchy_presets(n_logicals, rotations, layers, base_w)
-    print_table(preset_r, "Sweep: Hierarchy presets")
+        gap_flat = [r for row in gap_grid for r in row]
+        all_greedy: List[RunResult] = (
+            w_peak_r + w_split_r + w_range_r + w_mst_r + w_span_r
+            + preset_r + gap_flat
+        )
+        all_greedy_sorted = sorted(all_greedy, key=lambda r: r.total_depth)
+        save_greedy_cache(all_greedy_sorted, args.cache)
 
-    # ── Weight sensitivity figure (separate) ──────────────────────────────────
-    build_weight_figure(
-        w_peak_r, w_range_r, w_mst_r, w_split_r, w_span_r,
-        preset_r,
-        OUT_FIG_WEIGHTS,
-    )
+    print(f"\n{'='*80}")
+    print(f"  PHASE 1 SUMMARY — All greedy results sorted by depth"
+          f"  (target: < {TARGET_DEPTH})")
+    print(f"{'='*80}")
+    print_table(all_greedy_sorted[:20], "Top 20 greedy configs")
 
-    # ── Hierarchy gap sweep ───────────────────────────────────────────────────
-    gap_step_factors = [1.5, 3.0, 10.0, 30.0, 100.0]
-    gap_base_scales  = [1e2, 1e3, 1e4]
-    gap_grid = sweep_gap(
-        n_logicals, rotations, layers, base_w,
-        gap_step_factors, gap_base_scales,
-    )
-    build_gap_figure(gap_grid, gap_step_factors, gap_base_scales, OUT_FIG_GAP)
+    # ── Phase 2: CP-SAT validation of top N greedy configs ────────────────────
+    top_configs = all_greedy_sorted[:args.top_n]
 
-    # ── 3×3 heatmap: W_PEAK × W_SPLIT ────────────────────────────────────────
-    hmap_peak  = [1e3, 1e4, 1e5]
-    hmap_split = [10.0, 1e2, 1e3]
-    heatmap_grid = sweep_weight_heatmap(
-        n_logicals, rotations, layers, base_w,
-        hmap_peak, hmap_split, W_DEFAULT,
-    )
+    print(f"\n{'='*80}")
+    print(f"  PHASE 2 — CP-SAT validation  (top {args.top_n} greedy configs)")
+    print(f"  target depth < {TARGET_DEPTH}  (random+cpsat baseline)")
+    print(f"  cp_time={args.cp_time}s/layer")
+    print(f"{'='*80}")
 
-    # ── Figure ────────────────────────────────────────────────────────────────
-    build_figure(
-        steps_r, t0_r, tend_r,
-        w_peak_r, w_split_r, w_range_r,
-        heatmap_grid, hmap_peak, hmap_split,
-        OUT_FIG,
-    )
+    cpsat_base = {**base, "sched_name": "cp_sat"}
+    cpsat_results: List[RunResult] = []
+    for i, r in enumerate(top_configs, 1):
+        print(f"\n  [CP-SAT {i}/{len(top_configs)}]  config: {r.label}"
+              f"  (greedy_depth={r.total_depth})")
+        kw = r.params.get("score_kwargs") or {}
+        effective_kw = kw if kw else None
+        result = run_full(
+            n_logicals, rotations, layers,
+            **{**cpsat_base, "score_kwargs": effective_kw},
+            label=f"cpsat:{r.label[:38]}",
+        )
+        cpsat_results.append(result)
+        beat = "BEAT TARGET" if result.total_depth < TARGET_DEPTH else "miss"
+        print(f"  [{beat}]  depth={result.total_depth}  target={TARGET_DEPTH}"
+              f"  gap={result.total_depth - TARGET_DEPTH:+d}")
+
+    print_table(cpsat_results, "PHASE 2 — CP-SAT results vs random+cpsat target")
 
 
 if __name__ == "__main__":

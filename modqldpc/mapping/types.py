@@ -53,9 +53,9 @@ class MappingConfig:
     # for SA mapping
     # T0 must be large enough to accept the worst typical move early on.
     # Probe moves showed max delta ~3M; T0=1e5 gives ~5% acceptance of those.
-    sa_steps: int = 50_000
+    sa_steps: int = 25_000
     sa_t0: float = 1e5
-    sa_tend: float = 0.05
+    sa_tend: float = 5e-2
     # capacity handling: if True, raise if insufficient capacity
     strict_capacity: bool = True
 

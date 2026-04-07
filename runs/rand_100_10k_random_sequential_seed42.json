@@ -1,0 +1,14 @@
+{
+  "circuit": "rand_100_10k",
+  "n_qubits": 100,
+  "n_blocks": 12,
+  "t_count": 0,
+  "placement": "random",
+  "scheduler": "sequential",
+  "seed": 42,
+  "inter_block_rotations": 0,
+  "logical_depth": 368084,
+  "sa_iterations": null,
+  "compile_time_sec": 5935.406,
+  "timestamp": "2026-04-06T09:48:33.310616+00:00"
+}

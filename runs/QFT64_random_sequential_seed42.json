@@ -1,0 +1,14 @@
+{
+  "circuit": "QFT64",
+  "n_qubits": 64,
+  "n_blocks": 6,
+  "t_count": 0,
+  "placement": "random",
+  "scheduler": "sequential",
+  "seed": 42,
+  "inter_block_rotations": 0,
+  "logical_depth": 3136,
+  "sa_iterations": null,
+  "compile_time_sec": 0.218,
+  "timestamp": "2026-04-06T08:09:37.753494+00:00"
+}

@@ -1,0 +1,14 @@
+{
+  "circuit": "Adder8",
+  "n_qubits": 23,
+  "n_blocks": 4,
+  "t_count": 0,
+  "placement": "random",
+  "scheduler": "sequential",
+  "seed": 42,
+  "inter_block_rotations": 0,
+  "logical_depth": 4668,
+  "sa_iterations": null,
+  "compile_time_sec": 0.355,
+  "timestamp": "2026-04-06T08:09:37.260985+00:00"
+}

@@ -1,0 +1,569 @@
+[sa_v2_tuning 00:30:31] setup: circuits=['Adder16', 'Adder32', 'Adder64', 'Adder8', 'QFT16', 'QFT32', 'QFT64', 'QFT8', 'rand_100_10k'] | topologies=['grid', 'ring'] | seed=42 | stress_seeds=[40, 41, 42, 43, 44]
+[sa_v2_tuning 00:30:31] workflow start: running all phases to select SA-v2 score weights and hyperparameters
+[sa_v2_tuning 00:30:31] phase 0 start: baselines over 9 circuits x 2 topologies (seed=42)
+[sa_v2_tuning 00:30:31] run start: Adder16 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:30:37] run done: Adder16 [grid] | mapper=random | scheduler=greedy_critical | depth=7863 | depth/sc=13.061 | inter=406 | map=0.0s
+[sa_v2_tuning 00:30:37] run start: Adder16 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:30:42] run done: Adder16 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=6000 | depth/sc=9.967 | inter=395 | map=0.0s
+[sa_v2_tuning 00:30:42] run start: Adder16 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:32:11] run done: Adder16 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=6395 | depth/sc=10.623 | inter=335 | map=84.441s
+[sa_v2_tuning 00:32:11] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:33:06] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=50.009s
+[sa_v2_tuning 00:33:06] run start: Adder32 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:33:42] run done: Adder32 [grid] | mapper=random | scheduler=greedy_critical | depth=15964 | depth/sc=12.531 | inter=875 | map=0.0s
+[sa_v2_tuning 00:33:42] run start: Adder32 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:34:13] run done: Adder32 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=15060 | depth/sc=11.821 | inter=883 | map=0.0s
+[sa_v2_tuning 00:34:13] run start: Adder32 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:38:55] run done: Adder32 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=14029 | depth/sc=11.012 | inter=524 | map=254.705s
+[sa_v2_tuning 00:38:55] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:42:11] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=172.124s
+[sa_v2_tuning 00:42:11] run start: Adder64 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:45:10] run done: Adder64 [grid] | mapper=random | scheduler=greedy_critical | depth=27173 | depth/sc=10.379 | inter=1899 | map=0.0s
+[sa_v2_tuning 00:45:10] run start: Adder64 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 00:47:49] run done: Adder64 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=26775 | depth/sc=10.227 | inter=1880 | map=0.0s
+[sa_v2_tuning 00:47:49] run start: Adder64 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:09:17] run done: Adder64 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=27425 | depth/sc=10.476 | inter=1393 | map=1137.054s
+[sa_v2_tuning 01:09:17] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:24:13] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=762.695s
+[sa_v2_tuning 01:24:13] run start: Adder8 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:24:14] run done: Adder8 [grid] | mapper=random | scheduler=greedy_critical | depth=3164 | depth/sc=11.895 | inter=179 | map=0.0s
+[sa_v2_tuning 01:24:14] run start: Adder8 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:24:15] run done: Adder8 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=1818 | depth/sc=6.835 | inter=181 | map=0.0s
+[sa_v2_tuning 01:24:15] run start: Adder8 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:24:42] run done: Adder8 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=2975 | depth/sc=11.184 | inter=146 | map=26.185s
+[sa_v2_tuning 01:24:42] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:24:59] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=16.313s
+[sa_v2_tuning 01:24:59] run start: QFT16 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:00] run done: QFT16 [grid] | mapper=random | scheduler=greedy_critical | depth=419 | depth/sc=9.311 | inter=10 | map=0.0s
+[sa_v2_tuning 01:25:00] run start: QFT16 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:00] run done: QFT16 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=363 | depth/sc=8.067 | inter=11 | map=0.0s
+[sa_v2_tuning 01:25:00] run start: QFT16 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:01] run done: QFT16 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=334 | depth/sc=7.422 | inter=3 | map=1.044s
+[sa_v2_tuning 01:25:01] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:02] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=1.047s
+[sa_v2_tuning 01:25:02] run start: QFT32 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:02] run done: QFT32 [grid] | mapper=random | scheduler=greedy_critical | depth=652 | depth/sc=7.011 | inter=26 | map=0.0s
+[sa_v2_tuning 01:25:02] run start: QFT32 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:02] run done: QFT32 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=456 | depth/sc=4.903 | inter=24 | map=0.0s
+[sa_v2_tuning 01:25:02] run start: QFT32 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:07] run done: QFT32 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=452 | depth/sc=4.860 | inter=16 | map=4.949s
+[sa_v2_tuning 01:25:07] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:11] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.77s
+[sa_v2_tuning 01:25:11] run start: QFT64 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:12] run done: QFT64 [grid] | mapper=random | scheduler=greedy_critical | depth=1156 | depth/sc=6.116 | inter=55 | map=0.0s
+[sa_v2_tuning 01:25:12] run start: QFT64 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:12] run done: QFT64 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=1043 | depth/sc=5.519 | inter=51 | map=0.0s
+[sa_v2_tuning 01:25:12] run start: QFT64 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:29] run done: QFT64 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=857 | depth/sc=4.534 | inter=39 | map=16.322s
+[sa_v2_tuning 01:25:29] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:41] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=12.138s
+[sa_v2_tuning 01:25:41] run start: QFT8 [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:41] run done: QFT8 [grid] | mapper=random | scheduler=greedy_critical | depth=224 | depth/sc=10.667 | inter=3 | map=0.0s
+[sa_v2_tuning 01:25:41] run start: QFT8 [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:41] run done: QFT8 [grid] | mapper=round_robin | scheduler=greedy_critical | depth=119 | depth/sc=5.667 | inter=7 | map=0.0s
+[sa_v2_tuning 01:25:41] run start: QFT8 [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:42] run done: QFT8 [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=104 | depth/sc=4.952 | inter=1 | map=0.657s
+[sa_v2_tuning 01:25:42] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:25:43] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.714s
+[sa_v2_tuning 01:25:43] run start: rand_100_10k [grid] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:19:06] run done: rand_100_10k [grid] | mapper=random | scheduler=greedy_critical | depth=346329 | depth/sc=34.633 | inter=9815 | map=0.0s
+[sa_v2_tuning 03:19:06] run start: rand_100_10k [grid] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 04:43:44] run done: rand_100_10k [grid] | mapper=round_robin | scheduler=greedy_critical | depth=344769 | depth/sc=34.477 | inter=9812 | map=0.0s
+[sa_v2_tuning 04:43:44] run start: rand_100_10k [grid] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:45:21] run done: rand_100_10k [grid] | mapper=sa_v1 | scheduler=greedy_critical | depth=345411 | depth/sc=34.541 | inter=9772 | map=20032.452s
+[sa_v2_tuning 11:45:21] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:01:01] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=15603.882s
+[sa_v2_tuning 17:01:01] run start: Adder16 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:01:07] run done: Adder16 [ring] | mapper=random | scheduler=greedy_critical | depth=7212 | depth/sc=11.980 | inter=405 | map=0.0s
+[sa_v2_tuning 17:01:07] run start: Adder16 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:01:11] run done: Adder16 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=6608 | depth/sc=10.977 | inter=414 | map=0.0s
+[sa_v2_tuning 17:01:11] run start: Adder16 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:02:31] run done: Adder16 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=7276 | depth/sc=12.086 | inter=316 | map=74.341s
+[sa_v2_tuning 17:02:31] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:03:27] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=51.55s
+[sa_v2_tuning 17:03:27] run start: Adder32 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:03:59] run done: Adder32 [ring] | mapper=random | scheduler=greedy_critical | depth=17347 | depth/sc=13.616 | inter=875 | map=0.0s
+[sa_v2_tuning 17:03:59] run start: Adder32 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:04:27] run done: Adder32 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=15528 | depth/sc=12.188 | inter=883 | map=0.0s
+[sa_v2_tuning 17:04:27] run start: Adder32 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:08:56] run done: Adder32 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=13830 | depth/sc=10.856 | inter=524 | map=246.428s
+[sa_v2_tuning 17:08:56] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:11:54] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=158.693s
+[sa_v2_tuning 17:11:54] run start: Adder64 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:14:23] run done: Adder64 [ring] | mapper=random | scheduler=greedy_critical | depth=35650 | depth/sc=13.617 | inter=1881 | map=0.0s
+[sa_v2_tuning 17:14:23] run start: Adder64 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:16:35] run done: Adder64 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=32479 | depth/sc=12.406 | inter=1870 | map=0.0s
+[sa_v2_tuning 17:16:35] run start: Adder64 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:37:28] run done: Adder64 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=35470 | depth/sc=13.549 | inter=1577 | map=1113.598s
+[sa_v2_tuning 17:37:28] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:50:37] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=694.462s
+[sa_v2_tuning 17:50:37] run start: Adder8 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:50:38] run done: Adder8 [ring] | mapper=random | scheduler=greedy_critical | depth=3890 | depth/sc=14.624 | inter=171 | map=0.0s
+[sa_v2_tuning 17:50:38] run start: Adder8 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:50:39] run done: Adder8 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=2585 | depth/sc=9.718 | inter=150 | map=0.0s
+[sa_v2_tuning 17:50:39] run start: Adder8 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:50:57] run done: Adder8 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=3401 | depth/sc=12.786 | inter=101 | map=16.674s
+[sa_v2_tuning 17:50:57] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:10] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=12.09s
+[sa_v2_tuning 17:51:10] run start: QFT16 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:10] run done: QFT16 [ring] | mapper=random | scheduler=greedy_critical | depth=419 | depth/sc=9.311 | inter=10 | map=0.0s
+[sa_v2_tuning 17:51:10] run start: QFT16 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:10] run done: QFT16 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=363 | depth/sc=8.067 | inter=11 | map=0.0s
+[sa_v2_tuning 17:51:10] run start: QFT16 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:11] run done: QFT16 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=334 | depth/sc=7.422 | inter=3 | map=0.989s
+[sa_v2_tuning 17:51:11] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:13] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.976s
+[sa_v2_tuning 17:51:13] run start: QFT32 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:13] run done: QFT32 [ring] | mapper=random | scheduler=greedy_critical | depth=720 | depth/sc=7.742 | inter=23 | map=0.0s
+[sa_v2_tuning 17:51:13] run start: QFT32 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:13] run done: QFT32 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=723 | depth/sc=7.774 | inter=24 | map=0.0s
+[sa_v2_tuning 17:51:13] run start: QFT32 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:17] run done: QFT32 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=619 | depth/sc=6.656 | inter=9 | map=3.676s
+[sa_v2_tuning 17:51:17] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:20] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=3.269s
+[sa_v2_tuning 17:51:20] run start: QFT64 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:21] run done: QFT64 [ring] | mapper=random | scheduler=greedy_critical | depth=978 | depth/sc=5.175 | inter=55 | map=0.0s
+[sa_v2_tuning 17:51:21] run start: QFT64 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:21] run done: QFT64 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=947 | depth/sc=5.011 | inter=51 | map=0.0s
+[sa_v2_tuning 17:51:21] run start: QFT64 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:39] run done: QFT64 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=912 | depth/sc=4.825 | inter=39 | map=17.432s
+[sa_v2_tuning 17:51:39] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:51] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=12.061s
+[sa_v2_tuning 17:51:51] run start: QFT8 [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:51] run done: QFT8 [ring] | mapper=random | scheduler=greedy_critical | depth=224 | depth/sc=10.667 | inter=3 | map=0.0s
+[sa_v2_tuning 17:51:51] run start: QFT8 [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:51] run done: QFT8 [ring] | mapper=round_robin | scheduler=greedy_critical | depth=119 | depth/sc=5.667 | inter=7 | map=0.0s
+[sa_v2_tuning 17:51:51] run start: QFT8 [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:52] run done: QFT8 [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=104 | depth/sc=4.952 | inter=1 | map=0.582s
+[sa_v2_tuning 17:51:52] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:51:53] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.623s
+[sa_v2_tuning 17:51:53] run start: rand_100_10k [ring] | mapper=random | scheduler=greedy_critical | label=random | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 18:58:32] run done: rand_100_10k [ring] | mapper=random | scheduler=greedy_critical | depth=349980 | depth/sc=34.998 | inter=9821 | map=0.0s
+[sa_v2_tuning 18:58:32] run start: rand_100_10k [ring] | mapper=round_robin | scheduler=greedy_critical | label=round_robin | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:01:16] run done: rand_100_10k [ring] | mapper=round_robin | scheduler=greedy_critical | depth=349110 | depth/sc=34.911 | inter=9807 | map=0.0s
+[sa_v2_tuning 20:01:16] run start: rand_100_10k [ring] | mapper=sa_v1 | scheduler=greedy_critical | label=sa_v1 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:04:54] run done: rand_100_10k [ring] | mapper=sa_v1 | scheduler=greedy_critical | depth=350113 | depth/sc=35.011 | inter=9771 | map=14354.489s
+[sa_v2_tuning 01:04:54] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=sa_v2_default | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 05:44:35] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=13602.058s
+[sa_v2_tuning 05:44:35] phase 0 done: sa_v2 default mean depth gain vs random+greedy = 19.92%
+[sa_v2_tuning 05:44:35] phase 1 start: screening 10 score variables over 9 circuits x 2 topologies
+[sa_v2_tuning 05:44:35] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 05:45:27] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=47.5s
+[sa_v2_tuning 05:45:27] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 05:48:23] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=154.632s
+[sa_v2_tuning 05:48:23] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:01:49] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=692.559s
+[sa_v2_tuning 06:01:49] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:02:04] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=14.6s
+[sa_v2_tuning 06:02:04] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:02:05] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=1.015s
+[sa_v2_tuning 06:02:05] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:02:09] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.39s
+[sa_v2_tuning 06:02:09] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:02:20] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=11.069s
+[sa_v2_tuning 06:02:20] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:02:21] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.526s
+[sa_v2_tuning 06:02:21] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 10:55:44] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=14723.311s
+[sa_v2_tuning 10:55:44] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 10:56:34] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=46.653s
+[sa_v2_tuning 10:56:34] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 10:59:25] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=151.773s
+[sa_v2_tuning 10:59:25] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:12:01] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=664.714s
+[sa_v2_tuning 11:12:01] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:12:14] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=11.918s
+[sa_v2_tuning 11:12:14] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:12:15] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.958s
+[sa_v2_tuning 11:12:15] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:12:18] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=3.031s
+[sa_v2_tuning 11:12:18] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:12:29] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=10.724s
+[sa_v2_tuning 11:12:29] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:12:30] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.517s
+[sa_v2_tuning 11:12:30] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=base_weights | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:36:29] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=12965.664s
+[sa_v2_tuning 15:36:29] phase 1: sweeping W_UNUSED_BLOCKS over 6 candidate values
+[sa_v2_tuning 15:36:29] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:37:19] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=46.117s
+[sa_v2_tuning 15:37:19] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:40:16] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=156.262s
+[sa_v2_tuning 15:40:16] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:53:41] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=693.284s
+[sa_v2_tuning 15:53:41] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:53:56] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=14.658s
+[sa_v2_tuning 15:53:56] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:53:57] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.972s
+[sa_v2_tuning 15:53:57] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:01] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.384s
+[sa_v2_tuning 15:54:01] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:12] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=10.994s
+[sa_v2_tuning 15:54:12] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:13] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=236 | depth/sc=11.238 | inter=0 | map=0.547s
+[sa_v2_tuning 15:54:13] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:43:21] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=14468.201s
+[sa_v2_tuning 20:43:21] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:44:12] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=46.94s
+[sa_v2_tuning 20:44:12] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:47:02] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=150.739s
+[sa_v2_tuning 20:47:02] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:59:32] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=660.426s
+[sa_v2_tuning 20:59:32] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:59:44] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=11.444s
+[sa_v2_tuning 20:59:44] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:59:45] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.917s
+[sa_v2_tuning 20:59:45] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:59:48] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=2.928s
+[sa_v2_tuning 20:59:48] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:59:59] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=10.873s
+[sa_v2_tuning 20:59:59] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:00:00] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=236 | depth/sc=11.238 | inter=0 | map=0.496s
+[sa_v2_tuning 21:00:00] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:26:37] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=13098.433s
+[sa_v2_tuning 01:26:37] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:27:35] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=54.216s
+[sa_v2_tuning 01:27:35] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:30:31] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=154.737s
+[sa_v2_tuning 01:30:31] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:43:56] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=691.768s
+[sa_v2_tuning 01:43:56] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:44:12] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=15.046s
+[sa_v2_tuning 01:44:12] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:44:13] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.972s
+[sa_v2_tuning 01:44:13] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:44:17] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.451s
+[sa_v2_tuning 01:44:17] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:44:28] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=10.724s
+[sa_v2_tuning 01:44:28] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:44:28] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=236 | depth/sc=11.238 | inter=0 | map=0.527s
+[sa_v2_tuning 01:44:28] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:42:13] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=14980.312s
+[sa_v2_tuning 06:42:13] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:43:03] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=46.711s
+[sa_v2_tuning 06:43:03] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:45:54] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=151.73s
+[sa_v2_tuning 06:45:54] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:58:28] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=662.602s
+[sa_v2_tuning 06:58:28] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:58:42] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=12.045s
+[sa_v2_tuning 06:58:42] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:58:43] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.98s
+[sa_v2_tuning 06:58:43] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:58:46] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=3.048s
+[sa_v2_tuning 06:58:46] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:58:57] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=10.962s
+[sa_v2_tuning 06:58:57] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 06:58:58] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=236 | depth/sc=11.238 | inter=0 | map=0.527s
+[sa_v2_tuning 06:58:58] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=100000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:22:30] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=12934.081s
+[sa_v2_tuning 11:22:30] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:23:20] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=45.866s
+[sa_v2_tuning 11:23:20] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:26:18] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=155.68s
+[sa_v2_tuning 11:26:18] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:39:41] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=692.775s
+[sa_v2_tuning 11:39:41] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:39:57] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=14.756s
+[sa_v2_tuning 11:39:57] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:39:58] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.927s
+[sa_v2_tuning 11:39:58] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:40:01] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.324s
+[sa_v2_tuning 11:40:01] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:40:12] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=10.838s
+[sa_v2_tuning 11:40:12] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:40:13] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.624s
+[sa_v2_tuning 11:40:13] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:34:38] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=14785.924s
+[sa_v2_tuning 16:34:38] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:35:28] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=45.782s
+[sa_v2_tuning 16:35:28] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:38:18] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=151.238s
+[sa_v2_tuning 16:38:18] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:50:51] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=664.503s
+[sa_v2_tuning 16:50:51] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:51:04] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=11.321s
+[sa_v2_tuning 16:51:04] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:51:05] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.957s
+[sa_v2_tuning 16:51:05] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:51:08] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=2.92s
+[sa_v2_tuning 16:51:08] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:51:19] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=11.063s
+[sa_v2_tuning 16:51:19] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:51:20] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.666s
+[sa_v2_tuning 16:51:20] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 18:53:37] setup: circuits=['Adder16', 'Adder32', 'Adder64', 'Adder8', 'QFT16', 'QFT32', 'QFT64', 'QFT8', 'rand_100_10k'] | topologies=['grid', 'ring'] | seed=42 | stress_seeds=[40, 41, 42, 43, 44]
+[sa_v2_tuning 18:53:37] workflow start: phase 1 only
+[sa_v2_tuning 18:53:37] phase 1 start: screening 10 score variables over 9 circuits x 2 topologies
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: rand_100_10k [grid] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] cache hit: rand_100_10k [ring] | sa_v2/greedy_critical | label=base_weights
+[sa_v2_tuning 18:53:37] phase 1: sweeping W_UNUSED_BLOCKS over 6 candidate values
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: rand_100_10k [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: rand_100_10k [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=0.0
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: rand_100_10k [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: rand_100_10k [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=100000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: rand_100_10k [grid] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder16 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder32 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder64 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: Adder8 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT16 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT32 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT64 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] cache hit: QFT8 [ring] | sa_v2/greedy_critical | label=W_UNUSED_BLOCKS=500000.0
+[sa_v2_tuning 18:53:37] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=500000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:39:58] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=11202.202s
+[sa_v2_tuning 22:39:58] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:40:41] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=39.391s
+[sa_v2_tuning 22:40:41] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:43:15] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=136.057s
+[sa_v2_tuning 22:43:15] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:54:53] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=604.873s
+[sa_v2_tuning 22:54:53] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:55:07] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=12.841s
+[sa_v2_tuning 22:55:07] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:55:08] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.84s
+[sa_v2_tuning 22:55:08] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:55:11] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.022s
+[sa_v2_tuning 22:55:11] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:55:21] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=9.502s
+[sa_v2_tuning 22:55:21] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 22:55:21] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.475s
+[sa_v2_tuning 22:55:21] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:08:13] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=12780.997s
+[sa_v2_tuning 03:08:13] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:08:56] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=40.075s
+[sa_v2_tuning 03:08:56] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:11:24] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=132.006s
+[sa_v2_tuning 03:11:24] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:22:16] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=576.221s
+[sa_v2_tuning 03:22:16] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:22:27] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=10.047s
+[sa_v2_tuning 03:22:27] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:22:28] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.842s
+[sa_v2_tuning 03:22:28] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:22:31] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=2.648s
+[sa_v2_tuning 03:22:31] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:22:40] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=9.493s
+[sa_v2_tuning 03:22:40] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 03:22:41] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.481s
+[sa_v2_tuning 03:22:41] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=1000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:08:44] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=11126.65s
+[sa_v2_tuning 07:08:44] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:09:27] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=39.414s
+[sa_v2_tuning 07:09:27] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:12:00] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=135.079s
+[sa_v2_tuning 07:12:00] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:23:39] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=606.672s
+[sa_v2_tuning 07:23:39] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:23:53] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=12.846s
+[sa_v2_tuning 07:23:53] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:23:54] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.834s
+[sa_v2_tuning 07:23:54] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:23:57] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=2.953s
+[sa_v2_tuning 07:23:57] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:24:07] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=9.36s
+[sa_v2_tuning 07:24:07] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:24:07] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.467s
+[sa_v2_tuning 07:24:07] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:36:13] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=12730.038s
+[sa_v2_tuning 11:36:13] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:36:55] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=39.537s
+[sa_v2_tuning 11:36:55] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:39:23] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=131.789s
+[sa_v2_tuning 11:39:23] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:50:16] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=576.867s
+[sa_v2_tuning 11:50:16] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:50:27] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=10.042s
+[sa_v2_tuning 11:50:27] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:50:28] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.832s
+[sa_v2_tuning 11:50:28] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:50:31] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=2.657s
+[sa_v2_tuning 11:50:31] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:50:41] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=9.525s
+[sa_v2_tuning 11:50:41] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 11:50:41] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.472s
+[sa_v2_tuning 11:50:41] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=5000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:38:26] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=11162.545s
+[sa_v2_tuning 15:38:26] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:39:09] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=39.577s
+[sa_v2_tuning 15:39:09] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:41:46] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=139.522s
+[sa_v2_tuning 15:41:46] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:27] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=656.139s
+[sa_v2_tuning 15:54:27] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:42] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=14.206s
+[sa_v2_tuning 15:54:42] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:43] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.927s
+[sa_v2_tuning 15:54:43] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:47] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.253s
+[sa_v2_tuning 15:54:47] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:57] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=10.469s
+[sa_v2_tuning 15:54:57] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 15:54:58] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.527s
+[sa_v2_tuning 15:54:58] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:33:18] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=14003.907s
+[sa_v2_tuning 20:33:18] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:34:07] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=5734 | depth/sc=9.525 | inter=134 | map=45.809s
+[sa_v2_tuning 20:34:07] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:36:54] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=11684 | depth/sc=9.171 | inter=256 | map=148.713s
+[sa_v2_tuning 20:36:54] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:49:05] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=30132 | depth/sc=11.510 | inter=708 | map=643.813s
+[sa_v2_tuning 20:49:05] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:49:17] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=11.28s
+[sa_v2_tuning 20:49:17] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:49:18] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.898s
+[sa_v2_tuning 20:49:18] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:49:21] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=2.971s
+[sa_v2_tuning 20:49:21] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:49:32] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=863 | depth/sc=4.566 | inter=8 | map=10.498s
+[sa_v2_tuning 20:49:32] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 20:49:33] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.53s
+[sa_v2_tuning 20:49:33] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_UNUSED_BLOCKS=10000000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:11:57] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=12729.628s
+[sa_v2_tuning 01:11:57] phase 1: W_UNUSED_BLOCKS best=5000000.0 | depth-span=5.51% | inter-span=3.70% | keep
+[sa_v2_tuning 01:11:57] phase 1: sweeping W_OCC_RANGE over 5 candidate values
+[sa_v2_tuning 01:11:57] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:12:49] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6456 | depth/sc=10.724 | inter=126 | map=48.395s
+[sa_v2_tuning 01:12:49] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:15:44] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12379 | depth/sc=9.717 | inter=250 | map=155.83s
+[sa_v2_tuning 01:15:44] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:29:58] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=23026 | depth/sc=8.795 | inter=766 | map=708.072s
+[sa_v2_tuning 01:29:58] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:30:20] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=21.03s
+[sa_v2_tuning 01:30:20] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:30:21] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=389 | depth/sc=8.644 | inter=1 | map=1.347s
+[sa_v2_tuning 01:30:21] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:30:26] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=392 | depth/sc=4.215 | inter=3 | map=4.803s
+[sa_v2_tuning 01:30:26] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:30:41] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=686 | depth/sc=3.630 | inter=6 | map=14.681s
+[sa_v2_tuning 01:30:41] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 01:30:42] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.83s
+[sa_v2_tuning 01:30:42] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:00:57] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=16003.544s
+[sa_v2_tuning 07:00:57] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:01:46] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=6375 | depth/sc=10.590 | inter=88 | map=44.751s
+[sa_v2_tuning 07:01:46] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:04:41] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=10746 | depth/sc=8.435 | inter=230 | map=154.559s
+[sa_v2_tuning 07:04:41] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:18:17] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=32241 | depth/sc=12.315 | inter=650 | map=712.855s
+[sa_v2_tuning 07:18:17] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:18:31] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=12.626s
+[sa_v2_tuning 07:18:31] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:18:32] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=389 | depth/sc=8.644 | inter=1 | map=0.994s
+[sa_v2_tuning 07:18:32] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:18:36] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=3.229s
+[sa_v2_tuning 07:18:36] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:18:47] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=706 | depth/sc=3.735 | inter=6 | map=10.886s
+[sa_v2_tuning 07:18:47] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 07:18:47] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.518s
+[sa_v2_tuning 07:18:47] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=0.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:07:08] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=13524.921s
+[sa_v2_tuning 12:07:08] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:07:54] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6456 | depth/sc=10.724 | inter=126 | map=41.997s
+[sa_v2_tuning 12:07:54] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:10:29] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12379 | depth/sc=9.717 | inter=250 | map=136.981s
+[sa_v2_tuning 12:10:29] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:22:49] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=22939 | depth/sc=8.762 | inter=797 | map=656.185s
+[sa_v2_tuning 12:22:49] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:23:03] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=13.579s
+[sa_v2_tuning 12:23:03] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:23:04] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=389 | depth/sc=8.644 | inter=1 | map=0.896s
+[sa_v2_tuning 12:23:04] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:23:07] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=367 | depth/sc=3.946 | inter=3 | map=3.105s
+[sa_v2_tuning 12:23:07] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:23:17] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=668 | depth/sc=3.534 | inter=6 | map=9.657s
+[sa_v2_tuning 12:23:17] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 12:23:18] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.531s
+[sa_v2_tuning 12:23:18] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:54:20] run done: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=347263 | depth/sc=34.726 | inter=9670 | map=13363.107s
+[sa_v2_tuning 16:54:20] run start: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:55:05] run done: Adder16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=6077 | depth/sc=10.095 | inter=134 | map=41.13s
+[sa_v2_tuning 16:55:05] run start: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 16:57:35] run done: Adder32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=10746 | depth/sc=8.435 | inter=230 | map=133.032s
+[sa_v2_tuning 16:57:35] run start: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:08:33] run done: Adder64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=28046 | depth/sc=10.713 | inter=614 | map=573.344s
+[sa_v2_tuning 17:08:33] run start: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:08:44] run done: Adder8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=3453 | depth/sc=12.981 | inter=36 | map=10.646s
+[sa_v2_tuning 17:08:44] run start: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:08:45] run done: QFT16 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=389 | depth/sc=8.644 | inter=1 | map=0.865s
+[sa_v2_tuning 17:08:45] run start: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:08:48] run done: QFT32 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=593 | depth/sc=6.376 | inter=2 | map=2.813s
+[sa_v2_tuning 17:08:48] run start: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:08:58] run done: QFT64 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=630 | depth/sc=3.333 | inter=7 | map=9.858s
+[sa_v2_tuning 17:08:58] run start: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 17:08:59] run done: QFT8 [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.551s
+[sa_v2_tuning 17:08:59] run start: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=1000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:12:10] run done: rand_100_10k [ring] | mapper=sa_v2 | scheduler=greedy_critical | depth=348247 | depth/sc=34.825 | inter=9643 | map=11645.678s
+[sa_v2_tuning 21:12:10] run start: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:12:56] run done: Adder16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=6213 | depth/sc=10.321 | inter=112 | map=41.41s
+[sa_v2_tuning 21:12:56] run start: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:15:35] run done: Adder32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=12845 | depth/sc=10.082 | inter=286 | map=140.765s
+[sa_v2_tuning 21:15:35] run start: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:27:48] run done: Adder64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=27473 | depth/sc=10.494 | inter=704 | map=630.947s
+[sa_v2_tuning 21:27:48] run start: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:28:02] run done: Adder8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=2686 | depth/sc=10.098 | inter=54 | map=13.433s
+[sa_v2_tuning 21:28:02] run start: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:28:03] run done: QFT16 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=365 | depth/sc=8.111 | inter=1 | map=0.897s
+[sa_v2_tuning 21:28:03] run start: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:28:06] run done: QFT32 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=372 | depth/sc=4.000 | inter=3 | map=3.176s
+[sa_v2_tuning 21:28:06] run start: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:28:16] run done: QFT64 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=723 | depth/sc=3.825 | inter=8 | map=9.894s
+[sa_v2_tuning 21:28:16] run start: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none
+[sa_v2_tuning 21:28:17] run done: QFT8 [grid] | mapper=sa_v2 | scheduler=greedy_critical | depth=125 | depth/sc=5.952 | inter=1 | map=0.494s
+[sa_v2_tuning 21:28:17] run start: rand_100_10k [grid] | mapper=sa_v2 | scheduler=greedy_critical | label=W_OCC_RANGE=10000.0 | steps=25000 t0=1e+05 tend=0.05 | cp_limit=none

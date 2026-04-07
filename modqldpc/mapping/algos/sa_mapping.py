@@ -219,12 +219,9 @@ class RotationDebug:
     k: int
     support_size: int
     per_block_counts: Dict[BlockId, int]
-    raw_span: float
-    raw_disconnected: float
     raw_mst: float
     raw_split: float
-    span_pen: float
-    disconnected_pen: float
+    multi_block_pen: float
     mst_pen: float
     split_pen: float
     total_pen: float
@@ -233,16 +230,13 @@ class RotationDebug:
 @dataclass
 class ScoreBreakdown:
     total: float
-    peak_load_pen: float
-    range_load_pen: float
-    std_load_pen: float
-    span_pen: float
-    disconnected_pen: float
-    mst_pen: float
-    split_pen: float
+    unused_blocks_pen: float   # W_UNUSED_BLOCKS * n_unused — primary: use all blocks
+    multi_block_pen: float     # W_MULTI_BLOCK  * num_multiblock — secondary: reduce inter-block
+    mst_pen: float             # W_MST          * total_mst — tertiary: spatial compactness
+    split_pen: float           # W_SPLIT        * total_split — quaternary: balance support
     block_loads: Dict[BlockId, int] = field(default_factory=dict)
     num_multiblock: int = 0
-    num_disconnected: int = 0
+    n_unused_blocks: int = 0
     max_blocks_touched: int = 0
     top_rotations: List[RotationDebug] = field(default_factory=list)
 

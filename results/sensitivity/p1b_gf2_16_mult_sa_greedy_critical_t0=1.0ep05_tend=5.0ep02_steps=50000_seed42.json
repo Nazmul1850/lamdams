@@ -1,0 +1,44 @@
+{
+  "circuit": "gf2_16_mult",
+  "placement": "sa",
+  "scheduler": "greedy_critical",
+  "seed": 42,
+  "sa_steps": 50000,
+  "sa_t0": 100000.0,
+  "sa_tend": 500.0,
+  "sa_score_kwargs": null,
+  "inter_block_all": 1049,
+  "inter_block_t_only": 1049,
+  "logical_depth": 21471,
+  "layer_depths": [
+    21471
+  ],
+  "compile_time_sec": 704.851,
+  "map_time_sec": 551.488,
+  "timestamp": "2026-03-31T22:38:54.754033+00:00",
+  "sa_initial_energy": 11421268.207177907,
+  "sa_final_energy": 8551880.802021936,
+  "sa_energy_reduction_pct": 25.12,
+  "sa_energy_checkpoints": [
+    {
+      "pct": 0.0,
+      "best_energy": 11421268.207177907
+    },
+    {
+      "pct": 24.9984999699994,
+      "best_energy": 8586727.690320421
+    },
+    {
+      "pct": 49.9989999799996,
+      "best_energy": 8560320.203446891
+    },
+    {
+      "pct": 74.9994999899998,
+      "best_energy": 8551880.802021936
+    },
+    {
+      "pct": 100.0,
+      "best_energy": 8551880.802021936
+    }
+  ]
+}

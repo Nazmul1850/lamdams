@@ -1,7 +1,7 @@
 """
 Experiment orchestrator for the PBC compiler paper evaluation.
 
-Runs (circuit × placement × scheduler × seed) configurations and saves
+Runs (circuit × mapping × scheduler × seed) configurations and saves
 a JSON record per run to results/raw/.
 
 Usage examples:
@@ -10,13 +10,13 @@ Usage examples:
   python experiments/run_experiment.py --phase 1
 
   # Config E: 30-seed robustness run on qft_100_approx
-  python experiments/run_experiment.py --circuit qft_100_approx --placement sa --scheduler cpsat --seeds 1-30
+  python experiments/run_experiment.py --circuit qft_100_approx --mapping sa --scheduler cpsat --seeds 1-30
 
   # Phase 2: scaling sweep (QFT sizes, configs A and D only)
   python experiments/run_experiment.py --phase 2
 
   # Single run
-  python experiments/run_experiment.py --circuit gf2_16_mult --placement sa --scheduler cpsat --seed 42
+  python experiments/run_experiment.py --circuit gf2_16_mult --mapping sa --scheduler cpsat --seed 42
 
   # Generate PBC cache files from QASM (do this before running experiments)
   python experiments/run_experiment.py --build-pbc
@@ -89,7 +89,8 @@ SCHEDULER_TO_FACTORY = {
 CIRCUITS = {
     "gf2_16_mult":             ("gf2_16_mult.qasm",             48),
     "qft_100_approx":          ("qft_100_approx.qasm",         100),
-    "random_ct_500q_10k":      ("random_ct_500q_10k.qasm",          500),
+    "rand_500_10k":            ("random_ct_500q_10k.qasm",     500),
+    "random_ct_500q_10k":      ("random_ct_500q_10k.qasm",     500),
     # Scaling sweep
     "qft_22_approx":           ("qft_22_approx.qasm",           22),
     "qft_33_approx":           ("qft_33_approx.qasm",           33),
@@ -103,7 +104,7 @@ CIRCUITS = {
 
 def count_inter_block_rotations(rotations, plan) -> int:
     """
-    Count rotations whose Pauli support spans ≥ 2 qLDPC blocks after placement.
+    Count rotations whose Pauli support spans ≥ 2 qLDPC blocks after mapping.
     Works for any mapper (does not rely on plan.meta).
 
     The axis string has rightmost character = qubit 0.
@@ -122,6 +123,46 @@ def count_inter_block_rotations(rotations, plan) -> int:
         if len(blocks) >= 2:
             count += 1
     return count
+
+
+# ── PBC discovery ────────────────────────────────────────────────────────────
+
+def _circuit_name_from_pbc_fname(fname: str) -> str:
+    """'Adder16_PBC.json' → 'Adder16',  'gf2_16_mult.json' → 'gf2_16_mult'."""
+    stem = os.path.splitext(fname)[0]
+    return stem[:-4] if stem.endswith("_PBC") else stem
+
+
+def pbc_path_for(circuit_name: str) -> str | None:
+    """
+    Return the path to an existing PBC JSON for circuit_name, or None.
+    Tries (in order):
+      1. circuits/benchmarks/pbc/{circuit_name}_PBC.json   (externally compiled)
+      2. circuits/benchmarks/pbc/{circuit_name}.json       (built by build_pbc)
+    """
+    candidates = [
+        os.path.join(PBC_DIR, f"{circuit_name}_PBC.json"),
+        os.path.join(PBC_DIR, f"{circuit_name}.json"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def discover_pbc_circuits() -> dict[str, str]:
+    """
+    Scan circuits/benchmarks/pbc/ and return {circuit_name: pbc_path}
+    for every JSON file present.
+    """
+    result = {}
+    if not os.path.isdir(PBC_DIR):
+        return result
+    for fname in sorted(os.listdir(PBC_DIR)):
+        if fname.endswith(".json"):
+            name = _circuit_name_from_pbc_fname(fname)
+            result[name] = os.path.join(PBC_DIR, fname)
+    return result
 
 
 # ── PBC cache management ──────────────────────────────────────────────────────
@@ -170,11 +211,19 @@ def build_pbc(circuit_name: str) -> str:
     return pbc_path
 
 
-def load_pbc(circuit_name: str):
-    """Load a pre-built PBC JSON and return a GoSCConverter with data loaded."""
-    pbc_path = os.path.join(PBC_DIR, f"{circuit_name}.json")
-    if not os.path.exists(pbc_path):
-        pbc_path = build_pbc(circuit_name)
+def load_pbc(circuit_name: str, pbc_path: str | None = None):
+    """
+    Load a pre-built PBC JSON and return a GoSCConverter with data loaded.
+
+    Resolution order (when pbc_path is not given explicitly):
+      1. circuits/benchmarks/pbc/{circuit_name}_PBC.json  (externally compiled)
+      2. circuits/benchmarks/pbc/{circuit_name}.json      (built by build_pbc)
+      3. Build from QASM via build_pbc() (requires circuit in CIRCUITS registry)
+    """
+    if pbc_path is None:
+        pbc_path = pbc_path_for(circuit_name)
+        if pbc_path is None:
+            pbc_path = build_pbc(circuit_name)
     conv = GoSCConverter(verbose=False)
     conv.load_cache_json(pbc_path)
     return conv
@@ -195,10 +244,11 @@ def qasm_stats(circuit_name: str):
 
 def run_one_config(
     circuit_name: str,
-    placement: str,
+    mapping: str,
     scheduler: str,
     seed: int,
     *,
+    pbc_path: str | None = None,
     sa_steps: int = 50_000,
     sa_t0: float = 1e5,
     sa_tend: float = 0.05,
@@ -207,14 +257,15 @@ def run_one_config(
     topology: str = "grid",
 ) -> dict:
     """
-    Run one (circuit, placement, scheduler, seed) configuration.
+    Run one (circuit, mapping, scheduler, seed) configuration.
     Returns a metrics dict matching the paper's output schema.
+    pbc_path: explicit path to PBC JSON (optional; auto-resolved when None).
     """
-    mapper_name = PLACEMENT_TO_MAPPER[placement]
+    mapper_name = PLACEMENT_TO_MAPPER[mapping]
     sched_name  = SCHEDULER_TO_FACTORY[scheduler]
 
     # ── Load PBC ──────────────────────────────────────────────────────────────
-    conv = load_pbc(circuit_name)
+    conv = load_pbc(circuit_name, pbc_path=pbc_path)
     first_rot  = next(iter(conv.program.rotations))
     n_logicals = len(first_rot.axis.lstrip("+-"))
     t_count    = sum(
@@ -229,13 +280,13 @@ def run_one_config(
     n_blocks = len(hw.blocks)
 
     _trace.event(
-        "run_start", circuit=circuit_name, placement=placement,
+        "run_start", circuit=circuit_name, mapping=mapping,
         scheduler=scheduler, seed=seed, n_blocks=n_blocks, mapper=mapper_name,
     )
 
     t_start = time.perf_counter()
 
-    # ── Mapping ───────────────────────────────────────────────────────────────
+    # ── mapping ───────────────────────────────────────────────────────────────
     map_cfg = MappingConfig(
         seed=seed, sa_steps=sa_steps, sa_t0=sa_t0, sa_tend=sa_tend,
     )
@@ -247,7 +298,7 @@ def run_one_config(
 
     t_after_map = time.perf_counter()
 
-    # ── Count inter-block rotations (placement-only metric) ───────────────────
+    # ── Count inter-block rotations (mapping-only metric) ───────────────────
     # Use only π/8 (T-gate) rotations as they are the primary cost
     t_rotations = [r for r in conv.program.rotations if abs(r.angle) < math.pi / 2 - 1e-9]
     inter_block = count_inter_block_rotations(t_rotations, plan)
@@ -308,13 +359,18 @@ def run_one_config(
         frame = ex.frame_after
         total_depth += ex.depth
 
-    compile_time = time.perf_counter() - t_start
+    t_end            = time.perf_counter()
+    mapping_time     = round(t_after_map - t_start, 3)
+    scheduling_time  = round(t_end - t_after_map, 3)
+    compile_time     = round(t_end - t_start, 3)
 
     _trace.event(
-        "run_done", circuit=circuit_name, placement=placement,
+        "run_done", circuit=circuit_name, mapping=mapping,
         scheduler=scheduler, seed=seed,
         inter_block_rotations=inter_block, logical_depth=total_depth,
-        compile_time_sec=round(compile_time, 3),
+        mapping_time_sec=mapping_time,
+        scheduling_time_sec=scheduling_time,
+        compile_time_sec=compile_time,
     )
 
     return {
@@ -322,13 +378,15 @@ def run_one_config(
         "n_qubits":              n_logicals,
         "n_blocks":              n_blocks,
         "t_count":               t_count,
-        "placement":             placement,
+        "mapping":             mapping,
         "scheduler":             scheduler,
         "seed":                  seed,
         "inter_block_rotations": inter_block,
         "logical_depth":         total_depth,
-        "sa_iterations":         sa_steps if placement == "sa" else None,
-        "compile_time_sec":      round(compile_time, 3),
+        "sa_iterations":         sa_steps if mapping == "sa" else None,
+        "mapping_time_sec":      mapping_time,
+        "scheduling_time_sec":   scheduling_time,
+        "compile_time_sec":      compile_time,
         "timestamp":             datetime.now(timezone.utc).isoformat(),
     }
 
@@ -369,15 +427,15 @@ def validate_gate_set(circuit_name: str) -> bool:
 
 # ── Result persistence ────────────────────────────────────────────────────────
 
-def result_path(circuit: str, placement: str, scheduler: str, seed: int) -> str:
+def result_path(circuit: str, mapping: str, scheduler: str, seed: int) -> str:
     return os.path.join(
-        RUNS_DIR, f"{circuit}_{placement}_{scheduler}_seed{seed}.json"
+        RUNS_DIR, f"{circuit}_{mapping}_{scheduler}_seed{seed}.json"
     )
 
 
 def save_result(rec: dict) -> str:
     os.makedirs(RUNS_DIR, exist_ok=True)
-    path = result_path(rec["circuit"], rec["placement"], rec["scheduler"], rec["seed"])
+    path = result_path(rec["circuit"], rec["mapping"], rec["scheduler"], rec["seed"])
     with open(path, "w") as f:
         json.dump(rec, f, indent=2)
     _trace.event("result_saved", path=os.path.basename(path))
@@ -386,7 +444,7 @@ def save_result(rec: dict) -> str:
 
 def load_results(
     circuit: str | None = None,
-    placement: str | None = None,
+    mapping: str | None = None,
     scheduler: str | None = None,
 ) -> List[dict]:
     """Load all runs/ JSONs, optionally filtered."""
@@ -399,7 +457,7 @@ def load_results(
         with open(os.path.join(RUNS_DIR, fname)) as f:
             rec = json.load(f)
         if circuit   and rec.get("circuit")   != circuit:   continue
-        if placement and rec.get("placement") != placement: continue
+        if mapping and rec.get("mapping") != mapping: continue
         if scheduler and rec.get("scheduler") != scheduler: continue
         records.append(rec)
     return records
@@ -424,12 +482,15 @@ PHASE2_CONFIGS  = [
 ROBUSTNESS_SEEDS = list(range(1, 31))   # Config E: 30 seeds
 
 
-def _run_and_save(circuit, placement, scheduler, seed, skip_existing=True, **kwargs):
-    path = result_path(circuit, placement, scheduler, seed)
+def _run_and_save(circuit, mapping, scheduler, seed, skip_existing=True,
+                  pbc_path=None, **kwargs):
+    path = result_path(circuit, mapping, scheduler, seed)
     if skip_existing and os.path.exists(path):
         _trace.event("run_skipped", path=os.path.basename(path))
+        print(f"  [skip] {os.path.basename(path)} already exists")
         return
-    rec = run_one_config(circuit, placement, scheduler, seed, **kwargs)
+    rec = run_one_config(circuit, mapping, scheduler, seed,
+                         pbc_path=pbc_path, **kwargs)
     save_result(rec)
 
 
@@ -441,8 +502,11 @@ def main():
                         help="Run a full experiment phase")
     parser.add_argument("--robustness", action="store_true",
                         help="Run Config E: 30 seeds of SA+CP-SAT on qft_100_approx")
+    parser.add_argument("--all-pbc",  action="store_true",
+                        help="Run all circuits found in circuits/benchmarks/pbc/ "
+                             "(requires --mapping and --scheduler)")
     parser.add_argument("--circuit",   help="Single circuit name")
-    parser.add_argument("--placement", choices=list(PLACEMENT_TO_MAPPER), help="Placement strategy")
+    parser.add_argument("--mapping", choices=list(PLACEMENT_TO_MAPPER), help="mapping strategy")
     parser.add_argument("--scheduler", choices=list(SCHEDULER_TO_FACTORY), help="Scheduler")
     parser.add_argument("--seed",      type=int, default=42, help="RNG seed (single run)")
     parser.add_argument("--seeds",     help="Seed range, e.g. '1-30'")
@@ -456,6 +520,30 @@ def main():
 
     skip = not args.force
     kwargs = dict(sa_steps=args.sa_steps, cp_sat_time_limit=args.cp_time)
+
+    if args.all_pbc:
+        if not args.mapping or not args.scheduler:
+            parser.error("--all-pbc requires --mapping and --scheduler")
+        pbc_circuits = discover_pbc_circuits()
+        if not pbc_circuits:
+            print(f"No PBC files found in {PBC_DIR}")
+            return
+        seeds = [args.seed]
+        if args.seeds:
+            lo, hi = args.seeds.split("-")
+            seeds = list(range(int(lo), int(hi) + 1))
+        _trace.event("phase_start", phase="all_pbc",
+                     n_circuits=len(pbc_circuits),
+                     mapping=args.mapping, scheduler=args.scheduler)
+        print(f"Running {len(pbc_circuits)} PBC circuit(s) with "
+              f"{args.mapping}/{args.scheduler}/seed(s)={seeds}")
+        for name, path in sorted(pbc_circuits.items()):
+            for seed in seeds:
+                print(f"\n[{name}] mapping={args.mapping} scheduler={args.scheduler} seed={seed}")
+                _run_and_save(name, args.mapping, args.scheduler, seed=seed,
+                              skip_existing=skip, pbc_path=path, **kwargs)
+        _trace.event("phase_done", phase="all_pbc")
+        return
 
     if args.build_pbc:
         _trace.event("phase_start", phase="build_pbc")
@@ -473,8 +561,8 @@ def main():
     if args.phase == 1:
         _trace.event("phase_start", phase=1)
         for circuit in PHASE1_CIRCUITS:
-            for placement, scheduler in PHASE1_CONFIGS:
-                _run_and_save(circuit, placement, scheduler, seed=42,
+            for mapping, scheduler in PHASE1_CONFIGS:
+                _run_and_save(circuit, mapping, scheduler, seed=42,
                               skip_existing=skip, **kwargs)
         _trace.event("phase_done", phase=1)
         return
@@ -490,29 +578,37 @@ def main():
     if args.phase == 2:
         _trace.event("phase_start", phase=2)
         for circuit in PHASE2_CIRCUITS:
-            for placement, scheduler in PHASE2_CONFIGS:
-                _run_and_save(circuit, placement, scheduler, seed=42,
+            for mapping, scheduler in PHASE2_CONFIGS:
+                _run_and_save(circuit, mapping, scheduler, seed=42,
                               skip_existing=skip, **kwargs)
         _trace.event("phase_done", phase=2)
         return
 
     if args.phase == 3:
         _trace.event("phase_start", phase=3)
-        for placement, scheduler in PHASE2_CONFIGS:
-            _run_and_save("random_ct_500q_10k", placement, scheduler, seed=42,
+        for mapping, scheduler in PHASE2_CONFIGS:
+            _run_and_save("random_ct_500q_10k", mapping, scheduler, seed=42,
                           skip_existing=skip, **kwargs)
         _trace.event("phase_done", phase=3)
         return
 
     # Single or multi-seed run
-    if args.circuit and args.placement and args.scheduler:
+    if args.circuit and args.mapping and args.scheduler:
+        # Resolve PBC path — works for both registered and PBC-only circuits
+        explicit_pbc = pbc_path_for(args.circuit)
+        if explicit_pbc is None and args.circuit not in CIRCUITS:
+            parser.error(
+                f"Circuit '{args.circuit}' not found in CIRCUITS registry "
+                f"and no PBC file exists in {PBC_DIR}.\n"
+                f"Available PBC circuits: {sorted(discover_pbc_circuits())}"
+            )
         seeds = [args.seed]
         if args.seeds:
             lo, hi = args.seeds.split("-")
             seeds = list(range(int(lo), int(hi) + 1))
         for seed in seeds:
-            _run_and_save(args.circuit, args.placement, args.scheduler, seed=seed,
-                          skip_existing=skip, **kwargs)
+            _run_and_save(args.circuit, args.mapping, args.scheduler, seed=seed,
+                          skip_existing=skip, pbc_path=explicit_pbc, **kwargs)
         return
 
     parser.print_help()
