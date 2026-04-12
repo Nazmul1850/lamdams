@@ -1,17 +1,19 @@
 """
-Generate Table 1: SC vs qLDPC resource comparison.
+Generate Table 1: SC vs qLDPC resource comparison — all 5 configs.
 
 Discovers circuits automatically from:
   - circuits/benchmarks/pbc/*_PBC.json
   - experiment_circuits/*.qasm  (if no PBC counterpart)
 
-Three data sources required per circuit:
-  1. results/sc_baseline/sc_baseline.json        → SC physical qubits + SC depth
-  2. runs/{circuit}_random_sequential_seed42.json → qLDPC naive depth + n_blocks
-  3. runs/{circuit}_sa_cpsat_seed42.json          → qLDPC SA+CPSAT depth (optional)
+Configs shown per circuit:
+  naive : random + sequential      (baseline)
+  A     : random + greedy_critical
+  B     : random + cpsat
+  C     : sa     + greedy_critical
+  D     : sa     + cpsat
 
-A row is rendered if sources 1 and 2 are present. The SA+CPSAT column shows
-"—" when source 3 is missing. This lets you fill the table incrementally.
+A row is rendered if SC baseline + naive run are present.
+All other configs are optional — missing ones show "—".
 
 Usage:
     python experiments/gen_table1.py
@@ -109,31 +111,35 @@ all_circuits = discover_circuits()
 
 # ── Status report ─────────────────────────────────────────────────────────────
 
-print("=" * 75)
+print("=" * 90)
 print("TABLE 1 — STATUS REPORT")
-print("=" * 75)
-print(f"\n  {'Circuit':<28}  {'SC':^6}  {'naive':^6}  {'SA+Greedy':^10}  {'SA+CPSAT':^8}  ready?")
-print("  " + "-" * 68)
+print("=" * 90)
+print(f"\n  {'Circuit':<28}  {'SC':^4}  {'naive':^5}  {'A:R+Grd':^7}  {'B:R+CP':^6}  {'C:SA+Grd':^8}  {'D:SA+CP':^7}  ready?")
+print("  " + "-" * 80)
 
 for c in all_circuits:
-    has_sc        = c in sc_data
-    naive_run     = load_run(c, "random", "sequential")
-    sa_greedy_run = load_run(c, "sa", "greedy_critical")
-    sa_cpsat_run  = load_run(c, "sa", "cpsat")
+    has_sc         = c in sc_data
+    naive_run      = load_run(c, "random", "sequential")
+    rg_run         = load_run(c, "random", "greedy_critical")
+    rc_run         = load_run(c, "random", "cpsat")
+    sa_greedy_run  = load_run(c, "sa",     "greedy_critical")
+    sa_cpsat_run   = load_run(c, "sa",     "cpsat")
 
-    sc_sym        = "✓" if has_sc        else "✗"
-    naive_sym     = "✓" if naive_run     else "✗"
-    sa_greedy_sym = "✓" if sa_greedy_run else "—"
-    sa_cpsat_sym  = "✓" if sa_cpsat_run  else "—"
-    ready         = "✓ TABLE ROW" if (has_sc and naive_run) else "✗ incomplete"
+    def sym(r): return "✓" if r else "—"
 
-    print(f"  {c:<28}  {sc_sym:^6}  {naive_sym:^6}  {sa_greedy_sym:^10}  {sa_cpsat_sym:^8}  {ready}")
+    sc_sym    = "✓" if has_sc    else "✗"
+    naive_sym = "✓" if naive_run else "✗"
+    ready     = "✓ ROW" if (has_sc and naive_run) else "✗ skip"
+
+    print(f"  {c:<28}  {sc_sym:^4}  {naive_sym:^5}  {sym(rg_run):^7}  {sym(rc_run):^6}  {sym(sa_greedy_run):^8}  {sym(sa_cpsat_run):^7}  {ready}")
 
 # Missing commands
-missing_sc    = [c for c in all_circuits if c not in sc_data]
-missing_naive = [c for c in all_circuits if not load_run(c, "random", "sequential")]
+missing_sc       = [c for c in all_circuits if c not in sc_data]
+missing_naive    = [c for c in all_circuits if not load_run(c, "random", "sequential")]
+missing_rg       = [c for c in all_circuits if not load_run(c, "random", "greedy_critical")]
+missing_rc       = [c for c in all_circuits if not load_run(c, "random", "cpsat")]
 missing_sa_greedy = [c for c in all_circuits if not load_run(c, "sa", "greedy_critical")]
-missing_sa    = [c for c in all_circuits if not load_run(c, "sa", "cpsat")]
+missing_sa       = [c for c in all_circuits if not load_run(c, "sa", "cpsat")]
 
 if missing_sc:
     print("\n[TO DO — SC baseline]")
@@ -141,17 +147,27 @@ if missing_sc:
         print(f"  python experiments/sc_baseline.py --circuit {c}")
 
 if missing_naive:
-    print("\n[TO DO — naive runs]")
+    print("\n[TO DO — naive (random+sequential)]")
     for c in missing_naive:
         print(f"  python experiments/run_experiment.py --circuit {c} --mapping random --scheduler sequential --seed {SEED}")
 
+if missing_rg:
+    print("\n[TO DO — config A (random+greedy)]")
+    for c in missing_rg:
+        print(f"  python experiments/run_experiment.py --circuit {c} --mapping random --scheduler greedy_critical --seed {SEED}")
+
+if missing_rc:
+    print("\n[TO DO — config B (random+cpsat)]")
+    for c in missing_rc:
+        print(f"  python experiments/run_experiment.py --circuit {c} --mapping random --scheduler cpsat --seed {SEED}")
+
 if missing_sa_greedy:
-    print("\n[TO DO — SA+Greedy runs (config C)]")
+    print("\n[TO DO — config C (sa+greedy)]")
     for c in missing_sa_greedy:
         print(f"  python experiments/run_experiment.py --circuit {c} --mapping sa --scheduler greedy_critical --seed {SEED}")
 
 if missing_sa:
-    print("\n[TO DO — SA+CPSAT runs (config D)]")
+    print("\n[TO DO — config D (sa+cpsat)]")
     for c in missing_sa:
         print(f"  python experiments/run_experiment.py --circuit {c} --mapping sa --scheduler cpsat --seed {SEED}")
 
@@ -169,8 +185,10 @@ for circuit in all_circuits:
         continue
 
     sc            = sc_data[circuit]
-    sa_greedy_run = load_run(circuit, "sa", "greedy_critical")
-    sa_run        = load_run(circuit, "sa", "cpsat")
+    rg_run        = load_run(circuit, "random", "greedy_critical")
+    rc_run        = load_run(circuit, "random", "cpsat")
+    sa_greedy_run = load_run(circuit, "sa",     "greedy_critical")
+    sa_run        = load_run(circuit, "sa",     "cpsat")
 
     # Use sc_baseline as authoritative t_count — sequential runs on PBC circuits
     # record t_count=0 because the sequential scheduler doesn't recount T-gates.
@@ -185,21 +203,19 @@ for circuit in all_circuits:
     sc_phys_data   = sc_data_tiles * PHYS_PER_TILE
     sc_phys_total  = sc["sc_tile_count"] * PHYS_PER_TILE
 
-    sc_depth    = sc["sc_logical_depth"]
-    naive_depth    = naive_run["logical_depth"]
+    sc_depth        = sc["sc_logical_depth"]
+    naive_depth     = naive_run["logical_depth"]
+    rg_depth        = rg_run["logical_depth"]        if rg_run        else None
+    rc_depth        = rc_run["logical_depth"]        if rc_run        else None
     sa_greedy_depth = sa_greedy_run["logical_depth"] if sa_greedy_run else None
-    sa_depth        = sa_run["logical_depth"] if sa_run else None
+    sa_depth        = sa_run["logical_depth"]        if sa_run        else None
 
-    qubit_reduction          = round(sc_phys_data / qldpc_phys, 2)
-    naive_depth_oh           = round(naive_depth / sc_depth, 2) if sc_depth else None
-    sa_greedy_depth_reduction = (
-        round((naive_depth - sa_greedy_depth) / naive_depth * 100, 1)
-        if sa_greedy_depth is not None else None
-    )
-    sa_depth_reduction = (
-        round((naive_depth - sa_depth) / naive_depth * 100, 1)
-        if sa_depth is not None else None
-    )
+    def _pct(d):
+        if d is None: return None
+        return round((naive_depth - d) / naive_depth * 100, 1)
+
+    qubit_reduction = round(sc_phys_data / qldpc_phys, 2)
+    naive_depth_oh  = round(naive_depth / sc_depth, 2) if sc_depth else None
 
     rows.append({
         "circuit":                  circuit,
@@ -222,15 +238,21 @@ for circuit in all_circuits:
         "qldpc_block_qubits":       block_qubits,
         "qldpc_bridge_qubits":      n_couplers * BRIDGE_PER_COUP,
         "qldpc_physical_qubits":    qldpc_phys,
-        "qldpc_naive_depth":              naive_depth,
-        "qldpc_sa_greedy_depth":          sa_greedy_depth,
-        "qldpc_sa_cpsat_depth":           sa_depth,
 
-        # Derived
-        "qubit_reduction":                qubit_reduction,
-        "naive_depth_overhead":           naive_depth_oh,
-        "sa_greedy_depth_reduction_pct":  sa_greedy_depth_reduction,
-        "sa_cpsat_depth_reduction_pct":   sa_depth_reduction,
+        # All 5 configs
+        "qldpc_naive_depth":        naive_depth,           # naive: random+sequential
+        "qldpc_rg_depth":           rg_depth,              # A: random+greedy
+        "qldpc_rc_depth":           rc_depth,              # B: random+cpsat
+        "qldpc_sa_greedy_depth":    sa_greedy_depth,       # C: sa+greedy
+        "qldpc_sa_cpsat_depth":     sa_depth,              # D: sa+cpsat
+
+        # Derived — all vs naive
+        "qubit_reduction":          qubit_reduction,
+        "naive_depth_overhead":     naive_depth_oh,
+        "rg_depth_reduction_pct":   _pct(rg_depth),
+        "rc_depth_reduction_pct":   _pct(rc_depth),
+        "sa_greedy_depth_reduction_pct": _pct(sa_greedy_depth),
+        "sa_cpsat_depth_reduction_pct":  _pct(sa_depth),
     })
 
 
@@ -245,11 +267,14 @@ output = {
         "sc_magic_tiles":        "3 rows × (T_count+1) cols  (excluded from qubit comparison)",
         "qldpc_physical_qubits": "n_blocks × (288+103) + n_couplers × 24",
         "sc_depth":              "T-count (Litinski transform, each T = 1 lattice-surgery round)",
-        "qldpc_naive_depth":              "logical depth: random placement + sequential scheduler",
-        "qldpc_sa_greedy_depth":          "logical depth: SA placement + greedy scheduler (config C)",
-        "qldpc_sa_cpsat_depth":           "logical depth: SA placement + CP-SAT scheduler (config D)",
-        "sa_greedy_depth_reduction_pct":  "(naive - SA+Greedy) / naive × 100",
-        "sa_cpsat_depth_reduction_pct":   "(naive - SA+CPSAT) / naive × 100",
+        "configs": {
+            "naive": "random placement + sequential scheduler",
+            "A":     "random placement + greedy_critical scheduler",
+            "B":     "random placement + CP-SAT scheduler",
+            "C":     "SA placement + greedy_critical scheduler",
+            "D":     "SA placement + CP-SAT scheduler",
+        },
+        "depth_reduction_pct":   "(naive - config_depth) / naive × 100",
         "code_distance":         CODE_DISTANCE,
         "t_count_source":        "sc_baseline.json (authoritative; sequential runs do not recount)",
     },
@@ -274,33 +299,57 @@ def _fmt(v, fmt=",") -> str:
 
 
 if rows:
-    W = 130
+    # ── Header ────────────────────────────────────────────────────────────────
+    W = 160
     print("=" * W)
     print(
-        f"  {'Circuit':<22} {'Qubits':>6} {'Blks':>4} {'T-cnt':>7}  "
-        f"{'SC PhysQ':>9} {'SC D':>7}  "
-        f"{'qLDPC PhysQ':>11} {'Naive D':>8} {'SA+Grd D':>9} {'SA+CP D':>8}  "
-        f"{'Q Reduc':>7} {'Naive OH':>8} {'C reduc%':>8} {'D reduc%':>8}"
+        f"  {'Circuit':<22} {'Q':>4} {'B':>3} {'T':>6}  "
+        f"{'SC PhysQ':>9} {'SC D':>6}  "
+        f"{'qLDPC PhysQ':>11}  "
+        f"{'Naive':>7} {'A:R+Grd':>8} {'B:R+CP':>7} {'C:SA+Grd':>9} {'D:SA+CP':>8}  "
+        f"{'Q×':>5} {'NaiveOH':>7}  "
+        f"{'A%':>6} {'B%':>6} {'C%':>6} {'D%':>6}"
     )
     print("  " + "-" * (W - 2))
     for r in rows:
         print(
-            f"  {r['circuit']:<22} {r['n_logical_qubits']:>6} {r['n_blocks']:>4} {r['t_count']:>7,}  "
-            f"{r['sc_physical_qubits']:>9,} {r['sc_depth']:>7,}  "
-            f"{r['qldpc_physical_qubits']:>11,} {r['qldpc_naive_depth']:>8,} "
+            f"  {r['circuit']:<22} {r['n_logical_qubits']:>4} {r['n_blocks']:>3} {r['t_count']:>6,}  "
+            f"{r['sc_physical_qubits']:>9,} {r['sc_depth']:>6,}  "
+            f"{r['qldpc_physical_qubits']:>11,}  "
+            f"{r['qldpc_naive_depth']:>7,} "
+            f"{_fmt(r['qldpc_rg_depth']):>8} "
+            f"{_fmt(r['qldpc_rc_depth']):>7} "
             f"{_fmt(r['qldpc_sa_greedy_depth']):>9} "
             f"{_fmt(r['qldpc_sa_cpsat_depth']):>8}  "
-            f"{_fmt(r['qubit_reduction'], 'x'):>7} "
-            f"{_fmt(r['naive_depth_overhead'], 'x'):>8} "
-            f"{_fmt(r['sa_greedy_depth_reduction_pct'], 'pct'):>8} "
-            f"{_fmt(r['sa_cpsat_depth_reduction_pct'], 'pct'):>8}"
+            f"{_fmt(r['qubit_reduction'], 'x'):>5} "
+            f"{_fmt(r['naive_depth_overhead'], 'x'):>7}  "
+            f"{_fmt(r['rg_depth_reduction_pct'], 'pct'):>6} "
+            f"{_fmt(r['rc_depth_reduction_pct'], 'pct'):>6} "
+            f"{_fmt(r['sa_greedy_depth_reduction_pct'], 'pct'):>6} "
+            f"{_fmt(r['sa_cpsat_depth_reduction_pct'], 'pct'):>6}"
         )
     print("=" * W)
-    n_c = sum(1 for r in rows if r['qldpc_sa_greedy_depth'] is not None)
-    n_d = sum(1 for r in rows if r['qldpc_sa_cpsat_depth'] is not None)
-    print(f"\n  {len(rows)} circuit(s) rendered  |  "
-          f"{n_c} with SA+Greedy (C)  |  {n_d} with SA+CPSAT (D)  |  "
-          f"{len(rows) - n_d} pending config D")
+
+    # ── Summary counts ────────────────────────────────────────────────────────
+    counts = {
+        "A": sum(1 for r in rows if r["qldpc_rg_depth"] is not None),
+        "B": sum(1 for r in rows if r["qldpc_rc_depth"] is not None),
+        "C": sum(1 for r in rows if r["qldpc_sa_greedy_depth"] is not None),
+        "D": sum(1 for r in rows if r["qldpc_sa_cpsat_depth"] is not None),
+    }
+    print(f"\n  {len(rows)} circuit(s)  |  "
+          + "  |  ".join(f"Config {k}: {v}/{len(rows)}" for k, v in counts.items()))
+
+    # ── Mean reduction row (only configs with data) ───────────────────────────
+    def _mean_pct(key):
+        vals = [r[key] for r in rows if r[key] is not None]
+        return f"{sum(vals)/len(vals):.1f}%" if vals else "—"
+
+    print(f"\n  Mean depth reduction vs naive:")
+    print(f"    A (Rand+Greedy): {_mean_pct('rg_depth_reduction_pct')}")
+    print(f"    B (Rand+CPSAT):  {_mean_pct('rc_depth_reduction_pct')}")
+    print(f"    C (SA+Greedy):   {_mean_pct('sa_greedy_depth_reduction_pct')}")
+    print(f"    D (SA+CPSAT):    {_mean_pct('sa_cpsat_depth_reduction_pct')}")
 else:
     print("No rows to render — run sc_baseline.py and naive runs first.")
 

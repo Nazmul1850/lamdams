@@ -1349,11 +1349,18 @@ def _load_summary(name: str) -> Dict[str, Any]:
     return _load_json(path)
 
 
-def _coerce_circuits(arg_circuits: Optional[List[str]]) -> Tuple[List[str], Dict[str, str]]:
+def _coerce_circuits(
+    arg_circuits: Optional[List[str]],
+    exclude: Optional[List[str]] = None,
+) -> Tuple[List[str], Dict[str, str]]:
+    exclude_set = set(exclude or [])
     if arg_circuits:
         notes = {}
         usable = []
         for circuit in arg_circuits:
+            if circuit in exclude_set:
+                _log(f"[exclude] skipping {circuit} (--exclude)")
+                continue
             try:
                 notes[circuit] = _resolve_pbc_path(circuit)
                 usable.append(circuit)
@@ -1362,7 +1369,13 @@ def _coerce_circuits(arg_circuits: Optional[List[str]]) -> Tuple[List[str], Dict
         if not usable:
             raise FileNotFoundError("None of the requested circuits have cached PBC files.")
         return usable, notes
-    return _discover_default_circuits()
+    usable, notes = _discover_default_circuits()
+    if exclude_set:
+        removed = [c for c in usable if c in exclude_set]
+        usable = [c for c in usable if c not in exclude_set]
+        for c in removed:
+            _log(f"[exclude] skipping {c} (--exclude)")
+    return usable, notes
 
 
 def _coerce_topologies(arg_topologies: Optional[List[str]]) -> List[str]:
@@ -1482,6 +1495,14 @@ def main() -> None:
         help="Optional circuit list. Defaults to all cached PBC circuits found in circuits/benchmarks/pbc/.",
     )
     parser.add_argument(
+        "--exclude",
+        nargs="*",
+        metavar="CIRCUIT",
+        help="Circuit names to exclude from the run (e.g. --exclude rand_100_10k). "
+             "Existing cached raw results for excluded circuits are preserved and still "
+             "used by analysis phases that load from raw/.",
+    )
+    parser.add_argument(
         "--topologies",
         nargs="*",
         help="Topology list to evaluate. Defaults to: grid ring",
@@ -1503,7 +1524,7 @@ def main() -> None:
     args = parser.parse_args()
 
     _ensure_dirs()
-    circuits, circuit_notes = _coerce_circuits(args.circuits)
+    circuits, circuit_notes = _coerce_circuits(args.circuits, exclude=args.exclude)
     topologies = _coerce_topologies(args.topologies)
     stress_seeds = [int(x.strip()) for x in args.stress_seeds.split(",") if x.strip()]
     _log(

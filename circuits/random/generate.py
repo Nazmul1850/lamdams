@@ -137,7 +137,7 @@ def main() -> None:
     )
     parser.add_argument("-q", "--qubits",   type=int, required=True, help="Number of qubits")
     parser.add_argument("-t", "--t-gates",  type=int, required=True, help="Number of T/Tdg gates")
-    parser.add_argument("-s", "--seed",     type=int, default=0,     help="RNG seed")
+    parser.add_argument("-s", "--seed",     type=int, default=42,   help="RNG seed")
     parser.add_argument(
         "-o", "--out-dir",
         default=os.path.dirname(os.path.abspath(__file__)),

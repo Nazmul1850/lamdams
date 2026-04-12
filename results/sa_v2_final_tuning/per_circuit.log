@@ -1,0 +1,2217 @@
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-10T20:52:31.738726+00:00
+  circuit=Adder8  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=no  cpsat_time=300.0s/layer
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=23  rotations=266  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+  Topology: GRID  circuit=Adder8  n_logicals=23  T-gates=0  layers=3  sparse_pct=0.0%
+  Hardware: 2×2 (4B, 52% fill)  n_blocks=4  fill=52.3%  capacity=44
+  Grid shape: 2x2
+  Mapping done  time=22.108s
+  SA-v2 score=499972.37  inter_block_t=0  inter_block_all=36
+────────────────────────────────────────────────────────────────────────────────
+  SA-v2 Score  [GRID  2×2 (4B, 52% fill)]
+────────────────────────────────────────────────────────────────────────────────
+  total score         :       499972.37
+  active_blocks       :               4
+  unused_blocks       :               0
+  sparsity (req/act)  : 0.0% / 47.7%  fill=52.3%  capacity=44
+  grid shape          : 2x2
+
+  -- Occupancy --
+  occupancy_range     :          8.0000  pen=80000.00
+  occupancy_std       :          3.1125  pen=15562.37
+  unused_block_pen    :            0.00
+
+  -- Multi-block / Span --
+  num_multiblock      :              36  pen=0.00
+  span_total          :         36.0000  pen=360000.00
+  mean_blocks_touched :          1.1353
+  max_blocks_touched  :               2
+
+  -- Locality (MST) --
+  mst_total           :         54.0000  pen=27000.00
+  mean_mst            :          1.5000
+  max_mst             :          2.0000
+
+  -- Split --
+  split_total         :         13.0000  pen=130.00
+  mean_split          :          0.3611
+  max_split           :          1.0000
+
+  -- Support load --
+  support_peak        :        144.0000  pen=14400.00
+  support_range       :        144.0000  pen=2880.00
+  support_std         :         51.8532  pen=0.00
+────────────────────────────────────────────────────────────────────────────────
+
+[grid][greedy_critical] Starting scheduling  layers=3  seed=42
+[grid][greedy_critical] Done  depth=2493  time=1.096s
+────────────────────────────────────────────────────────────────────────────────
+  Topology: RING  circuit=Adder8  n_logicals=23  T-gates=0  layers=3  sparse_pct=0.0%
+  Hardware: ring (3B, 70% fill)  n_blocks=3  fill=69.7%  capacity=33
+  Mapping done  time=19.131s
+  SA-v2 score=430326.10  inter_block_t=0  inter_block_all=36
+────────────────────────────────────────────────────────────────────────────────
+  SA-v2 Score  [RING  ring (3B, 70% fill)]
+────────────────────────────────────────────────────────────────────────────────
+  total score         :       430326.10
+  active_blocks       :               3
+  unused_blocks       :               0
+  sparsity (req/act)  : 0.0% / 30.3%  fill=69.7%  capacity=33
+
+  -- Occupancy --
+  occupancy_range     :          3.0000  pen=30000.00
+  occupancy_std       :          1.2472  pen=6236.10
+  unused_block_pen    :            0.00
+
+  -- Multi-block / Span --
+  num_multiblock      :              36  pen=0.00
+  span_total          :         36.0000  pen=360000.00
+  mean_blocks_touched :          1.1353
+  max_blocks_touched  :               2
+
+  -- Locality (MST) --
+  mst_total           :         36.0000  pen=18000.00
+  mean_mst            :          1.0000
+  max_mst             :          1.0000
+
+  -- Split --
+  split_total         :         13.0000  pen=130.00
+  mean_split          :          0.3611
+  max_split           :          1.0000
+
+  -- Support load --
+  support_peak        :        144.0000  pen=14400.00
+  support_range       :         78.0000  pen=1560.00
+  support_std         :         32.4277  pen=0.00
+────────────────────────────────────────────────────────────────────────────────
+
+[ring][greedy_critical] Starting scheduling  layers=3  seed=42
+[ring][greedy_critical] Done  depth=2720  time=1.059s
+════════════════════════════════════════════════════════════════════════════════
+  SUMMARY  Adder8  seed=42  sparse=0.0%
+════════════════════════════════════════════════════════════════════════════════
+  topology  hw                           score   ibl_t   map_s   greedy_d     g_t
+────────────────────────────────────────────────────────────────────────────────
+  grid    2×2 (4B, 52% fill)          499972       0    22.1       2493   1.096
+  ring    ring (3B, 70% fill)         430326       0    19.1       2720   1.059
+════════════════════════════════════════════════════════════════════════════════
+
+Full JSON result:
+{
+  "circuit": "Adder8",
+  "seed": 42,
+  "sparse_pct": 0.0,
+  "n_logicals": 23,
+  "n_rotations": 266,
+  "t_gates": 0,
+  "n_layers": 3,
+  "sa_steps": 25000,
+  "sa_t0": 100000.0,
+  "sa_tend": 0.05,
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 10000.0,
+    "W_OCC_STD": 5000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 10000.0,
+    "W_MST": 500.0,
+    "W_SPLIT": 10.0,
+    "W_SUPPORT_PEAK": 100.0,
+    "W_SUPPORT_RANGE": 20.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "topologies": [
+    {
+      "topology": "grid",
+      "hw_label": "2\u00d72 (4B, 52% fill)",
+      "n_blocks": 4,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.4773,
+      "fill_rate": 0.5227,
+      "total_capacity": 44,
+      "grid_rows": 2,
+      "grid_cols": 2,
+      "mapping_time_sec": 22.108,
+      "inter_block_all": 36,
+      "inter_block_t": 0,
+      "score": {
+        "total": 499972.37449748593,
+        "active_blocks": 4,
+        "unused_blocks": 0,
+        "occupancy_range": 8.0,
+        "occupancy_std": 3.112474899497183,
+        "num_multiblock": 36,
+        "span_total": 36.0,
+        "mean_blocks_touched": 1.1353383458646618,
+        "max_blocks_touched": 2,
+        "mst_total": 54.0,
+        "mean_mst": 1.5,
+        "max_mst": 2.0,
+        "split_total": 13.0,
+        "mean_split": 0.3611111111111111,
+        "max_split": 1.0,
+        "support_peak": 144.0,
+        "support_range": 144.0,
+        "support_std": 51.85315805233081,
+        "penalties": {
+          "unused_block_pen": 0.0,
+          "occupancy_range_pen": 80000.0,
+          "occupancy_std_pen": 15562.374497485916,
+          "multiblock_pen": 0.0,
+          "span_pen": 360000.0,
+          "mst_pen": 27000.0,
+          "split_pen": 130.0,
+          "support_peak_pen": 14400.0,
+          "support_range_pen": 2880.0,
+          "support_std_pen": 0.0
+        }
+      },
+      "scheduling": {
+        "greedy_critical": {
+          "logical_depth": 2493,
+          "scheduling_time": 1.096
+        }
+      }
+    },
+    {
+      "topology": "ring",
+      "hw_label": "ring (3B, 70% fill)",
+      "n_blocks": 3,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.303,
+      "fill_rate": 0.697,
+      "total_capacity": 33,
+      "grid_rows": null,
+      "grid_cols": null,
+      "mapping_time_sec": 19.131,
+      "inter_block_all": 36,
+      "inter_block_t": 0,
+      "score": {
+        "total": 430326.0956446232,
+        "active_blocks": 3,
+        "unused_blocks": 0,
+        "occupancy_range": 3.0,
+        "occupancy_std": 1.247219128924647,
+        "num_multiblock": 36,
+        "span_total": 36.0,
+        "mean_blocks_touched": 1.1353383458646618,
+        "max_blocks_touched": 2,
+        "mst_total": 36.0,
+        "mean_mst": 1.0,
+        "max_mst": 1.0,
+        "split_total": 13.0,
+        "mean_split": 0.3611111111111111,
+        "max_split": 1.0,
+        "support_peak": 144.0,
+        "support_range": 78.0,
+        "support_std": 32.42769735204082,
+        "penalties": {
+          "unused_block_pen": 0.0,
+          "occupancy_range_pen": 30000.0,
+          "occupancy_std_pen": 6236.095644623235,
+          "multiblock_pen": 0.0,
+          "span_pen": 360000.0,
+          "mst_pen": 18000.0,
+          "split_pen": 130.0,
+          "support_peak_pen": 14400.0,
+          "support_range_pen": 1560.0,
+          "support_std_pen": 0.0
+        }
+      },
+      "scheduling": {
+        "greedy_critical": {
+          "logical_depth": 2720,
+          "scheduling_time": 1.059
+        }
+      }
+    }
+  ],
+  "timestamp": "2026-04-10T20:52:31.738726+00:00"
+}
+
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-10T20:55:25.017918+00:00
+  circuit=Adder8  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=yes  cpsat_time=1000.0s/layer
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=23  rotations=266  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+  Topology: GRID  circuit=Adder8  n_logicals=23  T-gates=0  layers=3  sparse_pct=0.0%
+  Hardware: 2×2 (4B, 52% fill)  n_blocks=4  fill=52.3%  capacity=44
+  Grid shape: 2x2
+  Mapping done  time=22.62s
+  SA-v2 score=499972.37  inter_block_t=0  inter_block_all=36
+────────────────────────────────────────────────────────────────────────────────
+  SA-v2 Score  [GRID  2×2 (4B, 52% fill)]
+────────────────────────────────────────────────────────────────────────────────
+  total score         :       499972.37
+  active_blocks       :               4
+  unused_blocks       :               0
+  sparsity (req/act)  : 0.0% / 47.7%  fill=52.3%  capacity=44
+  grid shape          : 2x2
+
+  -- Occupancy --
+  occupancy_range     :          8.0000  pen=80000.00
+  occupancy_std       :          3.1125  pen=15562.37
+  unused_block_pen    :            0.00
+
+  -- Multi-block / Span --
+  num_multiblock      :              36  pen=0.00
+  span_total          :         36.0000  pen=360000.00
+  mean_blocks_touched :          1.1353
+  max_blocks_touched  :               2
+
+  -- Locality (MST) --
+  mst_total           :         54.0000  pen=27000.00
+  mean_mst            :          1.5000
+  max_mst             :          2.0000
+
+  -- Split --
+  split_total         :         13.0000  pen=130.00
+  mean_split          :          0.3611
+  max_split           :          1.0000
+
+  -- Support load --
+  support_peak        :        144.0000  pen=14400.00
+  support_range       :        144.0000  pen=2880.00
+  support_std         :         51.8532  pen=0.00
+────────────────────────────────────────────────────────────────────────────────
+
+[grid][greedy_critical] Starting scheduling  layers=3  seed=42
+[grid][greedy_critical] Done  depth=2493  time=1.028s
+
+[grid][cpsat_v2] Starting scheduling  layers=3  seed=42  cpsat_time_limit=1000.0s/layer
+  L000/3  OPTIMAL  makespan=508  obj=13054076  lb=13054076  t=8.83s
+  L001/3  OPTIMAL  makespan=1019  obj=74197466  lb=74197466  t=2.89s
+  L002/3  OPTIMAL  makespan=799  obj=59404052  lb=59404052  t=45.35s
+[grid][cpsat_v2] Done  depth=2326  time=57.105s  fallbacks=0  suboptimal=0
+────────────────────────────────────────────────────────────────────────────────
+  Topology: RING  circuit=Adder8  n_logicals=23  T-gates=0  layers=3  sparse_pct=0.0%
+  Hardware: ring (3B, 70% fill)  n_blocks=3  fill=69.7%  capacity=33
+  Mapping done  time=20.197s
+  SA-v2 score=430326.10  inter_block_t=0  inter_block_all=36
+────────────────────────────────────────────────────────────────────────────────
+  SA-v2 Score  [RING  ring (3B, 70% fill)]
+────────────────────────────────────────────────────────────────────────────────
+  total score         :       430326.10
+  active_blocks       :               3
+  unused_blocks       :               0
+  sparsity (req/act)  : 0.0% / 30.3%  fill=69.7%  capacity=33
+
+  -- Occupancy --
+  occupancy_range     :          3.0000  pen=30000.00
+  occupancy_std       :          1.2472  pen=6236.10
+  unused_block_pen    :            0.00
+
+  -- Multi-block / Span --
+  num_multiblock      :              36  pen=0.00
+  span_total          :         36.0000  pen=360000.00
+  mean_blocks_touched :          1.1353
+  max_blocks_touched  :               2
+
+  -- Locality (MST) --
+  mst_total           :         36.0000  pen=18000.00
+  mean_mst            :          1.0000
+  max_mst             :          1.0000
+
+  -- Split --
+  split_total         :         13.0000  pen=130.00
+  mean_split          :          0.3611
+  max_split           :          1.0000
+
+  -- Support load --
+  support_peak        :        144.0000  pen=14400.00
+  support_range       :         78.0000  pen=1560.00
+  support_std         :         32.4277  pen=0.00
+────────────────────────────────────────────────────────────────────────────────
+
+[ring][greedy_critical] Starting scheduling  layers=3  seed=42
+[ring][greedy_critical] Done  depth=2720  time=1.162s
+
+[ring][cpsat_v2] Starting scheduling  layers=3  seed=42  cpsat_time_limit=1000.0s/layer
+  L000/3  OPTIMAL  makespan=548  obj=15114388  lb=15114388  t=5.2s
+  L001/3  OPTIMAL  makespan=931  obj=63904771  lb=63904771  t=11.73s
+  L002/3  OPTIMAL  makespan=883  obj=72018363  lb=72018363  t=18.4s
+[ring][cpsat_v2] Done  depth=2362  time=35.355s  fallbacks=0  suboptimal=0
+════════════════════════════════════════════════════════════════════════════════
+  SUMMARY  Adder8  seed=42  sparse=0.0%
+════════════════════════════════════════════════════════════════════════════════
+  topology  hw                           score   ibl_t   map_s   greedy_d     g_t    cpsat_d       c_t  fall   sub    ratio
+────────────────────────────────────────────────────────────────────────────────
+  grid    2×2 (4B, 52% fill)          499972       0    22.6       2493   1.028       2326    57.105     0     0   0.9330
+  ring    ring (3B, 70% fill)         430326       0    20.2       2720   1.162       2362    35.355     0     0   0.8684
+════════════════════════════════════════════════════════════════════════════════
+
+Full JSON result:
+{
+  "circuit": "Adder8",
+  "seed": 42,
+  "sparse_pct": 0.0,
+  "n_logicals": 23,
+  "n_rotations": 266,
+  "t_gates": 0,
+  "n_layers": 3,
+  "sa_steps": 25000,
+  "sa_t0": 100000.0,
+  "sa_tend": 0.05,
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 10000.0,
+    "W_OCC_STD": 5000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 10000.0,
+    "W_MST": 500.0,
+    "W_SPLIT": 10.0,
+    "W_SUPPORT_PEAK": 100.0,
+    "W_SUPPORT_RANGE": 20.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "topologies": [
+    {
+      "topology": "grid",
+      "hw_label": "2\u00d72 (4B, 52% fill)",
+      "n_blocks": 4,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.4773,
+      "fill_rate": 0.5227,
+      "total_capacity": 44,
+      "grid_rows": 2,
+      "grid_cols": 2,
+      "mapping_time_sec": 22.62,
+      "inter_block_all": 36,
+      "inter_block_t": 0,
+      "score": {
+        "total": 499972.37449748593,
+        "active_blocks": 4,
+        "unused_blocks": 0,
+        "occupancy_range": 8.0,
+        "occupancy_std": 3.112474899497183,
+        "num_multiblock": 36,
+        "span_total": 36.0,
+        "mean_blocks_touched": 1.1353383458646618,
+        "max_blocks_touched": 2,
+        "mst_total": 54.0,
+        "mean_mst": 1.5,
+        "max_mst": 2.0,
+        "split_total": 13.0,
+        "mean_split": 0.3611111111111111,
+        "max_split": 1.0,
+        "support_peak": 144.0,
+        "support_range": 144.0,
+        "support_std": 51.85315805233081,
+        "penalties": {
+          "unused_block_pen": 0.0,
+          "occupancy_range_pen": 80000.0,
+          "occupancy_std_pen": 15562.374497485916,
+          "multiblock_pen": 0.0,
+          "span_pen": 360000.0,
+          "mst_pen": 27000.0,
+          "split_pen": 130.0,
+          "support_peak_pen": 14400.0,
+          "support_range_pen": 2880.0,
+          "support_std_pen": 0.0
+        }
+      },
+      "scheduling": {
+        "greedy_critical": {
+          "logical_depth": 2493,
+          "scheduling_time": 1.028
+        },
+        "cpsat_v2": {
+          "logical_depth": 2326,
+          "scheduling_time": 57.105,
+          "n_fallbacks": 0,
+          "n_suboptimal": 0,
+          "fallback_layers": [],
+          "suboptimal_layers": []
+        }
+      }
+    },
+    {
+      "topology": "ring",
+      "hw_label": "ring (3B, 70% fill)",
+      "n_blocks": 3,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.303,
+      "fill_rate": 0.697,
+      "total_capacity": 33,
+      "grid_rows": null,
+      "grid_cols": null,
+      "mapping_time_sec": 20.197,
+      "inter_block_all": 36,
+      "inter_block_t": 0,
+      "score": {
+        "total": 430326.0956446232,
+        "active_blocks": 3,
+        "unused_blocks": 0,
+        "occupancy_range": 3.0,
+        "occupancy_std": 1.247219128924647,
+        "num_multiblock": 36,
+        "span_total": 36.0,
+        "mean_blocks_touched": 1.1353383458646618,
+        "max_blocks_touched": 2,
+        "mst_total": 36.0,
+        "mean_mst": 1.0,
+        "max_mst": 1.0,
+        "split_total": 13.0,
+        "mean_split": 0.3611111111111111,
+        "max_split": 1.0,
+        "support_peak": 144.0,
+        "support_range": 78.0,
+        "support_std": 32.42769735204082,
+        "penalties": {
+          "unused_block_pen": 0.0,
+          "occupancy_range_pen": 30000.0,
+          "occupancy_std_pen": 6236.095644623235,
+          "multiblock_pen": 0.0,
+          "span_pen": 360000.0,
+          "mst_pen": 18000.0,
+          "split_pen": 130.0,
+          "support_peak_pen": 14400.0,
+          "support_range_pen": 1560.0,
+          "support_std_pen": 0.0
+        }
+      },
+      "scheduling": {
+        "greedy_critical": {
+          "logical_depth": 2720,
+          "scheduling_time": 1.162
+        },
+        "cpsat_v2": {
+          "logical_depth": 2362,
+          "scheduling_time": 35.355,
+          "n_fallbacks": 0,
+          "n_suboptimal": 0,
+          "fallback_layers": [],
+          "suboptimal_layers": []
+        }
+      }
+    }
+  ],
+  "timestamp": "2026-04-10T20:55:25.017918+00:00"
+}
+
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-10T21:09:53.944955+00:00
+  circuit=Adder16  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=yes  cpsat_time=1000.0s/layer
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=47  rotations=602  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+  Topology: GRID  circuit=Adder16  n_logicals=47  T-gates=0  layers=3  sparse_pct=0.0%
+  Hardware: 2×3 (6B, 71% fill)  n_blocks=6  fill=71.2%  capacity=66
+  Grid shape: 2x3
+  Mapping done  time=79.234s
+  SA-v2 score=1362669.90  inter_block_t=0  inter_block_all=118
+────────────────────────────────────────────────────────────────────────────────
+  SA-v2 Score  [GRID  2×3 (6B, 71% fill)]
+────────────────────────────────────────────────────────────────────────────────
+  total score         :      1362669.90
+  active_blocks       :               6
+  unused_blocks       :               0
+  sparsity (req/act)  : 0.0% / 28.8%  fill=71.2%  capacity=66
+  grid shape          : 2x3
+
+  -- Occupancy --
+  occupancy_range     :          5.0000  pen=50000.00
+  occupancy_std       :          1.6750  pen=8374.90
+  unused_block_pen    :            0.00
+
+  -- Multi-block / Span --
+  num_multiblock      :             118  pen=0.00
+  span_total          :        118.0000  pen=1180000.00
+  mean_blocks_touched :          1.1960
+  max_blocks_touched  :               2
+
+  -- Locality (MST) --
+  mst_total           :        212.0000  pen=106000.00
+  mean_mst            :          1.7966
+  max_mst             :          3.0000
+
+  -- Split --
+  split_total         :         41.5000  pen=415.00
+  mean_split          :          0.3517
+  max_split           :          1.0000
+
+  -- Support load --
+  support_peak        :        162.0000  pen=16200.00
+  support_range       :         84.0000  pen=1680.00
+  support_std         :         31.5595  pen=0.00
+────────────────────────────────────────────────────────────────────────────────
+
+[grid][greedy_critical] Starting scheduling  layers=3  seed=42
+[grid][greedy_critical] Done  depth=7169  time=9.729s
+
+[grid][cpsat_v2] Starting scheduling  layers=3  seed=42  cpsat_time_limit=1000.0s/layer
+  L000/3  FEASIBLE(suboptimal)  makespan=822  obj=162612152  lb=87438650  gap=86.0%  t=1002.31s
+  L001/3  FEASIBLE(suboptimal)  makespan=2136  obj=2032651776  lb=380646400  gap=434.0%  t=1006.37s
+  L002/3  FEASIBLE(suboptimal)  makespan=1603  obj=1296059163  lb=287024955  gap=351.5%  t=1008.83s
+[grid][cpsat_v2] Done  depth=4561  time=3017.596s  fallbacks=0  suboptimal=3
+────────────────────────────────────────────────────────────────────────────────
+  Topology: RING  circuit=Adder16  n_logicals=47  T-gates=0  layers=3  sparse_pct=0.0%
+  Hardware: ring (5B, 85% fill)  n_blocks=5  fill=85.5%  capacity=55
+  Mapping done  time=73.338s
+  SA-v2 score=1278502.33  inter_block_t=0  inter_block_all=112
+────────────────────────────────────────────────────────────────────────────────
+  SA-v2 Score  [RING  ring (5B, 85% fill)]
+────────────────────────────────────────────────────────────────────────────────
+  total score         :      1278502.33
+  active_blocks       :               5
+  unused_blocks       :               0
+  sparsity (req/act)  : 0.0% / 14.5%  fill=85.5%  capacity=55
+
+  -- Occupancy --
+  occupancy_range     :          4.0000  pen=40000.00
+  occupancy_std       :          1.3565  pen=6782.33
+  unused_block_pen    :            0.00
+
+  -- Multi-block / Span --
+  num_multiblock      :             112  pen=0.00
+  span_total          :        112.0000  pen=1120000.00
+  mean_blocks_touched :          1.1860
+  max_blocks_touched  :               2
+
+  -- Locality (MST) --
+  mst_total           :        184.0000  pen=92000.00
+  mean_mst            :          1.6429
+  max_mst             :          2.0000
+
+  -- Split --
+  split_total         :         40.0000  pen=400.00
+  mean_split          :          0.3571
+  max_split           :          1.0000
+
+  -- Support load --
+  support_peak        :        178.0000  pen=17800.00
+  support_range       :         76.0000  pen=1520.00
+  support_std         :         28.8610  pen=0.00
+────────────────────────────────────────────────────────────────────────────────
+
+[ring][greedy_critical] Starting scheduling  layers=3  seed=42
+[ring][greedy_critical] Done  depth=6930  time=9.615s
+
+[ring][cpsat_v2] Starting scheduling  layers=3  seed=42  cpsat_time_limit=1000.0s/layer
+  L000/3  FEASIBLE(suboptimal)  makespan=908  obj=165042620  lb=164860855  gap=0.1%  t=1002.73s
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-10T22:32:31.860176+00:00
+  circuit=Adder16  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=yes  cpsat_time_limit=100.0s/layer  fallback_on_feasible=True
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=47  rotations=602  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+
+  [GRID]  circuit=Adder16  n_logicals=47  sparse=0.0%  seed=42
+  hw=2×3 (6B, 71% fill)  blocks=6  capacity=66  fill=71.2%  sparse_actual=28.8%  grid=2x3
+  [random] map_time=0.0s  score=6711677.88  ibl_t=0  ibl_all=406
+················································································
+  Score [random/grid]  hw=2×3 (6B, 71% fill)
+  fill=71.2%  sparse_req=0.0%  capacity=66  blocks=6  grid=2x3
+  total=6711677.88  unused_blocks=0  active=6
+  occupancy  range=5.0000(pen=50000.0)  std=1.5723(pen=7861.7)  unused_pen=0.0
+  multiblock num=406(pen=0.0)  span_total=620.00(pen=6200000.0)  mean_blk=2.030  max_blk=5
+  mst        total=841.00(pen=420500.0)  mean=2.071  max=4.000
+  split      total=67.62(pen=676.2)  mean=0.167  max=1.500
+  support    peak=295.00(pen=29500.0)  range=157.00(pen=3140.0)  std=52.09(pen=0.0)
+  [sa_v2]  map_time=49.018s  score=1362669.90  ibl_t=0  ibl_all=118
+················································································
+  Score [sa_v2/grid]  hw=2×3 (6B, 71% fill)
+  fill=71.2%  sparse_req=0.0%  capacity=66  blocks=6  grid=2x3
+  total=1362669.90  unused_blocks=0  active=6
+  occupancy  range=5.0000(pen=50000.0)  std=1.6750(pen=8374.9)  unused_pen=0.0
+  multiblock num=118(pen=0.0)  span_total=118.00(pen=1180000.0)  mean_blk=1.196  max_blk=2
+  mst        total=212.00(pen=106000.0)  mean=1.797  max=3.000
+  split      total=41.50(pen=415.0)  mean=0.352  max=1.000
+  support    peak=162.00(pen=16200.0)  range=84.00(pen=1680.0)  std=31.56(pen=0.0)
+
+[grid/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/random/greedy] done  depth=7863  t=6.36s
+
+[grid/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/sa_v2/greedy] done  depth=7169  t=4.868s
+
+[grid/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=979  obj=250574071  lb=129254245  gap=93.9%  t=101.35s
+  L001/3  FALLBACK→greedy  RuntimeError('CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit.')  t=77.23s
+  L002/3  FALLBACK→greedy  RuntimeError('CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit.')  t=74.25s
+[grid/random/cpsat] done  depth=7863  t=256.755s  fallbacks=3  suboptimal=0
+
+[grid/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=906  obj=188796810  lb=93981635  gap=100.9%  t=101.15s
+  L001/3  FALLBACK→greedy  RuntimeError('CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit.')  t=91.93s
+  L002/3  FALLBACK→greedy  RuntimeError('CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit.')  t=76.57s
+[grid/sa_v2/cpsat] done  depth=7169  t=273.057s  fallbacks=3  suboptimal=0
+────────────────────────────────────────────────────────────────────────────────
+
+  [RING]  circuit=Adder16  n_logicals=47  sparse=0.0%  seed=42
+  hw=ring (5B, 85% fill)  blocks=5  capacity=55  fill=85.5%  sparse_actual=14.5%
+  [random] map_time=0.0s  score=6629592.38  ibl_t=0  ibl_all=405
+················································································
+  Score [random/ring]  hw=ring (5B, 85% fill)
+  fill=85.5%  sparse_req=0.0%  capacity=55  blocks=5
+  total=6629592.38  unused_blocks=0  active=5
+  occupancy  range=3.0000(pen=30000.0)  std=1.2000(pen=6000.0)  unused_pen=0.0
+  multiblock num=405(pen=0.0)  span_total=618.00(pen=6180000.0)  mean_blk=2.027  max_blk=5
+  mst        total=760.00(pen=380000.0)  mean=1.877  max=4.000
+  split      total=75.24(pen=752.4)  mean=0.186  max=1.500
+  support    peak=303.00(pen=30300.0)  range=127.00(pen=2540.0)  std=47.62(pen=0.0)
+  [sa_v2]  map_time=44.37s  score=1278502.33  ibl_t=0  ibl_all=112
+················································································
+  Score [sa_v2/ring]  hw=ring (5B, 85% fill)
+  fill=85.5%  sparse_req=0.0%  capacity=55  blocks=5
+  total=1278502.33  unused_blocks=0  active=5
+  occupancy  range=4.0000(pen=40000.0)  std=1.3565(pen=6782.3)  unused_pen=0.0
+  multiblock num=112(pen=0.0)  span_total=112.00(pen=1120000.0)  mean_blk=1.186  max_blk=2
+  mst        total=184.00(pen=92000.0)  mean=1.643  max=2.000
+  split      total=40.00(pen=400.0)  mean=0.357  max=1.000
+  support    peak=178.00(pen=17800.0)  range=76.00(pen=1520.0)  std=28.86(pen=0.0)
+
+[ring/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/random/greedy] done  depth=7212  t=12.372s
+
+[ring/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/sa_v2/greedy] done  depth=6930  t=9.604s
+
+[ring/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=933  obj=253590333  lb=161177993  gap=57.3%  t=101.91s
+  L001/3  FEASIBLE(timeout)→FALLBACK  ms=2382  obj=2520015462  lb=465183025  gap=441.7%  t=101.69s
+  L002/3  FEASIBLE(timeout)→FALLBACK  ms=3253  obj=3911215273  lb=207526217  gap=1784.7%  t=101.78s
+[ring/random/cpsat] done  depth=7212  t=309.139s  fallbacks=3  suboptimal=0
+
+[ring/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=914  obj=170229758  lb=78968728  gap=115.6%  t=100.96s
+  L001/3  FEASIBLE(timeout)→FALLBACK  ms=2085  obj=1479309585  lb=889714254  gap=66.3%  t=101.85s
+  L002/3  FEASIBLE(timeout)→FALLBACK  ms=2084  obj=1627764468  lb=1092726723  gap=49.0%  t=101.99s
+[ring/sa_v2/cpsat] done  depth=6930  t=307.554s  fallbacks=3  suboptimal=0
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+  SUMMARY  circuit=Adder16  seed=42  sparse=0.0%
+  topo  mapper  hardware                     score ibl_t  map_s  g_depth   g_t  c_depth      c_t fall sub     c/g
+  ----- ------- --------------------- ------------ ----- ------  ------- -----  ------- -------- ---- ---  ------
+  grid  random  2×3 (6B, 71% fill)         6711678     0    0.0     7863  6.36     7863  256.755    3   0  1.0000
+  grid  sa_v2   2×3 (6B, 71% fill)         1362670     0   49.0     7169 4.868     7169  273.057    3   0  1.0000
+
+  ring  random  ring (5B, 85% fill)        6629592     0    0.0     7212 12.372     7212  309.139    3   0  1.0000
+  ring  sa_v2   ring (5B, 85% fill)        1278502     0   44.4     6930 9.604     6930  307.554    3   0  1.0000
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+
+Full JSON:
+{
+  "circuit": "Adder16",
+  "seed": 42,
+  "sparse_pct": 0.0,
+  "n_logicals": 47,
+  "n_rotations": 602,
+  "t_gates": 0,
+  "n_layers": 3,
+  "sa_steps": 25000,
+  "sa_t0": 100000.0,
+  "sa_tend": 0.05,
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 10000.0,
+    "W_OCC_STD": 5000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 10000.0,
+    "W_MST": 500.0,
+    "W_SPLIT": 10.0,
+    "W_SUPPORT_PEAK": 100.0,
+    "W_SUPPORT_RANGE": 20.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "topologies": [
+    {
+      "topology": "grid",
+      "hw_label": "2\u00d73 (6B, 71% fill)",
+      "n_blocks": 6,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.2879,
+      "fill_rate": 0.7121,
+      "total_capacity": 66,
+      "grid_rows": 2,
+      "grid_cols": 3,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 406,
+        "score": {
+          "total": 6711677.884954043,
+          "active_blocks": 6,
+          "unused_blocks": 0,
+          "occupancy_range": 5.0,
+          "occupancy_std": 1.5723301886761007,
+          "num_multiblock": 406,
+          "span_total": 620.0,
+          "mean_blocks_touched": 2.0299003322259135,
+          "max_blocks_touched": 5,
+          "mst_total": 841.0,
+          "mean_mst": 2.0714285714285716,
+          "max_mst": 4.0,
+          "split_total": 67.6234010662134,
+          "mean_split": 0.16656010114830888,
+          "max_split": 1.5,
+          "support_peak": 295.0,
+          "support_range": 157.0,
+          "support_std": 52.09179931194117,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 50000.0,
+            "occupancy_std_pen": 7861.650943380504,
+            "multiblock_pen": 0.0,
+            "span_pen": 6200000.0,
+            "mst_pen": 420500.0,
+            "split_pen": 676.2340106621341,
+            "support_peak_pen": 29500.0,
+            "support_range_pen": 3140.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 7863,
+            "scheduling_time": 6.36
+          },
+          "cpsat_v2": {
+            "logical_depth": 7863,
+            "scheduling_time": 256.755,
+            "n_fallbacks": 3,
+            "n_suboptimal": 0,
+            "fallback_layers": [
+              {
+                "layer": 0,
+                "reason": "FEASIBLE timeout gap=93.9%"
+              },
+              {
+                "layer": 1,
+                "reason": "CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit."
+              },
+              {
+                "layer": 2,
+                "reason": "CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit."
+              }
+            ],
+            "suboptimal_layers": []
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 49.018,
+        "inter_block_t": 0,
+        "inter_block_all": 118,
+        "score": {
+          "total": 1362669.8963509342,
+          "active_blocks": 6,
+          "unused_blocks": 0,
+          "occupancy_range": 5.0,
+          "occupancy_std": 1.6749792701868151,
+          "num_multiblock": 118,
+          "span_total": 118.0,
+          "mean_blocks_touched": 1.196013289036545,
+          "max_blocks_touched": 2,
+          "mst_total": 212.0,
+          "mean_mst": 1.7966101694915255,
+          "max_mst": 3.0,
+          "split_total": 41.5,
+          "mean_split": 0.3516949152542373,
+          "max_split": 1.0,
+          "support_peak": 162.0,
+          "support_range": 84.0,
+          "support_std": 31.559467676119,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 50000.0,
+            "occupancy_std_pen": 8374.896350934076,
+            "multiblock_pen": 0.0,
+            "span_pen": 1180000.0,
+            "mst_pen": 106000.0,
+            "split_pen": 415.0,
+            "support_peak_pen": 16200.0,
+            "support_range_pen": 1680.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 7169,
+            "scheduling_time": 4.868
+          },
+          "cpsat_v2": {
+            "logical_depth": 7169,
+            "scheduling_time": 273.057,
+            "n_fallbacks": 3,
+            "n_suboptimal": 0,
+            "fallback_layers": [
+              {
+                "layer": 0,
+                "reason": "FEASIBLE timeout gap=100.9%"
+              },
+              {
+                "layer": 1,
+                "reason": "CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit."
+              },
+              {
+                "layer": 2,
+                "reason": "CP-SAT v2 could not find a feasible schedule (status=UNKNOWN). Check hardware constraints or increase time limit."
+              }
+            ],
+            "suboptimal_layers": []
+          }
+        }
+      }
+    },
+    {
+      "topology": "ring",
+      "hw_label": "ring (5B, 85% fill)",
+      "n_blocks": 5,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.1455,
+      "fill_rate": 0.8545,
+      "total_capacity": 55,
+      "grid_rows": null,
+      "grid_cols": null,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 405,
+        "score": {
+          "total": 6629592.37782983,
+          "active_blocks": 5,
+          "unused_blocks": 0,
+          "occupancy_range": 3.0,
+          "occupancy_std": 1.2,
+          "num_multiblock": 405,
+          "span_total": 618.0,
+          "mean_blocks_touched": 2.026578073089701,
+          "max_blocks_touched": 5,
+          "mst_total": 760.0,
+          "mean_mst": 1.876543209876543,
+          "max_mst": 4.0,
+          "split_total": 75.23778298304924,
+          "mean_split": 0.18577230366185,
+          "max_split": 1.5,
+          "support_peak": 303.0,
+          "support_range": 127.0,
+          "support_std": 47.61932380872286,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 30000.0,
+            "occupancy_std_pen": 6000.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 6180000.0,
+            "mst_pen": 380000.0,
+            "split_pen": 752.3778298304924,
+            "support_peak_pen": 30300.0,
+            "support_range_pen": 2540.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 7212,
+            "scheduling_time": 12.372
+          },
+          "cpsat_v2": {
+            "logical_depth": 7212,
+            "scheduling_time": 309.139,
+            "n_fallbacks": 3,
+            "n_suboptimal": 0,
+            "fallback_layers": [
+              {
+                "layer": 0,
+                "reason": "FEASIBLE timeout gap=57.3%"
+              },
+              {
+                "layer": 1,
+                "reason": "FEASIBLE timeout gap=441.7%"
+              },
+              {
+                "layer": 2,
+                "reason": "FEASIBLE timeout gap=1784.7%"
+              }
+            ],
+            "suboptimal_layers": []
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 44.37,
+        "inter_block_t": 0,
+        "inter_block_all": 112,
+        "score": {
+          "total": 1278502.3299831252,
+          "active_blocks": 5,
+          "unused_blocks": 0,
+          "occupancy_range": 4.0,
+          "occupancy_std": 1.3564659966250536,
+          "num_multiblock": 112,
+          "span_total": 112.0,
+          "mean_blocks_touched": 1.186046511627907,
+          "max_blocks_touched": 2,
+          "mst_total": 184.0,
+          "mean_mst": 1.6428571428571428,
+          "max_mst": 2.0,
+          "split_total": 40.0,
+          "mean_split": 0.35714285714285715,
+          "max_split": 1.0,
+          "support_peak": 178.0,
+          "support_range": 76.0,
+          "support_std": 28.861046412075915,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 40000.0,
+            "occupancy_std_pen": 6782.329983125268,
+            "multiblock_pen": 0.0,
+            "span_pen": 1120000.0,
+            "mst_pen": 92000.0,
+            "split_pen": 400.0,
+            "support_peak_pen": 17800.0,
+            "support_range_pen": 1520.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 6930,
+            "scheduling_time": 9.604
+          },
+          "cpsat_v2": {
+            "logical_depth": 6930,
+            "scheduling_time": 307.554,
+            "n_fallbacks": 3,
+            "n_suboptimal": 0,
+            "fallback_layers": [
+              {
+                "layer": 0,
+                "reason": "FEASIBLE timeout gap=115.6%"
+              },
+              {
+                "layer": 1,
+                "reason": "FEASIBLE timeout gap=66.3%"
+              },
+              {
+                "layer": 2,
+                "reason": "FEASIBLE timeout gap=49.0%"
+              }
+            ],
+            "suboptimal_layers": []
+          }
+        }
+      }
+    }
+  ],
+  "timestamp": "2026-04-10T22:32:31.860176+00:00"
+}
+
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-10T22:54:55.673525+00:00
+  circuit=QFT16  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=yes  cpsat_time_limit=100.0s/layer  fallback_on_feasible=True
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=16  rotations=45  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+
+  [GRID]  circuit=QFT16  n_logicals=16  sparse=0.0%  seed=42
+  hw=1×2 (2B, 73% fill)  blocks=2  capacity=22  fill=72.7%  sparse_actual=27.3%  grid=1x2
+  [random] map_time=0.0s  score=132960.00  ibl_t=0  ibl_all=10
+················································································
+  Score [random/grid]  hw=1×2 (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2  grid=1x2
+  total=132960.00  unused_blocks=0  active=2
+  occupancy  range=2.0000(pen=20000.0)  std=1.0000(pen=5000.0)  unused_pen=0.0
+  multiblock num=10(pen=0.0)  span_total=10.00(pen=100000.0)  mean_blk=1.222  max_blk=2
+  mst        total=10.00(pen=5000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=29.00(pen=2900.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+  [sa_v2]  map_time=1.082s  score=23560.00  ibl_t=0  ibl_all=2
+················································································
+  Score [sa_v2/grid]  hw=1×2 (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2  grid=1x2
+  total=23560.00  unused_blocks=0  active=2
+  occupancy  range=0.0000(pen=0.0)  std=0.0000(pen=0.0)  unused_pen=0.0
+  multiblock num=2(pen=0.0)  span_total=2.00(pen=20000.0)  mean_blk=1.044  max_blk=2
+  mst        total=2.00(pen=1000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=25.00(pen=2500.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+
+[grid/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/random/greedy] done  depth=419  t=0.021s
+
+[grid/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/sa_v2/greedy] done  depth=333  t=0.016s
+
+[grid/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=113  obj=25425  lb=25425  t=0.09s
+  L001/3  OPTIMAL  ms=125  obj=132625  lb=132625  t=0.21s
+  L002/3  OPTIMAL  ms=103  obj=79619  lb=79619  t=22.71s
+[grid/random/cpsat] done  depth=341  t=23.015s  fallbacks=0  suboptimal=0
+
+[grid/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=105  obj=21105  lb=21105  t=0.07s
+  L001/3  OPTIMAL  ms=120  obj=120  lb=120  t=0.04s
+  L002/3  OPTIMAL  ms=105  obj=19425  lb=19425  t=0.05s
+[grid/sa_v2/cpsat] done  depth=330  t=0.166s  fallbacks=0  suboptimal=0
+────────────────────────────────────────────────────────────────────────────────
+
+  [RING]  circuit=QFT16  n_logicals=16  sparse=0.0%  seed=42
+  hw=ring (2B, 73% fill)  blocks=2  capacity=22  fill=72.7%  sparse_actual=27.3%
+  [random] map_time=0.0s  score=132960.00  ibl_t=0  ibl_all=10
+················································································
+  Score [random/ring]  hw=ring (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2
+  total=132960.00  unused_blocks=0  active=2
+  occupancy  range=2.0000(pen=20000.0)  std=1.0000(pen=5000.0)  unused_pen=0.0
+  multiblock num=10(pen=0.0)  span_total=10.00(pen=100000.0)  mean_blk=1.222  max_blk=2
+  mst        total=10.00(pen=5000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=29.00(pen=2900.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+  [sa_v2]  map_time=1.119s  score=23560.00  ibl_t=0  ibl_all=2
+················································································
+  Score [sa_v2/ring]  hw=ring (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2
+  total=23560.00  unused_blocks=0  active=2
+  occupancy  range=0.0000(pen=0.0)  std=0.0000(pen=0.0)  unused_pen=0.0
+  multiblock num=2(pen=0.0)  span_total=2.00(pen=20000.0)  mean_blk=1.044  max_blk=2
+  mst        total=2.00(pen=1000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=25.00(pen=2500.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+
+[ring/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/random/greedy] done  depth=419  t=0.019s
+
+[ring/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/sa_v2/greedy] done  depth=333  t=0.015s
+
+[ring/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=113  obj=25425  lb=25425  t=0.13s
+  L001/3  OPTIMAL  ms=125  obj=132625  lb=132625  t=0.11s
+  L002/3  OPTIMAL  ms=103  obj=79619  lb=79619  t=25.07s
+[ring/random/cpsat] done  depth=341  t=25.315s  fallbacks=0  suboptimal=0
+
+[ring/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=105  obj=21105  lb=21105  t=0.07s
+  L001/3  OPTIMAL  ms=120  obj=120  lb=120  t=0.05s
+  L002/3  OPTIMAL  ms=105  obj=19425  lb=19425  t=0.1s
+[ring/sa_v2/cpsat] done  depth=330  t=0.22s  fallbacks=0  suboptimal=0
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+  SUMMARY  circuit=QFT16  seed=42  sparse=0.0%
+  topo  mapper  hardware                     score ibl_t  map_s  g_depth   g_t  c_depth      c_t fall sub     c/g
+  ----- ------- --------------------- ------------ ----- ------  ------- -----  ------- -------- ---- ---  ------
+  grid  random  1×2 (2B, 73% fill)          132960     0    0.0      419 0.021      341   23.015    0   0  0.8138
+  grid  sa_v2   1×2 (2B, 73% fill)           23560     0    1.1      333 0.016      330    0.166    0   0  0.9910
+
+  ring  random  ring (2B, 73% fill)         132960     0    0.0      419 0.019      341   25.315    0   0  0.8138
+  ring  sa_v2   ring (2B, 73% fill)          23560     0    1.1      333 0.015      330     0.22    0   0  0.9910
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+
+Full JSON:
+{
+  "circuit": "QFT16",
+  "seed": 42,
+  "sparse_pct": 0.0,
+  "n_logicals": 16,
+  "n_rotations": 45,
+  "t_gates": 0,
+  "n_layers": 3,
+  "sa_steps": 25000,
+  "sa_t0": 100000.0,
+  "sa_tend": 0.05,
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 10000.0,
+    "W_OCC_STD": 5000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 10000.0,
+    "W_MST": 500.0,
+    "W_SPLIT": 10.0,
+    "W_SUPPORT_PEAK": 100.0,
+    "W_SUPPORT_RANGE": 20.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "topologies": [
+    {
+      "topology": "grid",
+      "hw_label": "1\u00d72 (2B, 73% fill)",
+      "n_blocks": 2,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.2727,
+      "fill_rate": 0.7273,
+      "total_capacity": 22,
+      "grid_rows": 1,
+      "grid_cols": 2,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 10,
+        "score": {
+          "total": 132960.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 2.0,
+          "occupancy_std": 1.0,
+          "num_multiblock": 10,
+          "span_total": 10.0,
+          "mean_blocks_touched": 1.2222222222222223,
+          "max_blocks_touched": 2,
+          "mst_total": 10.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 29.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 20000.0,
+            "occupancy_std_pen": 5000.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 100000.0,
+            "mst_pen": 5000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2900.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 419,
+            "scheduling_time": 0.021
+          },
+          "cpsat_v2": {
+            "logical_depth": 341,
+            "scheduling_time": 23.015,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 1.082,
+        "inter_block_t": 0,
+        "inter_block_all": 2,
+        "score": {
+          "total": 23560.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 0.0,
+          "occupancy_std": 0.0,
+          "num_multiblock": 2,
+          "span_total": 2.0,
+          "mean_blocks_touched": 1.0444444444444445,
+          "max_blocks_touched": 2,
+          "mst_total": 2.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 25.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 0.0,
+            "occupancy_std_pen": 0.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 20000.0,
+            "mst_pen": 1000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2500.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 333,
+            "scheduling_time": 0.016
+          },
+          "cpsat_v2": {
+            "logical_depth": 330,
+            "scheduling_time": 0.166,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      }
+    },
+    {
+      "topology": "ring",
+      "hw_label": "ring (2B, 73% fill)",
+      "n_blocks": 2,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.2727,
+      "fill_rate": 0.7273,
+      "total_capacity": 22,
+      "grid_rows": null,
+      "grid_cols": null,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 10,
+        "score": {
+          "total": 132960.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 2.0,
+          "occupancy_std": 1.0,
+          "num_multiblock": 10,
+          "span_total": 10.0,
+          "mean_blocks_touched": 1.2222222222222223,
+          "max_blocks_touched": 2,
+          "mst_total": 10.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 29.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 20000.0,
+            "occupancy_std_pen": 5000.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 100000.0,
+            "mst_pen": 5000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2900.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 419,
+            "scheduling_time": 0.019
+          },
+          "cpsat_v2": {
+            "logical_depth": 341,
+            "scheduling_time": 25.315,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 1.119,
+        "inter_block_t": 0,
+        "inter_block_all": 2,
+        "score": {
+          "total": 23560.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 0.0,
+          "occupancy_std": 0.0,
+          "num_multiblock": 2,
+          "span_total": 2.0,
+          "mean_blocks_touched": 1.0444444444444445,
+          "max_blocks_touched": 2,
+          "mst_total": 2.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 25.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 0.0,
+            "occupancy_std_pen": 0.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 20000.0,
+            "mst_pen": 1000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2500.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 333,
+            "scheduling_time": 0.015
+          },
+          "cpsat_v2": {
+            "logical_depth": 330,
+            "scheduling_time": 0.22,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      }
+    }
+  ],
+  "timestamp": "2026-04-10T22:54:55.673525+00:00"
+}
+
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-10T23:17:20.135707+00:00
+  circuit=QFT16  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=yes  cpsat_time_limit=100.0s/layer  fallback_on_feasible=True
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=16  rotations=45  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+
+  [GRID]  circuit=QFT16  n_logicals=16  sparse=0.0%  seed=42
+  hw=1×2 (2B, 73% fill)  blocks=2  capacity=22  fill=72.7%  sparse_actual=27.3%  grid=1x2
+  [random] map_time=0.0s  score=132960.00  ibl_t=0  ibl_all=10
+················································································
+  Score [random/grid]  hw=1×2 (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2  grid=1x2
+  total=132960.00  unused_blocks=0  active=2
+  occupancy  range=2.0000(pen=20000.0)  std=1.0000(pen=5000.0)  unused_pen=0.0
+  multiblock num=10(pen=0.0)  span_total=10.00(pen=100000.0)  mean_blk=1.222  max_blk=2
+  mst        total=10.00(pen=5000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=29.00(pen=2900.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+  [sa_v2]  map_time=1.15s  score=23560.00  ibl_t=0  ibl_all=2
+················································································
+  Score [sa_v2/grid]  hw=1×2 (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2  grid=1x2
+  total=23560.00  unused_blocks=0  active=2
+  occupancy  range=0.0000(pen=0.0)  std=0.0000(pen=0.0)  unused_pen=0.0
+  multiblock num=2(pen=0.0)  span_total=2.00(pen=20000.0)  mean_blk=1.044  max_blk=2
+  mst        total=2.00(pen=1000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=25.00(pen=2500.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+
+[grid/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/random/greedy] done  depth=419  t=0.021s
+
+[grid/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/sa_v2/greedy] done  depth=333  t=0.016s
+
+[grid/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=113  obj=25425  lb=25425  t=0.13s
+  L001/3  OPTIMAL  ms=125  obj=132625  lb=132625  t=0.15s
+  L002/3  OPTIMAL  ms=103  obj=79619  lb=79619  t=19.09s
+[grid/random/cpsat] done  depth=341  t=19.375s  fallbacks=0  suboptimal=0
+
+[grid/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=105  obj=21105  lb=21105  t=0.08s
+  L001/3  OPTIMAL  ms=120  obj=120  lb=120  t=0.05s
+  L002/3  OPTIMAL  ms=105  obj=19425  lb=19425  t=0.06s
+[grid/sa_v2/cpsat] done  depth=330  t=0.195s  fallbacks=0  suboptimal=0
+────────────────────────────────────────────────────────────────────────────────
+
+  [RING]  circuit=QFT16  n_logicals=16  sparse=0.0%  seed=42
+  hw=ring (2B, 73% fill)  blocks=2  capacity=22  fill=72.7%  sparse_actual=27.3%
+  [random] map_time=0.0s  score=132960.00  ibl_t=0  ibl_all=10
+················································································
+  Score [random/ring]  hw=ring (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2
+  total=132960.00  unused_blocks=0  active=2
+  occupancy  range=2.0000(pen=20000.0)  std=1.0000(pen=5000.0)  unused_pen=0.0
+  multiblock num=10(pen=0.0)  span_total=10.00(pen=100000.0)  mean_blk=1.222  max_blk=2
+  mst        total=10.00(pen=5000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=29.00(pen=2900.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+  [sa_v2]  map_time=1.201s  score=23560.00  ibl_t=0  ibl_all=2
+················································································
+  Score [sa_v2/ring]  hw=ring (2B, 73% fill)
+  fill=72.7%  sparse_req=0.0%  capacity=22  blocks=2
+  total=23560.00  unused_blocks=0  active=2
+  occupancy  range=0.0000(pen=0.0)  std=0.0000(pen=0.0)  unused_pen=0.0
+  multiblock num=2(pen=0.0)  span_total=2.00(pen=20000.0)  mean_blk=1.044  max_blk=2
+  mst        total=2.00(pen=1000.0)  mean=1.000  max=1.000
+  split      total=0.00(pen=0.0)  mean=0.000  max=0.000
+  support    peak=25.00(pen=2500.0)  range=3.00(pen=60.0)  std=1.50(pen=0.0)
+
+[ring/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/random/greedy] done  depth=419  t=0.02s
+
+[ring/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/sa_v2/greedy] done  depth=333  t=0.016s
+
+[ring/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=113  obj=25425  lb=25425  t=0.11s
+  L001/3  OPTIMAL  ms=125  obj=132625  lb=132625  t=0.06s
+  L002/3  OPTIMAL  ms=103  obj=79619  lb=79619  t=13.35s
+[ring/random/cpsat] done  depth=341  t=13.518s  fallbacks=0  suboptimal=0
+
+[ring/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=100.0s/layer
+  L000/3  OPTIMAL  ms=105  obj=21105  lb=21105  t=0.07s
+  L001/3  OPTIMAL  ms=120  obj=120  lb=120  t=0.05s
+  L002/3  OPTIMAL  ms=105  obj=19425  lb=19425  t=0.05s
+[ring/sa_v2/cpsat] done  depth=330  t=0.168s  fallbacks=0  suboptimal=0
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+  SUMMARY  circuit=QFT16  seed=42  sparse=0.0%
+  topo  mapper  hardware                     score ibl_t  map_s  g_depth   g_t  c_depth      c_t fall sub     c/g
+  ----- ------- --------------------- ------------ ----- ------  ------- -----  ------- -------- ---- ---  ------
+  grid  random  1×2 (2B, 73% fill)          132960     0    0.0      419 0.021      341   19.375    0   0  0.8138
+  grid  sa_v2   1×2 (2B, 73% fill)           23560     0    1.1      333 0.016      330    0.195    0   0  0.9910
+
+  ring  random  ring (2B, 73% fill)         132960     0    0.0      419  0.02      341   13.518    0   0  0.8138
+  ring  sa_v2   ring (2B, 73% fill)          23560     0    1.2      333 0.016      330    0.168    0   0  0.9910
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+
+Full JSON:
+{
+  "circuit": "QFT16",
+  "seed": 42,
+  "sparse_pct": 0.0,
+  "n_logicals": 16,
+  "n_rotations": 45,
+  "t_gates": 0,
+  "n_layers": 3,
+  "sa_steps": 25000,
+  "sa_t0": 100000.0,
+  "sa_tend": 0.05,
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 10000.0,
+    "W_OCC_STD": 5000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 10000.0,
+    "W_MST": 500.0,
+    "W_SPLIT": 10.0,
+    "W_SUPPORT_PEAK": 100.0,
+    "W_SUPPORT_RANGE": 20.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "topologies": [
+    {
+      "topology": "grid",
+      "hw_label": "1\u00d72 (2B, 73% fill)",
+      "n_blocks": 2,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.2727,
+      "fill_rate": 0.7273,
+      "total_capacity": 22,
+      "grid_rows": 1,
+      "grid_cols": 2,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 10,
+        "score": {
+          "total": 132960.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 2.0,
+          "occupancy_std": 1.0,
+          "num_multiblock": 10,
+          "span_total": 10.0,
+          "mean_blocks_touched": 1.2222222222222223,
+          "max_blocks_touched": 2,
+          "mst_total": 10.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 29.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 20000.0,
+            "occupancy_std_pen": 5000.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 100000.0,
+            "mst_pen": 5000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2900.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 419,
+            "scheduling_time": 0.021
+          },
+          "cpsat_v2": {
+            "logical_depth": 341,
+            "scheduling_time": 19.375,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 1.15,
+        "inter_block_t": 0,
+        "inter_block_all": 2,
+        "score": {
+          "total": 23560.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 0.0,
+          "occupancy_std": 0.0,
+          "num_multiblock": 2,
+          "span_total": 2.0,
+          "mean_blocks_touched": 1.0444444444444445,
+          "max_blocks_touched": 2,
+          "mst_total": 2.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 25.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 0.0,
+            "occupancy_std_pen": 0.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 20000.0,
+            "mst_pen": 1000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2500.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 333,
+            "scheduling_time": 0.016
+          },
+          "cpsat_v2": {
+            "logical_depth": 330,
+            "scheduling_time": 0.195,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      }
+    },
+    {
+      "topology": "ring",
+      "hw_label": "ring (2B, 73% fill)",
+      "n_blocks": 2,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.2727,
+      "fill_rate": 0.7273,
+      "total_capacity": 22,
+      "grid_rows": null,
+      "grid_cols": null,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 10,
+        "score": {
+          "total": 132960.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 2.0,
+          "occupancy_std": 1.0,
+          "num_multiblock": 10,
+          "span_total": 10.0,
+          "mean_blocks_touched": 1.2222222222222223,
+          "max_blocks_touched": 2,
+          "mst_total": 10.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 29.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 20000.0,
+            "occupancy_std_pen": 5000.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 100000.0,
+            "mst_pen": 5000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2900.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 419,
+            "scheduling_time": 0.02
+          },
+          "cpsat_v2": {
+            "logical_depth": 341,
+            "scheduling_time": 13.518,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 1.201,
+        "inter_block_t": 0,
+        "inter_block_all": 2,
+        "score": {
+          "total": 23560.0,
+          "active_blocks": 2,
+          "unused_blocks": 0,
+          "occupancy_range": 0.0,
+          "occupancy_std": 0.0,
+          "num_multiblock": 2,
+          "span_total": 2.0,
+          "mean_blocks_touched": 1.0444444444444445,
+          "max_blocks_touched": 2,
+          "mst_total": 2.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 0.0,
+          "mean_split": 0.0,
+          "max_split": 0.0,
+          "support_peak": 25.0,
+          "support_range": 3.0,
+          "support_std": 1.5,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 0.0,
+            "occupancy_std_pen": 0.0,
+            "multiblock_pen": 0.0,
+            "span_pen": 20000.0,
+            "mst_pen": 1000.0,
+            "split_pen": 0.0,
+            "support_peak_pen": 2500.0,
+            "support_range_pen": 60.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 333,
+            "scheduling_time": 0.016
+          },
+          "cpsat_v2": {
+            "logical_depth": 330,
+            "scheduling_time": 0.168,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      }
+    }
+  ],
+  "timestamp": "2026-04-10T23:17:20.135707+00:00"
+}
+
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-10T23:18:30.100267+00:00
+  circuit=Adder16  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=yes  cpsat_time_limit=500.0s/layer  fallback_on_feasible=True
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=47  rotations=602  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+
+  [GRID]  circuit=Adder16  n_logicals=47  sparse=0.0%  seed=42
+  hw=2×3 (6B, 71% fill)  blocks=6  capacity=66  fill=71.2%  sparse_actual=28.8%  grid=2x3
+  [random] map_time=0.0s  score=6711677.88  ibl_t=0  ibl_all=406
+················································································
+  Score [random/grid]  hw=2×3 (6B, 71% fill)
+  fill=71.2%  sparse_req=0.0%  capacity=66  blocks=6  grid=2x3
+  total=6711677.88  unused_blocks=0  active=6
+  occupancy  range=5.0000(pen=50000.0)  std=1.5723(pen=7861.7)  unused_pen=0.0
+  multiblock num=406(pen=0.0)  span_total=620.00(pen=6200000.0)  mean_blk=2.030  max_blk=5
+  mst        total=841.00(pen=420500.0)  mean=2.071  max=4.000
+  split      total=67.62(pen=676.2)  mean=0.167  max=1.500
+  support    peak=295.00(pen=29500.0)  range=157.00(pen=3140.0)  std=52.09(pen=0.0)
+  [sa_v2]  map_time=48.972s  score=1362669.90  ibl_t=0  ibl_all=118
+················································································
+  Score [sa_v2/grid]  hw=2×3 (6B, 71% fill)
+  fill=71.2%  sparse_req=0.0%  capacity=66  blocks=6  grid=2x3
+  total=1362669.90  unused_blocks=0  active=6
+  occupancy  range=5.0000(pen=50000.0)  std=1.6750(pen=8374.9)  unused_pen=0.0
+  multiblock num=118(pen=0.0)  span_total=118.00(pen=1180000.0)  mean_blk=1.196  max_blk=2
+  mst        total=212.00(pen=106000.0)  mean=1.797  max=3.000
+  split      total=41.50(pen=415.0)  mean=0.352  max=1.000
+  support    peak=162.00(pen=16200.0)  range=84.00(pen=1680.0)  std=31.56(pen=0.0)
+
+[grid/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/random/greedy] done  depth=7863  t=6.341s
+
+[grid/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/sa_v2/greedy] done  depth=7169  t=4.91s
+
+[grid/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=962  obj=246222938  lb=141283848  gap=74.3%  t=502.5s
+  L001/3  FEASIBLE(timeout)→FALLBACK  ms=3089  obj=3869160929  lb=136529149  gap=2733.9%  t=504.66s
+  L002/3  FEASIBLE(timeout)→FALLBACK  ms=3147  obj=3995456376  lb=154892176  gap=2479.5%  t=504.89s
+[grid/random/cpsat] done  depth=7863  t=1516.166s  fallbacks=3  suboptimal=0
+
+[grid/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=852  obj=177544023  lb=104192500  gap=70.4%  t=502.07s
+  L001/3  FEASIBLE(timeout)→FALLBACK  ms=2776  obj=2821770688  lb=498015835  gap=466.6%  t=504.11s
+  L002/3  FEASIBLE(timeout)→FALLBACK  ms=1898  obj=1642455178  lb=283838408  gap=478.7%  t=503.86s
+[grid/sa_v2/cpsat] done  depth=7169  t=1513.341s  fallbacks=3  suboptimal=0
+────────────────────────────────────────────────────────────────────────────────
+
+  [RING]  circuit=Adder16  n_logicals=47  sparse=0.0%  seed=42
+  hw=ring (5B, 85% fill)  blocks=5  capacity=55  fill=85.5%  sparse_actual=14.5%
+  [random] map_time=0.0s  score=6629592.38  ibl_t=0  ibl_all=405
+················································································
+  Score [random/ring]  hw=ring (5B, 85% fill)
+  fill=85.5%  sparse_req=0.0%  capacity=55  blocks=5
+  total=6629592.38  unused_blocks=0  active=5
+  occupancy  range=3.0000(pen=30000.0)  std=1.2000(pen=6000.0)  unused_pen=0.0
+  multiblock num=405(pen=0.0)  span_total=618.00(pen=6180000.0)  mean_blk=2.027  max_blk=5
+  mst        total=760.00(pen=380000.0)  mean=1.877  max=4.000
+  split      total=75.24(pen=752.4)  mean=0.186  max=1.500
+  support    peak=303.00(pen=30300.0)  range=127.00(pen=2540.0)  std=47.62(pen=0.0)
+  [sa_v2]  map_time=45.481s  score=1278502.33  ibl_t=0  ibl_all=112
+················································································
+  Score [sa_v2/ring]  hw=ring (5B, 85% fill)
+  fill=85.5%  sparse_req=0.0%  capacity=55  blocks=5
+  total=1278502.33  unused_blocks=0  active=5
+  occupancy  range=4.0000(pen=40000.0)  std=1.3565(pen=6782.3)  unused_pen=0.0
+  multiblock num=112(pen=0.0)  span_total=112.00(pen=1120000.0)  mean_blk=1.186  max_blk=2
+  mst        total=184.00(pen=92000.0)  mean=1.643  max=2.000
+  split      total=40.00(pen=400.0)  mean=0.357  max=1.000
+  support    peak=178.00(pen=17800.0)  range=76.00(pen=1520.0)  std=28.86(pen=0.0)
+
+[ring/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/random/greedy] done  depth=7212  t=5.512s
+
+[ring/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/sa_v2/greedy] done  depth=6930  t=4.249s
+
+[ring/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=936  obj=254405736  lb=123941256  gap=105.3%  t=502.2s
+  L001/3  FEASIBLE(timeout)→FALLBACK  ms=2533  obj=2679764553  lb=329019651  gap=714.5%  t=504.24s
+  L002/3  FEASIBLE(timeout)→FALLBACK  ms=2567  obj=3086409347  lb=922204523  gap=234.7%  t=504.29s
+[ring/random/cpsat] done  depth=7212  t=1514.291s  fallbacks=3  suboptimal=0
+
+[ring/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  FEASIBLE(timeout)→FALLBACK  ms=913  obj=170043511  lb=72636330  gap=134.1%  t=502.04s
+════════════════════════════════════════════════════════════════════════════════
+  RUN  2026-04-11T00:53:28.309986+00:00
+  circuit=Adder8  topologies=['grid', 'ring']  seed=42  sparse_pct=0.0%
+  SA: steps=25000  t0=100000.0  tend=0.05
+  Schedulers: greedy=yes  cpsat_v2=yes  cpsat_time_limit=500.0s/layer  feasible=near-opt(accepted)
+  Weights: {"W_UNUSED_BLOCKS": 1000000.0, "W_OCC_RANGE": 10000.0, "W_OCC_STD": 5000.0, "W_MULTI_BLOCK": 0.0, "W_SPAN": 10000.0, "W_MST": 500.0, "W_SPLIT": 10.0, "W_SUPPORT_PEAK": 100.0, "W_SUPPORT_RANGE": 20.0, "W_SUPPORT_STD": 0.0}
+════════════════════════════════════════════════════════════════════════════════
+  n_logicals=23  rotations=266  T-gates=0  layers=3
+────────────────────────────────────────────────────────────────────────────────
+
+  [GRID]  circuit=Adder8  n_logicals=23  sparse=0.0%  seed=42
+  hw=2×2 (4B, 52% fill)  blocks=4  capacity=44  fill=52.3%  sparse_actual=47.7%  grid=2x2
+  [random] map_time=0.0s  score=2719983.93  ibl_t=0  ibl_all=179
+················································································
+  Score [random/grid]  hw=2×2 (4B, 52% fill)
+  fill=52.3%  sparse_req=0.0%  capacity=44  blocks=4  grid=2x2
+  total=2719983.93  unused_blocks=0  active=4
+  occupancy  range=4.0000(pen=40000.0)  std=1.4790(pen=7395.1)  unused_pen=0.0
+  multiblock num=179(pen=0.0)  span_total=251.00(pen=2510000.0)  mean_blk=1.944  max_blk=4
+  mst        total=284.00(pen=142000.0)  mean=1.587  max=3.000
+  split      total=38.88(pen=388.8)  mean=0.217  max=1.000
+  support    peak=181.00(pen=18100.0)  range=105.00(pen=2100.0)  std=40.26(pen=0.0)
+  [sa_v2]  map_time=13.725s  score=499972.37  ibl_t=0  ibl_all=36
+················································································
+  Score [sa_v2/grid]  hw=2×2 (4B, 52% fill)
+  fill=52.3%  sparse_req=0.0%  capacity=44  blocks=4  grid=2x2
+  total=499972.37  unused_blocks=0  active=4
+  occupancy  range=8.0000(pen=80000.0)  std=3.1125(pen=15562.4)  unused_pen=0.0
+  multiblock num=36(pen=0.0)  span_total=36.00(pen=360000.0)  mean_blk=1.135  max_blk=2
+  mst        total=54.00(pen=27000.0)  mean=1.500  max=2.000
+  split      total=13.00(pen=130.0)  mean=0.361  max=1.000
+  support    peak=144.00(pen=14400.0)  range=144.00(pen=2880.0)  std=51.85(pen=0.0)
+
+[grid/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/random/greedy] done  depth=3164  t=0.874s
+
+[grid/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[grid/sa_v2/greedy] done  depth=2493  t=0.572s
+
+[grid/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  OPTIMAL  ms=585  obj=29256435  lb=29256435  t=152.47s
+  L001/3  FEASIBLE(near-opt)  ms=1019  obj=123727999  lb=103814955  gap=19.2%  t=501.44s
+  L002/3  FEASIBLE(near-opt)  ms=1224  obj=165739392  lb=142584624  gap=16.2%  t=502.3s
+[grid/random/cpsat] done  depth=2828  t=1156.222s  fallbacks=0  suboptimal=2
+
+[grid/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  OPTIMAL  ms=508  obj=13400532  lb=13400532  t=54.85s
+  L001/3  OPTIMAL  ms=1019  obj=76462703  lb=76462703  t=279.49s
+  L002/3  FEASIBLE(near-opt)  ms=799  obj=62118255  lb=54810225  gap=13.3%  t=501.23s
+[grid/sa_v2/cpsat] done  depth=2326  t=835.58s  fallbacks=0  suboptimal=1
+────────────────────────────────────────────────────────────────────────────────
+
+  [RING]  circuit=Adder8  n_logicals=23  sparse=0.0%  seed=42
+  hw=ring (3B, 70% fill)  blocks=3  capacity=33  fill=69.7%  sparse_actual=30.3%
+  [random] map_time=0.0s  score=2389783.64  ibl_t=0  ibl_all=171
+················································································
+  Score [random/ring]  hw=ring (3B, 70% fill)
+  fill=69.7%  sparse_req=0.0%  capacity=33  blocks=3
+  total=2389783.64  unused_blocks=0  active=3
+  occupancy  range=4.0000(pen=40000.0)  std=1.6997(pen=8498.4)  unused_pen=0.0
+  multiblock num=171(pen=0.0)  span_total=221.00(pen=2210000.0)  mean_blk=1.831  max_blk=3
+  mst        total=221.00(pen=110500.0)  mean=1.292  max=2.000
+  split      total=48.53(pen=485.3)  mean=0.284  max=1.000
+  support    peak=192.00(pen=19200.0)  range=55.00(pen=1100.0)  std=22.66(pen=0.0)
+  [sa_v2]  map_time=12.045s  score=430326.10  ibl_t=0  ibl_all=36
+················································································
+  Score [sa_v2/ring]  hw=ring (3B, 70% fill)
+  fill=69.7%  sparse_req=0.0%  capacity=33  blocks=3
+  total=430326.10  unused_blocks=0  active=3
+  occupancy  range=3.0000(pen=30000.0)  std=1.2472(pen=6236.1)  unused_pen=0.0
+  multiblock num=36(pen=0.0)  span_total=36.00(pen=360000.0)  mean_blk=1.135  max_blk=2
+  mst        total=36.00(pen=18000.0)  mean=1.000  max=1.000
+  split      total=13.00(pen=130.0)  mean=0.361  max=1.000
+  support    peak=144.00(pen=14400.0)  range=78.00(pen=1560.0)  std=32.43(pen=0.0)
+
+[ring/random/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/random/greedy] done  depth=3890  t=1.095s
+
+[ring/sa_v2/greedy] scheduling  scheduler=greedy_critical  layers=3
+[ring/sa_v2/greedy] done  depth=2720  t=0.546s
+
+[ring/random/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  OPTIMAL  ms=565  obj=24791070  lb=24791070  t=94.66s
+  L001/3  FEASIBLE(near-opt)  ms=1296  obj=310362192  lb=149433648  gap=107.7%  t=502.01s
+  L002/3  FEASIBLE(near-opt)  ms=1120  obj=197972320  lb=141055278  gap=40.4%  t=502.0s
+[ring/random/cpsat] done  depth=2981  t=1098.681s  fallbacks=0  suboptimal=2
+
+[ring/sa_v2/cpsat] scheduling  scheduler=cpsat_v2  layers=3  limit=500.0s/layer
+  L000/3  OPTIMAL  ms=548  obj=15333588  lb=15333588  t=48.07s
+  L001/3  OPTIMAL  ms=931  obj=65320822  lb=65320822  t=129.04s
+  L002/3  OPTIMAL  ms=883  obj=73431163  lb=73431163  t=127.18s
+[ring/sa_v2/cpsat] done  depth=2362  t=304.308s  fallbacks=0  suboptimal=0
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+  SUMMARY  circuit=Adder8  seed=42  sparse=0.0%
+  topo  mapper  hardware                     score ibl_t  map_s  g_depth   g_t  c_depth      c_t fall sub     c/g
+  ----- ------- --------------------- ------------ ----- ------  ------- -----  ------- -------- ---- ---  ------
+  grid  random  2×2 (4B, 52% fill)         2719984     0    0.0     3164 0.874     2828 1156.222    0   2  0.8938
+  grid  sa_v2   2×2 (4B, 52% fill)          499972     0   13.7     2493 0.572     2326   835.58    0   1  0.9330
+
+  ring  random  ring (3B, 70% fill)        2389784     0    0.0     3890 1.095     2981 1098.681    0   2  0.7663
+  ring  sa_v2   ring (3B, 70% fill)         430326     0   12.0     2720 0.546     2362  304.308    0   0  0.8684
+════════════════════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════════════════
+
+Full JSON:
+{
+  "circuit": "Adder8",
+  "seed": 42,
+  "sparse_pct": 0.0,
+  "n_logicals": 23,
+  "n_rotations": 266,
+  "t_gates": 0,
+  "n_layers": 3,
+  "sa_steps": 25000,
+  "sa_t0": 100000.0,
+  "sa_tend": 0.05,
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 10000.0,
+    "W_OCC_STD": 5000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 10000.0,
+    "W_MST": 500.0,
+    "W_SPLIT": 10.0,
+    "W_SUPPORT_PEAK": 100.0,
+    "W_SUPPORT_RANGE": 20.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "topologies": [
+    {
+      "topology": "grid",
+      "hw_label": "2\u00d72 (4B, 52% fill)",
+      "n_blocks": 4,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.4773,
+      "fill_rate": 0.5227,
+      "total_capacity": 44,
+      "grid_rows": 2,
+      "grid_cols": 2,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 179,
+        "score": {
+          "total": 2719983.9316211855,
+          "active_blocks": 4,
+          "unused_blocks": 0,
+          "occupancy_range": 4.0,
+          "occupancy_std": 1.479019945774904,
+          "num_multiblock": 179,
+          "span_total": 251.0,
+          "mean_blocks_touched": 1.943609022556391,
+          "max_blocks_touched": 4,
+          "mst_total": 284.0,
+          "mean_mst": 1.5865921787709498,
+          "max_mst": 3.0,
+          "split_total": 38.88318923112912,
+          "mean_split": 0.21722452084429678,
+          "max_split": 1.0,
+          "support_peak": 181.0,
+          "support_range": 105.0,
+          "support_std": 40.25776322648838,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 40000.0,
+            "occupancy_std_pen": 7395.09972887452,
+            "multiblock_pen": 0.0,
+            "span_pen": 2510000.0,
+            "mst_pen": 142000.0,
+            "split_pen": 388.8318923112912,
+            "support_peak_pen": 18100.0,
+            "support_range_pen": 2100.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 3164,
+            "scheduling_time": 0.874
+          },
+          "cpsat_v2": {
+            "logical_depth": 2828,
+            "scheduling_time": 1156.222,
+            "n_fallbacks": 0,
+            "n_suboptimal": 2,
+            "fallback_layers": [],
+            "suboptimal_layers": [
+              {
+                "layer": 1,
+                "obj": 123727999,
+                "obj_lb": 103814955,
+                "gap_pct": 19.2
+              },
+              {
+                "layer": 2,
+                "obj": 165739392,
+                "obj_lb": 142584624,
+                "gap_pct": 16.2
+              }
+            ]
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 13.725,
+        "inter_block_t": 0,
+        "inter_block_all": 36,
+        "score": {
+          "total": 499972.37449748593,
+          "active_blocks": 4,
+          "unused_blocks": 0,
+          "occupancy_range": 8.0,
+          "occupancy_std": 3.112474899497183,
+          "num_multiblock": 36,
+          "span_total": 36.0,
+          "mean_blocks_touched": 1.1353383458646618,
+          "max_blocks_touched": 2,
+          "mst_total": 54.0,
+          "mean_mst": 1.5,
+          "max_mst": 2.0,
+          "split_total": 13.0,
+          "mean_split": 0.3611111111111111,
+          "max_split": 1.0,
+          "support_peak": 144.0,
+          "support_range": 144.0,
+          "support_std": 51.85315805233081,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 80000.0,
+            "occupancy_std_pen": 15562.374497485916,
+            "multiblock_pen": 0.0,
+            "span_pen": 360000.0,
+            "mst_pen": 27000.0,
+            "split_pen": 130.0,
+            "support_peak_pen": 14400.0,
+            "support_range_pen": 2880.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 2493,
+            "scheduling_time": 0.572
+          },
+          "cpsat_v2": {
+            "logical_depth": 2326,
+            "scheduling_time": 835.58,
+            "n_fallbacks": 0,
+            "n_suboptimal": 1,
+            "fallback_layers": [],
+            "suboptimal_layers": [
+              {
+                "layer": 2,
+                "obj": 62118255,
+                "obj_lb": 54810225,
+                "gap_pct": 13.3
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "topology": "ring",
+      "hw_label": "ring (3B, 70% fill)",
+      "n_blocks": 3,
+      "sparse_pct_req": 0.0,
+      "sparse_pct_actual": 0.303,
+      "fill_rate": 0.697,
+      "total_capacity": 33,
+      "grid_rows": null,
+      "grid_cols": null,
+      "random": {
+        "mapping_time_sec": 0.0,
+        "inter_block_t": 0,
+        "inter_block_all": 171,
+        "score": {
+          "total": 2389783.643393057,
+          "active_blocks": 3,
+          "unused_blocks": 0,
+          "occupancy_range": 4.0,
+          "occupancy_std": 1.699673171197595,
+          "num_multiblock": 171,
+          "span_total": 221.0,
+          "mean_blocks_touched": 1.830827067669173,
+          "max_blocks_touched": 3,
+          "mst_total": 221.0,
+          "mean_mst": 1.2923976608187135,
+          "max_mst": 2.0,
+          "split_total": 48.5277537068951,
+          "mean_split": 0.28378803337365555,
+          "max_split": 1.0,
+          "support_peak": 192.0,
+          "support_range": 55.0,
+          "support_std": 22.661764175711376,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 40000.0,
+            "occupancy_std_pen": 8498.365855987975,
+            "multiblock_pen": 0.0,
+            "span_pen": 2210000.0,
+            "mst_pen": 110500.0,
+            "split_pen": 485.277537068951,
+            "support_peak_pen": 19200.0,
+            "support_range_pen": 1100.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 3890,
+            "scheduling_time": 1.095
+          },
+          "cpsat_v2": {
+            "logical_depth": 2981,
+            "scheduling_time": 1098.681,
+            "n_fallbacks": 0,
+            "n_suboptimal": 2,
+            "fallback_layers": [],
+            "suboptimal_layers": [
+              {
+                "layer": 1,
+                "obj": 310362192,
+                "obj_lb": 149433648,
+                "gap_pct": 107.7
+              },
+              {
+                "layer": 2,
+                "obj": 197972320,
+                "obj_lb": 141055278,
+                "gap_pct": 40.4
+              }
+            ]
+          }
+        }
+      },
+      "sa_v2": {
+        "mapping_time_sec": 12.045,
+        "inter_block_t": 0,
+        "inter_block_all": 36,
+        "score": {
+          "total": 430326.0956446232,
+          "active_blocks": 3,
+          "unused_blocks": 0,
+          "occupancy_range": 3.0,
+          "occupancy_std": 1.247219128924647,
+          "num_multiblock": 36,
+          "span_total": 36.0,
+          "mean_blocks_touched": 1.1353383458646618,
+          "max_blocks_touched": 2,
+          "mst_total": 36.0,
+          "mean_mst": 1.0,
+          "max_mst": 1.0,
+          "split_total": 13.0,
+          "mean_split": 0.3611111111111111,
+          "max_split": 1.0,
+          "support_peak": 144.0,
+          "support_range": 78.0,
+          "support_std": 32.42769735204082,
+          "penalties": {
+            "unused_block_pen": 0.0,
+            "occupancy_range_pen": 30000.0,
+            "occupancy_std_pen": 6236.095644623235,
+            "multiblock_pen": 0.0,
+            "span_pen": 360000.0,
+            "mst_pen": 18000.0,
+            "split_pen": 130.0,
+            "support_peak_pen": 14400.0,
+            "support_range_pen": 1560.0,
+            "support_std_pen": 0.0
+          }
+        },
+        "scheduling": {
+          "greedy_critical": {
+            "logical_depth": 2720,
+            "scheduling_time": 0.546
+          },
+          "cpsat_v2": {
+            "logical_depth": 2362,
+            "scheduling_time": 304.308,
+            "n_fallbacks": 0,
+            "n_suboptimal": 0,
+            "fallback_layers": [],
+            "suboptimal_layers": []
+          }
+        }
+      }
+    }
+  ],
+  "timestamp": "2026-04-11T00:53:28.309986+00:00"
+}
+

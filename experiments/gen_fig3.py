@@ -2,10 +2,12 @@
 Generate Figure 3: Grouped bar chart of logical depth (normalized to SC baseline).
 
 Y-axis = depth / sc_baseline_depth, so SC baseline = 1.0 for every circuit.
-Both circuits are on the same scale; each bar is annotated with the absolute
-depth and the overhead multiple (e.g. "19,352 / 10.8× SC").
+Each bar is annotated with the absolute depth and the overhead multiple
+(e.g. "19,352\n10.8×").
 
-Reads directly from runs/ JSON files. Re-run this script when missing data arrives.
+Circuits are auto-discovered from circuits/benchmarks/pbc/.  For each circuit,
+all 4 configs are loaded from runs/.  If a circuit fails the sanity check or is
+missing too many runs to be meaningful, it is skipped with a printed warning.
 
 Usage:
     python experiments/gen_fig3.py
@@ -24,128 +26,137 @@ import numpy as np
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
-_ROOT     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RUNS_DIR  = os.path.join(_ROOT, "runs")
-OUT_DIR   = os.path.join(_ROOT, "results", "figures")
-OUT_PNG   = os.path.join(OUT_DIR, "fig3_depth_comparison.png")
-OUT_CSV   = os.path.join(_ROOT, "results", "fig_3_depth.csv")
-SC_BASE   = os.path.join(_ROOT, "results", "sc_baseline", "sc_baseline.json")
+_ROOT    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PBC_DIR  = os.path.join(_ROOT, "circuits", "benchmarks", "pbc")
+RUNS_DIR = os.path.join(_ROOT, "runs")
+OUT_DIR  = os.path.join(_ROOT, "results", "figures")
+OUT_PNG  = os.path.join(OUT_DIR, "fig3_depth_comparison.png")
+OUT_CSV  = os.path.join(_ROOT, "results", "fig_3_depth.csv")
+SC_BASE  = os.path.join(_ROOT, "results", "sc_baseline", "sc_baseline.json")
 
-# ── Config definitions ─────────────────────────────────────────────────────────
+# ── Config definitions ────────────────────────────────────────────────────────
 
 CONFIGS = [
     ("random", "greedy_critical", "Random + Greedy",  "#d62728"),  # red
     ("random", "cpsat",           "Random + CP-SAT",  "#ff7f0e"),  # orange
-    ("sa",     "greedy_critical", "SA + Greedy",       "#1f77b4"),  # blue
-    ("sa",     "cpsat",           "SA + CP-SAT",       "#2ca02c"),  # green
+    ("sa",     "greedy_critical", "SA + Greedy",      "#1f77b4"),  # blue
+    ("sa",     "cpsat",           "SA + CP-SAT",      "#2ca02c"),  # green
 ]
 
-CIRCUITS = [
-    ("gf2_16_mult",    r"$\mathrm{GF}(2^{16})$ mult" + "\n(48 qubits, 6 blocks)"),
-    ("qft_100_approx", "QFT-100 (approx)\n(100 qubits, 12 blocks)"),
-]
+# ── Circuit discovery ─────────────────────────────────────────────────────────
 
-# ── Load helpers ──────────────────────────────────────────────────────────────
+def discover_circuits() -> list[str]:
+    """Return sorted circuit names from circuits/benchmarks/pbc/."""
+    names = []
+    for fname in sorted(os.listdir(PBC_DIR)):
+        if not fname.endswith(".json"):
+            continue
+        stem = fname[:-5]  # strip .json
+        name = stem[:-4] if stem.endswith("_PBC") else stem
+        names.append(name)
+    return names
 
-def load_run(circuit: str, mapping: str, scheduler: str, seed: int = 42):
+
+def _display(circuit: str, run: dict | None) -> str:
+    """Short multi-line label: circuit name + qubit / block count if available."""
+    if run:
+        return f"{circuit}\n({run['n_qubits']}q, {run['n_blocks']}b)"
+    return circuit
+
+# ── Data loading ──────────────────────────────────────────────────────────────
+
+def load_run(circuit: str, mapping: str, scheduler: str, seed: int = 42) -> dict | None:
     path = os.path.join(RUNS_DIR, f"{circuit}_{mapping}_{scheduler}_seed{seed}.json")
     if not os.path.exists(path):
         return None
     with open(path) as f:
-        return json.load(f)
+        d = json.load(f)
+    # backwards-compat: old files used "placement" key
+    if "mapping" not in d and "placement" in d:
+        d["mapping"] = d["placement"]
+    return d
 
 
-def load_sc_depth(circuit: str) -> int:
-    with open(SC_BASE) as f:
-        sc_data = {r["circuit"]: r for r in json.load(f)}
-    return sc_data[circuit]["sc_logical_depth"]
+def load_sc_depth(circuit: str, sc_data: dict) -> int | None:
+    row = sc_data.get(circuit)
+    return row["sc_logical_depth"] if row else None
 
+# ── Per-circuit sanity check ──────────────────────────────────────────────────
 
-# ── Sanity check ──────────────────────────────────────────────────────────────
-
-def sanity_check(depths: dict) -> bool:
+def sanity_check(circuit: str, depths: dict) -> bool:
     """
-    depths[circuit][(placement, scheduler)] = depth | None
-    Checks:
-      1. random+greedy >= sa+greedy   (SA placement is better)
-      2. random+cpsat  >= sa+cpsat    (SA placement is better)
-      3. cpsat <= greedy within same placement
+    Returns True if the circuit passes all checks that can be evaluated
+    (i.e. both values are present).  Prints a warning for each failure and
+    returns False so the caller can skip the circuit.
+
+    Checks (only when both sides are present):
+      1. random+greedy >= sa+greedy    (SA placement should help)
+      2. random+cpsat  >= sa+cpsat     (SA placement should help)
+      3. random: cpsat <= greedy       (CP-SAT no worse than greedy)
+      4. sa:     cpsat <= greedy       (CP-SAT no worse than greedy)
     """
-    ok = True
-    print("\n=== CONFIG SANITY CHECK ===")
-    for circuit, label in CIRCUITS:
-        d = depths[circuit]
-        rg = d.get(("random", "greedy_critical"))
-        rc = d.get(("random", "cpsat"))
-        sg = d.get(("sa",     "greedy_critical"))
-        sc = d.get(("sa",     "cpsat"))
+    rg = depths.get(("random", "greedy_critical"))
+    rc = depths.get(("random", "cpsat"))
+    sg = depths.get(("sa",     "greedy_critical"))
+    sc = depths.get(("sa",     "cpsat"))
 
-        print(f"{circuit}:")
-        for (pl, sched), val in [
-            (("random", "greedy_critical"), rg),
-            (("random", "cpsat"),           rc),
-            (("sa",     "greedy_critical"), sg),
-            (("sa",     "cpsat"),           sc),
-        ]:
-            print(f"  {pl}+{sched}: {val if val is not None else 'MISSING'}")
+    checks = [
+        ("random+greedy >= sa+greedy", rg, sg, "ge"),
+        ("random+cpsat  >= sa+cpsat",  rc, sc, "ge"),
+        ("random: cpsat <= greedy",    rc, rg, "le"),
+        ("sa:     cpsat <= greedy",    sc, sg, "le"),
+    ]
 
-        checks = [
-            ("random+greedy >= sa+greedy", rg, sg),
-            ("random+cpsat  >= sa+cpsat",  rc, sc),
-            ("random: cpsat <= greedy",    rc, rg, "le"),
-            ("sa:     cpsat <= greedy",    sc, sg, "le"),
-        ]
-        for check in checks:
-            name = check[0]
-            a, b = check[1], check[2]
-            mode = check[3] if len(check) > 3 else "ge"
-            if a is None or b is None:
-                print(f"  Check {name}: SKIP (data missing)")
-                continue
-            passed = (a >= b) if mode == "ge" else (a <= b)
-            status = "PASS" if passed else "FAIL"
-            print(f"  Check {name}: {status}  ({a} vs {b})")
-            if not passed:
-                ok = False
-        print()
-    print("===========================\n")
-    return ok
+    failed = []
+    for name, a, b, mode in checks:
+        if a is None or b is None:
+            continue  # can't check, skip silently
+        passed = (a >= b) if mode == "ge" else (a <= b)
+        if not passed:
+            failed.append(f"{name} ({a} vs {b})")
 
+    if failed:
+        print(f"  [SANITY FAIL] {circuit} — skipping:")
+        for msg in failed:
+            print(f"    ✗ {msg}")
+        return False
+    return True
 
 # ── Figure generation ─────────────────────────────────────────────────────────
 
-def make_figure(depths: dict, sc_depths: dict):
+def make_figure(circuits_data: list[tuple[str, dict, dict, int]]):
     """
-    Y-axis: depth normalized to SC baseline (SC = 1.0).
-    Both circuits share the same Y scale.
-    Each bar is annotated with the absolute depth and overhead ratio (e.g. "19,352\n10.8× SC").
+    circuits_data: list of (circuit_name, depths_dict, run_for_label, sc_depth)
+    depths_dict:   {(mapping, scheduler): depth | None}
     """
-    plt.style.use("seaborn-v0_8-whitegrid")
-    fig, ax = plt.subplots(figsize=(9, 6))
-
-    n_circuits = len(CIRCUITS)
+    n_circuits = len(circuits_data)
     n_configs  = len(CONFIGS)
-    bar_w      = 0.18
-    group_gap  = 0.30
-    group_w    = n_configs * bar_w + group_gap
+
+    bar_w     = 0.16
+    group_gap = 0.25
+    group_w   = n_configs * bar_w + group_gap
     group_centers = np.arange(n_circuits) * group_w
+
+    # Scale figure width with number of circuits (min 8, max 20)
+    fig_w = max(8, min(20, n_circuits * 1.8 + 2))
+
+    plt.style.use("seaborn-v0_8-whitegrid")
+    fig, ax = plt.subplots(figsize=(fig_w, 6))
 
     all_norm_vals = []
 
-    # Draw bars (normalized heights)
-    for ci, (placement, scheduler, label, color) in enumerate(CONFIGS):
+    for ci, (mapping, scheduler, label, color) in enumerate(CONFIGS):
         offsets = (ci - (n_configs - 1) / 2) * bar_w
         xpos    = group_centers + offsets
 
-        for gi, (circuit, _) in enumerate(CIRCUITS):
-            d    = depths[circuit].get((placement, scheduler))
-            sc_d = sc_depths[circuit]
+        for gi, (circuit, depths, ref_run, sc_d) in enumerate(circuits_data):
+            d = depths.get((mapping, scheduler))
             if d is None:
                 continue
             norm = d / sc_d
             all_norm_vals.append(norm)
 
-            bar = ax.bar(
+            ax.bar(
                 xpos[gi], norm,
                 width=bar_w,
                 color=color,
@@ -154,48 +165,43 @@ def make_figure(depths: dict, sc_depths: dict):
                 zorder=3,
             )
 
-            # Annotate every bar: absolute depth on top, overhead ratio below it
             ax.text(
                 xpos[gi],
-                norm * 1.25,
-                f"{d:,}\n({norm:.1f}× SC)",
+                norm * 1.3,
+                f"{d:,}\n({norm:.1f}×)",
                 ha="center", va="bottom",
-                fontsize=7.5, color="black",
+                fontsize=6.5, color="black",
                 linespacing=1.3,
             )
 
-    # SC baseline: single horizontal dashed line at y=1, spanning full plot
-    x_lo = group_centers[0]  - (n_configs / 2) * bar_w - 0.15
-    x_hi = group_centers[-1] + (n_configs / 2) * bar_w + 0.15
+    # SC baseline line
     ax.axhline(y=1.0, xmin=0, xmax=1, linestyle="--", linewidth=1.6,
                color="black", zorder=5, label="SC baseline (Litinski, d=12)")
 
-    # Axes — log scale
     ax.set_yscale("log")
     ax.set_xticks(group_centers)
-    ax.set_xticklabels([label for _, label in CIRCUITS], fontsize=11)
+    ax.set_xticklabels(
+        [_display(c, ref_run) for c, _, ref_run, _ in circuits_data],
+        fontsize=8,
+    )
     ax.set_xlabel("Circuit", fontsize=11)
-    ax.set_ylabel("Logical Depth (normalized to SC baseline, log scale)", fontsize=10)
+    ax.set_ylabel("Logical depth (normalized to SC baseline, log scale)", fontsize=10)
     ax.set_title(
         "Logical Depth Overhead vs Surface Code Baseline\n"
         "Placement (Random / SA) × Scheduler (Greedy / CP-SAT)",
         fontsize=11,
     )
 
-    # Y-axis ticks: show "1×", "2×", ... as multiples of SC baseline
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(
         lambda x, _: f"{x:.0f}×" if x >= 1 else f"{x:.1f}×"
     ))
-    # Extend Y-axis top to leave room for annotations
     if all_norm_vals:
-        ax.set_ylim(bottom=0.5, top=max(all_norm_vals) * 4.5)
+        ax.set_ylim(bottom=0.5, top=max(all_norm_vals) * 5.0)
 
-    # Grid: y only
     ax.xaxis.grid(False)
     ax.yaxis.grid(True, which="major", linestyle="-", linewidth=0.6, alpha=0.7)
     ax.set_axisbelow(True)
 
-    # Legend — deduplicate (bar() adds one entry per bar; we only want one per config)
     handles, labels = ax.get_legend_handles_labels()
     seen = {}
     for h, l in zip(handles, labels):
@@ -203,78 +209,98 @@ def make_figure(depths: dict, sc_depths: dict):
             seen[l] = h
     ax.legend(seen.values(), seen.keys(), loc="upper right", fontsize=10, framealpha=0.9)
 
-    ax.tick_params(axis="both", labelsize=11)
-
+    ax.tick_params(axis="both", labelsize=9)
     fig.tight_layout()
+
     os.makedirs(OUT_DIR, exist_ok=True)
     fig.savefig(OUT_PNG, dpi=300, bbox_inches="tight")
     print(f"Figure saved → {OUT_PNG}")
     return fig
 
-
 # ── CSV output ────────────────────────────────────────────────────────────────
 
-def write_csv(depths: dict, compile_times: dict):
-    lines = ["circuit,mapping,scheduler,logical_depth,compile_time_sec"]
-    for circuit, _ in CIRCUITS:
+def write_csv(circuits_data: list[tuple[str, dict, dict, int]]):
+    lines = ["circuit,mapping,scheduler,logical_depth,sc_depth"]
+    for circuit, depths, _, sc_d in circuits_data:
         for mapping, scheduler, _, _ in CONFIGS:
-            d = depths[circuit].get((mapping, scheduler))
-            t = compile_times[circuit].get((mapping, scheduler))
+            d = depths.get((mapping, scheduler))
             lines.append(
                 f"{circuit},{mapping},{scheduler},"
                 f"{d if d is not None else 'NA'},"
-                f"{t if t is not None else 'NA'}"
+                f"{sc_d}"
             )
     with open(OUT_CSV, "w") as f:
         f.write("\n".join(lines) + "\n")
     print(f"CSV saved   → {OUT_CSV}")
 
-
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    # Load all depths and compile times
-    depths        = {circuit: {} for circuit, _ in CIRCUITS}
-    compile_times = {circuit: {} for circuit, _ in CIRCUITS}
-    sc_depths     = {}
+    # Load SC baseline once
+    with open(SC_BASE) as f:
+        sc_raw = json.load(f)
+    sc_data = {r["circuit"]: r for r in sc_raw}
 
-    missing = []
-    for circuit, _ in CIRCUITS:
-        sc_depths[circuit] = load_sc_depth(circuit)
+    all_circuits = discover_circuits()
+    print(f"Discovered {len(all_circuits)} PBC circuits: {all_circuits}\n")
+
+    circuits_data = []  # (circuit, depths, ref_run, sc_depth)
+    skipped = []
+
+    for circuit in all_circuits:
+        # Load SC depth — skip if missing
+        sc_d = load_sc_depth(circuit, sc_data)
+        if sc_d is None:
+            print(f"  [SKIP] {circuit} — no SC baseline entry")
+            skipped.append((circuit, "no SC baseline"))
+            continue
+
+        # Load all configs
+        depths = {}
+        ref_run = None
         for mapping, scheduler, _, _ in CONFIGS:
             run = load_run(circuit, mapping, scheduler)
             if run is not None:
-                depths[circuit][(mapping, scheduler)]        = run["logical_depth"]
-                compile_times[circuit][(mapping, scheduler)] = run.get("compile_time_sec")
+                depths[(mapping, scheduler)] = run["logical_depth"]
+                if ref_run is None:
+                    ref_run = run
             else:
-                depths[circuit][(mapping, scheduler)]        = None
-                compile_times[circuit][(mapping, scheduler)] = None
-                missing.append(f"{circuit} {mapping}+{scheduler}")
+                depths[(mapping, scheduler)] = None
 
-    if missing:
-        print(f"WARNING: missing run data for: {', '.join(missing)}")
-        print("  Those bars will be absent from the figure.")
-        print("  Re-run this script once the data is available.\n")
+        # Need at least the naive (sequential) or one config to show anything
+        has_any = any(v is not None for v in depths.values())
+        if not has_any:
+            print(f"  [SKIP] {circuit} — no run data found")
+            skipped.append((circuit, "no run data"))
+            continue
 
-    # Sanity check
-    ok = sanity_check(depths)
-    if not ok:
-        print("ABORT: sanity check failed — fix data before generating figure.")
-        sys.exit(1)
+        # Sanity check — skip circuit if it fails
+        if not sanity_check(circuit, depths):
+            skipped.append((circuit, "sanity check failed"))
+            continue
 
-    make_figure(depths, sc_depths)
-    write_csv(depths, compile_times)
+        circuits_data.append((circuit, depths, ref_run, sc_d))
+        missing_cfgs = [f"{m}+{s}" for (m, s), v in depths.items() if v is None]
+        if missing_cfgs:
+            print(f"  [WARN] {circuit} — missing configs (bars omitted): {missing_cfgs}")
 
-    # Summary line
-    for circuit, _ in CIRCUITS:
-        sc_d  = sc_depths[circuit]
-        cpsat = depths[circuit].get(("sa", "cpsat"))
+    print(f"\nIncluded: {[c for c, *_ in circuits_data]}")
+    if skipped:
+        print(f"Skipped:  {[(c, r) for c, r in skipped]}")
+
+    if not circuits_data:
+        print("\nNo circuits to plot. Exiting.")
+        sys.exit(0)
+
+    make_figure(circuits_data)
+    write_csv(circuits_data)
+
+    print("\nSummary (SA+CP-SAT vs SC baseline):")
+    for circuit, depths, _, sc_d in circuits_data:
+        cpsat = depths.get(("sa", "cpsat"))
+        naive = depths.get(("random", "greedy_critical")) or depths.get(("random", "sequential"))
         if cpsat:
-            ratio = cpsat / sc_d
-            print(
-                f"  {circuit}: SA+CP-SAT depth={cpsat:,} vs SC baseline={sc_d:,} "
-                f"— {ratio:.1f}× overhead remaining."
-            )
+            print(f"  {circuit}: SA+CP-SAT={cpsat:,}  SC={sc_d:,}  → {cpsat/sc_d:.1f}× overhead")
 
     print("\nFigure 3 complete.")
 

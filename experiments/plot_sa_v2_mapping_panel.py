@@ -341,9 +341,9 @@ def main() -> None:
     summary_path = args.summary_out or os.path.join(SUMMARY_DIR, f"mapping_tradeoff_panel_{tag}.json")
 
     title = (
-        f"{ALGORITHM_NAME} Placement Quality vs Greedy Depth ({circuits[0]})"
+        f"{ALGORITHM_NAME} mapping Quality vs Greedy Depth ({circuits[0]})"
         if len(circuits) == 1
-        else f"{ALGORITHM_NAME} Placement Quality vs Greedy Depth ({len(circuits)}-circuit average)"
+        else f"{ALGORITHM_NAME} mapping Quality vs Greedy Depth ({len(circuits)}-circuit average)"
     )
     plot_panel(points, out_path, title)
     save_summary(points, summary_path, circuits=circuits, phases=phases)
