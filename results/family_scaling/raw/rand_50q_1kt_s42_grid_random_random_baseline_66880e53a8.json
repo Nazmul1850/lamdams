@@ -1,0 +1,53 @@
+{
+  "circuit": "rand_50q_1kt_s42",
+  "topology": "grid",
+  "mapper": "random",
+  "profile": "random_baseline",
+  "seed": 42,
+  "pbc_path": "/Users/nazmul/Documents/githubs/lamdams/circuits/benchmarks/pbc/rand_50q_1kt_s42_PBC.json",
+  "hardware_label": "2\u00d73 (6B, 76% fill)",
+  "n_logicals": 50,
+  "logical_depth": 26837,
+  "layer_depths": [
+    1014,
+    1853,
+    3660,
+    2716,
+    3171,
+    2179,
+    2751,
+    3277,
+    2393,
+    2011,
+    1475,
+    337
+  ],
+  "inter_block_all": 906,
+  "inter_block_t_only": 0,
+  "metrics": {
+    "score_total": 42570854.905972175,
+    "active_blocks": 6,
+    "unused_blocks": 0,
+    "occupancy_range": 5.0,
+    "occupancy_std": 1.7950549357115013,
+    "num_multiblock": 906,
+    "span_total": 4034.0,
+    "mst_total": 4147.0,
+    "split_total": 1169.963129361769,
+    "support_peak": 859.0,
+    "support_range": 39.0,
+    "n_blocks": 6
+  },
+  "timing_sec": {
+    "map": 0.0,
+    "schedule": 57.352,
+    "total": 57.352
+  },
+  "sa_params": {
+    "steps": 12000,
+    "t0": 100000.0,
+    "tend": 0.05
+  },
+  "score_kwargs": {},
+  "timestamp": "2026-04-13T06:00:47.716040+00:00"
+}

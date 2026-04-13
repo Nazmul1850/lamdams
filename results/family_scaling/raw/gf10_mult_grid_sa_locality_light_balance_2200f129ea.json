@@ -1,0 +1,53 @@
+{
+  "circuit": "gf10_mult",
+  "topology": "grid",
+  "mapper": "sa",
+  "profile": "locality_light_balance",
+  "seed": 42,
+  "pbc_path": "/Users/nazmul/Documents/githubs/lamdams/circuits/benchmarks/pbc/gf10_mult_PBC.json",
+  "hardware_label": "2\u00d72 (4B, 68% fill)",
+  "n_logicals": 30,
+  "logical_depth": 5873,
+  "layer_depths": [
+    5873
+  ],
+  "inter_block_all": 333,
+  "inter_block_t_only": 0,
+  "metrics": {
+    "score_total": 1878897.2056274847,
+    "active_blocks": 4,
+    "unused_blocks": 0,
+    "occupancy_range": 1.0,
+    "occupancy_std": 0.5,
+    "num_multiblock": 333,
+    "span_total": 369.0,
+    "mst_total": 463.0,
+    "split_total": 112.8137084989848,
+    "support_peak": 283.0,
+    "support_range": 33.0,
+    "n_blocks": 4
+  },
+  "timing_sec": {
+    "map": 42.148,
+    "schedule": 8.686,
+    "total": 50.834
+  },
+  "sa_params": {
+    "steps": 22500,
+    "t0": 100000.0,
+    "tend": 0.05
+  },
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 22000.0,
+    "W_OCC_STD": 11000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 4500.0,
+    "W_MST": 275.0,
+    "W_SPLIT": 15.0,
+    "W_SUPPORT_PEAK": 200.0,
+    "W_SUPPORT_RANGE": 160.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "timestamp": "2026-04-13T06:49:53.978360+00:00"
+}

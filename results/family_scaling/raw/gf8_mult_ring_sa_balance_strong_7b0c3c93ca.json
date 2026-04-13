@@ -1,0 +1,53 @@
+{
+  "circuit": "gf8_mult",
+  "topology": "ring",
+  "mapper": "sa",
+  "profile": "balance_strong",
+  "seed": 42,
+  "pbc_path": "/Users/nazmul/Documents/githubs/lamdams/circuits/benchmarks/pbc/gf8_mult_PBC.json",
+  "hardware_label": "ring (3B, 73% fill)",
+  "n_logicals": 24,
+  "logical_depth": 5449,
+  "layer_depths": [
+    5449
+  ],
+  "inter_block_all": 206,
+  "inter_block_t_only": 0,
+  "metrics": {
+    "score_total": 1783592.8761361325,
+    "active_blocks": 3,
+    "unused_blocks": 0,
+    "occupancy_range": 5.0,
+    "occupancy_std": 2.160246899469287,
+    "num_multiblock": 206,
+    "span_total": 224.0,
+    "mst_total": 224.0,
+    "split_total": 111.45863220465867,
+    "support_peak": 300.0,
+    "support_range": 126.0,
+    "n_blocks": 3
+  },
+  "timing_sec": {
+    "map": 51.278,
+    "schedule": 12.743,
+    "total": 64.022
+  },
+  "sa_params": {
+    "steps": 22500,
+    "t0": 100000.0,
+    "tend": 0.05
+  },
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 25000.0,
+    "W_OCC_STD": 15000.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 6500.0,
+    "W_MST": 325.0,
+    "W_SPLIT": 20.0,
+    "W_SUPPORT_PEAK": 250.0,
+    "W_SUPPORT_RANGE": 160.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "timestamp": "2026-04-13T06:26:52.802793+00:00"
+}

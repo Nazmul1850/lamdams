@@ -1,0 +1,64 @@
+{
+  "circuit": "rand_50q_1kt_s42",
+  "topology": "grid",
+  "mapper": "sa",
+  "profile": "locality_mild",
+  "seed": 42,
+  "pbc_path": "/Users/nazmul/Documents/githubs/lamdams/circuits/benchmarks/pbc/rand_50q_1kt_s42_PBC.json",
+  "hardware_label": "2\u00d73 (6B, 76% fill)",
+  "n_logicals": 50,
+  "logical_depth": 26417,
+  "layer_depths": [
+    869,
+    1895,
+    3580,
+    2810,
+    2964,
+    2084,
+    2670,
+    3309,
+    2469,
+    1977,
+    1458,
+    332
+  ],
+  "inter_block_all": 840,
+  "inter_block_t_only": 0,
+  "metrics": {
+    "score_total": 40170081.958506964,
+    "active_blocks": 5,
+    "unused_blocks": 1,
+    "occupancy_range": 11.0,
+    "occupancy_std": 4.149966532662911,
+    "num_multiblock": 840,
+    "span_total": 2838.0,
+    "mst_total": 2921.0,
+    "split_total": 1446.9109109979886,
+    "support_peak": 841.0,
+    "support_range": 841.0,
+    "n_blocks": 6
+  },
+  "timing_sec": {
+    "map": 339.104,
+    "schedule": 43.635,
+    "total": 382.738
+  },
+  "sa_params": {
+    "steps": 12000,
+    "t0": 100000.0,
+    "tend": 0.05
+  },
+  "score_kwargs": {
+    "W_UNUSED_BLOCKS": 1000000.0,
+    "W_OCC_RANGE": 9000.0,
+    "W_OCC_STD": 4500.0,
+    "W_MULTI_BLOCK": 0.0,
+    "W_SPAN": 13000.0,
+    "W_MST": 700.0,
+    "W_SPLIT": 10.0,
+    "W_SUPPORT_PEAK": 100.0,
+    "W_SUPPORT_RANGE": 18.0,
+    "W_SUPPORT_STD": 0.0
+  },
+  "timestamp": "2026-04-13T06:24:28.977874+00:00"
+}
