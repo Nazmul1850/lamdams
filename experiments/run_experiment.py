@@ -45,7 +45,7 @@ from typing import Dict, List, Optional, Tuple
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modqldpc.frontend.extract_pauli import GoSCConverter
-from modqldpc.mapping.algos.sa_mapping import TUNED_SA_STEPS, TUNED_SA_T0, TUNED_SA_TEND
+from modqldpc.mapping.algos.sa_mapping import TUNED_SA_STEPS, TUNED_SA_T0, TUNED_SA_TEND, TUNED_SCORE_KWARGS
 from modqldpc.mapping.factory import get_mapper
 from modqldpc.mapping.hardware_gen import make_hardware
 from modqldpc.mapping.mapper import MappingConfig, MappingPlan, MappingProblem
@@ -112,6 +112,51 @@ SCHED_NAMES = {
 
 TOPOLOGIES = ["grid", "ring"]
 
+# ── Family definitions ────────────────────────────────────────────────────────
+#
+# --family selects both the circuit list and the SA score_kwargs for that family.
+# Score kwargs for families without a tuned preset default to TUNED_SCORE_KWARGS.
+#
+# GF kwargs: span_drop profile from gf_scaling.py sensitivity run.
+#   Rationale: W_SPAN dominates BASE_KW at ~88% for GF circuits; reducing it
+#   ×0.08 lets occupancy/balance terms drive SA, yielding +14–28% depth gain.
+
+FAMILY_SCORE_KWARGS: Dict[str, Dict[str, float]] = {
+    "gf": {
+        # "W_UNUSED_BLOCKS": 1_000_000.0,
+        # "W_OCC_RANGE":        40_000.0,   # ×4.0 vs base
+        # "W_OCC_STD":          20_000.0,   # ×4.0 vs base
+        # "W_MULTI_BLOCK":           0.0,
+        # "W_SPAN":                800.0,   # ×0.08 vs base — span suppressed
+        # "W_MST":                  50.0,   # ×0.10 vs base
+        # "W_SPLIT":                30.0,   # ×3.0 vs base
+        # "W_SUPPORT_PEAK":        100.0,
+        # "W_SUPPORT_RANGE":        20.0,
+        # "W_SUPPORT_STD":           0.0,
+        "W_UNUSED_BLOCKS": 1000000.0,
+        "W_OCC_RANGE": 40000.0,
+        "W_OCC_STD": 20000.0,
+        "W_MULTI_BLOCK": 0.0,
+        "W_SPAN": 800.0,
+        "W_MST": 50.0,
+        "W_SPLIT": 30.0,
+        "W_SUPPORT_PEAK": 100.0,
+        "W_SUPPORT_RANGE": 20.0,
+        "W_SUPPORT_STD": 0.0
+    },
+    # rand/adder/qft: tuned defaults; update once random_scaling.py results are in
+    "rand":  dict(TUNED_SCORE_KWARGS),
+    "adder": dict(TUNED_SCORE_KWARGS),
+    "qft":   dict(TUNED_SCORE_KWARGS),
+}
+
+FAMILY_CIRCUITS: Dict[str, List[str]] = {
+    "gf":    ["gf6_mult", "gf7_mult", "gf8_mult", "gf9_mult", "gf10_mult"],
+    "rand":  ["rand_50q_500t_s42", "rand_50q_1kt_s42", "rand_50q_1500t_s42"],
+    "adder": ["Adder8", "Adder16", "Adder32", "Adder64", "Adder128"],
+    "qft":   ["QFT8", "QFT16", "QFT32", "QFT64", "QFT128"],
+}
+
 
 # ── Circuit discovery ─────────────────────────────────────────────────────────
 
@@ -175,19 +220,25 @@ def _run_mapping(
     conv: GoSCConverter,
     hw,
     n_logicals: int,
+    score_kwargs: Optional[Dict[str, float]] = None,
 ) -> Tuple[MappingPlan, float]:
     """
     Run mapping and return (plan, mapping_time_sec).
+    score_kwargs overrides SA score weights (ignored for random mapper).
     """
     mapper_name = MAPPER_NAMES[mapping_key]
     cfg = MappingConfig(seed=seed, sa_steps=SA_STEPS, sa_t0=SA_T0, sa_tend=SA_TEND)
+
+    meta: dict = {"rotations": conv.program.rotations, "verbose": False, "debug": False}
+    if mapping_key == "sa" and score_kwargs:
+        meta["score_kwargs"] = score_kwargs
 
     t0 = time.perf_counter()
     plan = get_mapper(mapper_name).solve(
         MappingProblem(n_logicals=n_logicals),
         hw,
         cfg,
-        {"rotations": conv.program.rotations, "verbose": False, "debug": False},
+        meta,
     )
     mapping_time = round(time.perf_counter() - t0, 3)
     return plan, mapping_time
@@ -292,6 +343,7 @@ def _run_topology(
     n_logicals: int,
     seed: int,
     cp_time: float,
+    score_kwargs: Optional[Dict[str, float]] = None,
 ) -> dict:
     """
     Run all 5 configs for one topology. Returns a dict with hw info and per-config results.
@@ -331,7 +383,7 @@ def _run_topology(
         n_data=N_DATA,
         coupler_capacity=COUPLER_CAPACITY,
     )
-    plan_sa, t_map_sa = _run_mapping("sa", seed, conv, hw_sa, n_logicals)
+    plan_sa, t_map_sa = _run_mapping("sa", seed, conv, hw_sa, n_logicals, score_kwargs)
     print(f" done ({t_map_sa:.1f}s)")
 
     # SA score metadata from plan
@@ -416,11 +468,14 @@ def run_circuit(
     seed: int,
     cp_time: float,
     *,
+    family: Optional[str] = None,
     force: bool = False,
 ) -> dict:
     """
     Run all 5 configs × 2 topologies for one circuit. Saves and returns the result JSON.
+    family selects SA score_kwargs (gf / rand / adder / qft); None uses tuned defaults.
     """
+    score_kwargs = FAMILY_SCORE_KWARGS.get(family) if family else None
     out_path = result_path(circuit_name, seed)
     if not force and os.path.exists(out_path):
         print(f"[skip] {os.path.basename(out_path)} already exists (use --force to re-run)")
@@ -429,6 +484,8 @@ def run_circuit(
 
     print(f"\n{'='*70}")
     print(f"  Circuit: {circuit_name}  seed={seed}  cp_time={cp_time}s/layer")
+    if family:
+        print(f"  Family SA scaling: {family}")
     print(f"  SA: steps={SA_STEPS}  t0={SA_T0:.0e}  tend={SA_TEND}")
     print(f"  Hardware: n_data={N_DATA}  coupler_capacity={COUPLER_CAPACITY}")
     print(f"{'='*70}")
@@ -439,7 +496,7 @@ def run_circuit(
     topo_results: dict = {}
     for topology in TOPOLOGIES:
         topo_results[topology] = _run_topology(
-            circuit_name, topology, conv, n_logicals, seed, cp_time
+            circuit_name, topology, conv, n_logicals, seed, cp_time, score_kwargs
         )
 
     record = {
@@ -510,6 +567,8 @@ Examples:
     parser.add_argument("--list",    action="store_true",
                         help="List all available PBC circuits and exit")
     parser.add_argument("--circuit", help="Circuit name to run")
+    parser.add_argument("--family",  choices=["gf", "rand", "adder", "qft"], default=None,
+                        help="Circuit family — selects tuned SA score_kwargs for that family")
     parser.add_argument("--seed",    type=int, default=42,
                         help="Random seed (default: 42)")
     parser.add_argument("--cp-time", type=float, default=DEFAULT_CPSAT_TIME,
@@ -528,16 +587,19 @@ Examples:
         print(f"Available circuits ({len(circuits)}) in {PBC_DIR}:\n")
         for name in sorted(circuits):
             print(f"  {name}")
+        if args.family:
+            print(f"\nFamily '{args.family}' circuits: {FAMILY_CIRCUITS.get(args.family, [])}")
         return
 
     if not args.circuit:
         parser.print_help()
         return
-
+    print(f"Running experiment for circuit '{args.circuit}' with seed={args.seed} and CP-SAT time limit={args.cp_time}s/layer... of family '{args.family}'" if args.family else "...")
     run_circuit(
         args.circuit,
         seed=args.seed,
         cp_time=args.cp_time,
+        family=args.family,
         force=args.force,
     )
 

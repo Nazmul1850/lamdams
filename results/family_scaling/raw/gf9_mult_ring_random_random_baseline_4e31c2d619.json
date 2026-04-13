@@ -1,0 +1,42 @@
+{
+  "circuit": "gf9_mult",
+  "topology": "ring",
+  "mapper": "random",
+  "profile": "random_baseline",
+  "seed": 42,
+  "pbc_path": "/Users/nazmul/Documents/githubs/lamdams/circuits/benchmarks/pbc/gf9_mult_PBC.json",
+  "hardware_label": "ring (3B, 82% fill)",
+  "n_logicals": 27,
+  "logical_depth": 6455,
+  "layer_depths": [
+    6455
+  ],
+  "inter_block_all": 285,
+  "inter_block_t_only": 0,
+  "metrics": {
+    "score_total": 3741788.7717558057,
+    "active_blocks": 3,
+    "unused_blocks": 0,
+    "occupancy_range": 3.0,
+    "occupancy_std": 1.4142135623730951,
+    "num_multiblock": 285,
+    "span_total": 349.0,
+    "mst_total": 349.0,
+    "split_total": 67.77039439401442,
+    "support_peak": 372.0,
+    "support_range": 117.0,
+    "n_blocks": 3
+  },
+  "timing_sec": {
+    "map": 0.0,
+    "schedule": 8.138,
+    "total": 8.138
+  },
+  "sa_params": {
+    "steps": 22500,
+    "t0": 100000.0,
+    "tend": 0.05
+  },
+  "score_kwargs": {},
+  "timestamp": "2026-04-13T06:51:21.987958+00:00"
+}
