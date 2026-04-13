@@ -14,6 +14,46 @@ from ..model import HardwareGraph, BlockId, LogicalId, LocalId
 
 
 # ============================================================
+# Tuned score weights (from sensitivity analysis, phases 1–3)
+#
+# Phase 1 (one-at-a-time screening, 9 circuits × 2 topologies):
+#   Selected for impact: W_SPAN, W_UNUSED_BLOCKS, W_OCC_RANGE, W_OCC_STD,
+#                        W_MULTI_BLOCK, W_MST, W_SUPPORT_PEAK, W_SUPPORT_RANGE
+#   Screened out (depth-span < 1%, inter-span < 1%): W_SPLIT, W_SUPPORT_STD
+#
+# Phase 2 (cumulative greedy selection, accept if Δ mean-depth-gain ≥ 0.2%):
+#   W_SPAN:       50000 → 10000  (+2.3% gain)
+#   W_OCC_STD:     1000 →  5000  (accepted refinement)
+#   W_MULTI_BLOCK: 200000 → 0    (dropped — flat multiblock count conflicted
+#                                  with span/MST; span alone is sufficient)
+#   All others: base value confirmed.
+#
+# Phase 3 (hyperparameter sweep):
+#   steps: 25000 → 22500   (plateau reached earlier; saves ~10% runtime)
+#   t0 and t_end unchanged: 1e5 and 0.05
+#
+# Zero-weight terms (W_MULTI_BLOCK, W_SUPPORT_STD) are not computed.
+# ============================================================
+
+TUNED_SCORE_KWARGS: Dict[str, float] = {
+    "W_UNUSED_BLOCKS": 1_000_000.0,
+    "W_OCC_RANGE":        10_000.0,
+    "W_OCC_STD":           5_000.0,
+    "W_MULTI_BLOCK":           0.0,   # tuned to 0 → skipped in scoring
+    "W_SPAN":             10_000.0,
+    "W_MST":                 500.0,
+    "W_SPLIT":                10.0,
+    "W_SUPPORT_PEAK":        100.0,
+    "W_SUPPORT_RANGE":        20.0,
+    "W_SUPPORT_STD":           0.0,   # tuned to 0 → skipped in scoring
+}
+
+TUNED_SA_STEPS: int   = 22_500
+TUNED_SA_T0:    float = 1e5
+TUNED_SA_TEND:  float = 5e-2
+
+
+# ============================================================
 # Support extraction
 # ============================================================
 
@@ -59,6 +99,14 @@ def _first_free(occ: Dict[BlockId, List[Optional[LogicalId]]], b: BlockId) -> Op
         if x is None:
             return i
     return None
+
+
+def _occupancy_counts(hw: HardwareGraph) -> Dict[BlockId, int]:
+    """Return per-block logical qubit count."""
+    counts: Dict[BlockId, int] = {b: 0 for b in hw.blocks}
+    for b in hw.logical_to_block.values():
+        counts[b] += 1
+    return counts
 
 
 # ============================================================
@@ -205,193 +253,198 @@ def _undo_move(hw: HardwareGraph, move: Move) -> None:
 
 
 # ============================================================
-# Scoring
+# Scoring helpers
 # ============================================================
 
-@dataclass
-class RotationDebug:
-    """Per-rotation penalty breakdown, collected when ENABLE_DEBUG=True."""
-    ridx: int
-    layer: Optional[int]
-    word: str
-    support: Tuple[int, ...]
-    touched_blocks: Tuple[BlockId, ...]
-    k: int
-    support_size: int
-    per_block_counts: Dict[BlockId, int]
-    raw_mst: float
-    raw_split: float
-    multi_block_pen: float
-    mst_pen: float
-    split_pen: float
-    total_pen: float
+def _mean(values: List[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
 
+
+def _std(values: List[float]) -> float:
+    if len(values) <= 1:
+        return 0.0
+    mu = _mean(values)
+    return math.sqrt(sum((x - mu) ** 2 for x in values) / len(values))
+
+
+def _support_split(rot, hw: HardwareGraph, blocks: List[BlockId]) -> float:
+    """L2 split: std of per-block qubit counts across touched blocks."""
+    per_block: Dict[BlockId, int] = {b: 0 for b in blocks}
+    for q in _rotation_support(rot):
+        b = hw.logical_to_block.get(q)
+        if b in per_block:
+            per_block[b] += 1
+    counts = list(per_block.values())
+    return _std([float(c) for c in counts])
+
+
+# ============================================================
+# Score dataclass and scoring function
+# ============================================================
 
 @dataclass
 class ScoreBreakdown:
     total: float
-    unused_blocks_pen: float   # 1e7 * n_unused      — primary:    use all blocks
-    multi_block_pen: float     # 1e4 * num_multiblock — secondary:  reduce inter-block
-    mst_pen: float             # 1e2 * total_mst      — tertiary:   spatial compactness
-    split_pen: float           # 1e2 * total_split    — quaternary: balance support
-    block_loads: Dict[BlockId, int] = field(default_factory=dict)
-    num_multiblock: int = 0
-    n_unused_blocks: int = 0
-    max_blocks_touched: int = 0
-    top_rotations: List[RotationDebug] = field(default_factory=list)
+    # Block utilization
+    active_blocks: int
+    unused_blocks: int
+    occupancy_range: float
+    occupancy_std: float
+    # Multi-block / span
+    num_multiblock: int
+    span_total: float
+    max_blocks_touched: int
+    # Locality
+    mst_total: float
+    # Support balance
+    split_total: float
+    # Support load
+    support_peak: float
+    support_range: float
+    # Penalty terms (for metadata / debug)
+    unused_block_pen: float
+    occupancy_range_pen: float
+    occupancy_std_pen: float
+    span_pen: float
+    mst_pen: float
+    split_pen: float
+    support_peak_pen: float
+    support_range_pen: float
 
 
 def _score(
     rotations: list,
     hw: HardwareGraph,
     *,
-    W_UNUSED_BLOCKS: float = 1e7,   # primary:    use all blocks
-    W_MULTI_BLOCK: float  = 1e4,    # secondary:  reduce inter-block rotations
-    W_MST: float          = 1e2,    # tertiary:   keep inter-block spans spatially close
-    W_SPLIT: float        = 1e2,    # quaternary: balance support across touched blocks
-    SPLIT_MODE: str = "l2",
-    RETURN_TOP_K: int = 10,
-    ENABLE_DEBUG: bool = False,
+    W_UNUSED_BLOCKS: float = TUNED_SCORE_KWARGS["W_UNUSED_BLOCKS"],
+    W_OCC_RANGE:     float = TUNED_SCORE_KWARGS["W_OCC_RANGE"],
+    W_OCC_STD:       float = TUNED_SCORE_KWARGS["W_OCC_STD"],
+    W_MULTI_BLOCK:   float = TUNED_SCORE_KWARGS["W_MULTI_BLOCK"],  # 0.0
+    W_SPAN:          float = TUNED_SCORE_KWARGS["W_SPAN"],
+    W_MST:           float = TUNED_SCORE_KWARGS["W_MST"],
+    W_SPLIT:         float = TUNED_SCORE_KWARGS["W_SPLIT"],
+    W_SUPPORT_PEAK:  float = TUNED_SCORE_KWARGS["W_SUPPORT_PEAK"],
+    W_SUPPORT_RANGE: float = TUNED_SCORE_KWARGS["W_SUPPORT_RANGE"],
+    W_SUPPORT_STD:   float = TUNED_SCORE_KWARGS["W_SUPPORT_STD"],  # 0.0
 ) -> ScoreBreakdown:
     """
     Energy function to minimise.
 
-    Weight priority (each tier dominates all lower tiers):
+    Terms and tuned weights (from sensitivity analysis):
+      W_UNUSED_BLOCKS  1e6  — use all hardware blocks              (dominant)
+      W_OCC_RANGE      1e4  — even out block occupancy (max-min)
+      W_OCC_STD        5e3  — smooth occupancy distribution (std)
+      W_SPAN           1e4  — penalise extra blocks touched (k-1)
+      W_MST            5e2  — prefer spatially compact multi-block spans
+      W_SPLIT          10   — balance qubit support across touched blocks
+      W_SUPPORT_PEAK   1e2  — reduce busiest block under rotation load
+      W_SUPPORT_RANGE  20   — flatten rotation-load range across blocks
+      W_MULTI_BLOCK    0    — (screened out; span already captures this)
+      W_SUPPORT_STD    0    — (screened out; low impact)
 
-      W_UNUSED_BLOCKS  (1e7)  — penalise blocks with no qubits assigned.
-                                 Primary: every block must be used.
-
-      W_MULTI_BLOCK    (1e4)  — count of PauliRotations whose support spans ≥2 blocks.
-                                 Secondary: reduce inter-block communication.
-
-      W_MST            (1e2)  — sum of MST hop-lengths for multi-block rotations.
-                                 Tertiary: when multi-block is unavoidable, keep it local.
-
-      W_SPLIT          (1e2)  — support-imbalance (std of per-block qubit counts) for
-                                 multi-block rotations.
-                                 Quaternary: prefer equal qubit split across touched blocks.
-
-    SPLIT_MODE: "l1" (max-min counts), "l2" (std of counts), "pairwise" (max |ci-cj|).
+    Zero-weight terms are not computed.
     """
-    mst_total  = 0.0
-    split_total = 0.0
-    num_multiblock   = 0
-    max_blocks_touched = 0
-    debug_rows: List[RotationDebug] = []
+    occupancies = _occupancy_counts(hw)
+    support_loads: Dict[BlockId, int] = {b: 0 for b in hw.blocks}
 
-    for ridx, rot in enumerate(rotations):
-        S = _blocks_touched(rot, hw)
-        k = len(S)
+    num_multiblock  = 0
+    span_total      = 0.0
+    mst_total       = 0.0
+    split_total     = 0.0
+    max_blocks_touched = 0
+
+    for rot in rotations:
+        touched = sorted(_blocks_touched(rot, hw))
+        k = len(touched)
         if k > max_blocks_touched:
             max_blocks_touched = k
-
-        raw_mst = 0.0
-        raw_split_val = 0.0
-        per_block_counts: Dict[BlockId, int] = {}
+        for b in touched:
+            support_loads[b] += 1
 
         if k > 1:
             num_multiblock += 1
-            raw_mst = float(_mst_len(S, hw))
-            mst_total += raw_mst
+            span_total += float(k - 1)
+            if W_MST != 0.0:
+                mst_total += float(_mst_len(set(touched), hw))
+            if W_SPLIT != 0.0:
+                split_total += _support_split(rot, hw, touched)
 
-            per_block_counts = {b: 0 for b in S}
-            for q in _rotation_support(rot):
-                b = hw.logical_to_block.get(q)
-                if b in per_block_counts:
-                    per_block_counts[b] += 1
-            counts = list(per_block_counts.values())
+    # Occupancy statistics
+    occ_values = [float(v) for v in occupancies.values()]
+    active_blocks = sum(1 for v in occ_values if v > 0)
+    unused_blocks = len(occ_values) - active_blocks
+    occupancy_range = float(max(occ_values) - min(occ_values)) if occ_values else 0.0
+    occupancy_std   = _std(occ_values) if W_OCC_STD != 0.0 else 0.0
 
-            if SPLIT_MODE == "l1":
-                raw_split_val = float(max(counts) - min(counts))
-            elif SPLIT_MODE == "l2":
-                mean = sum(counts) / len(counts)
-                raw_split_val = math.sqrt(
-                    sum((c - mean) ** 2 for c in counts) / len(counts)
-                )
-            elif SPLIT_MODE == "pairwise":
-                raw_split_val = float(
-                    max(abs(counts[i] - counts[j])
-                        for i in range(len(counts))
-                        for j in range(i + 1, len(counts)))
-                )
-            split_total += raw_split_val
+    # Support load statistics
+    sup_values = [float(v) for v in support_loads.values()]
+    support_peak  = float(max(sup_values)) if sup_values else 0.0
+    support_range = float(max(sup_values) - min(sup_values)) if sup_values else 0.0
+    # W_SUPPORT_STD == 0.0 → skip std computation
 
-        if ENABLE_DEBUG:
-            supp = _rotation_support(rot)
-            debug_rows.append(RotationDebug(
-                ridx=ridx,
-                layer=getattr(rot, "layer", None),
-                word=rot.axis.lstrip("+-"),
-                support=tuple(sorted(supp)),
-                touched_blocks=tuple(sorted(S)),
-                k=k,
-                support_size=len(supp),
-                per_block_counts=dict(per_block_counts),
-                raw_mst=raw_mst,
-                raw_split=raw_split_val,
-                multi_block_pen=W_MULTI_BLOCK * float(k > 1),
-                mst_pen=W_MST * raw_mst,
-                split_pen=W_SPLIT * raw_split_val,
-                total_pen=(W_MULTI_BLOCK * float(k > 1)
-                           + W_MST * raw_mst
-                           + W_SPLIT * raw_split_val),
-            ))
-
-    active_blocks = {hw.logical_to_block[q] for q in hw.logical_to_block}
-    n_unused = sum(1 for b in hw.blocks if b not in active_blocks)
-
-    top_rotations: List[RotationDebug] = []
-    if ENABLE_DEBUG and debug_rows:
-        top_rotations = sorted(debug_rows, key=lambda r: r.total_pen, reverse=True)[:RETURN_TOP_K]
+    # Penalty terms
+    unused_block_pen    = W_UNUSED_BLOCKS * float(unused_blocks)
+    occupancy_range_pen = W_OCC_RANGE     * occupancy_range
+    occupancy_std_pen   = W_OCC_STD       * occupancy_std
+    span_pen            = W_SPAN          * span_total
+    mst_pen             = W_MST           * mst_total
+    split_pen           = W_SPLIT         * split_total
+    support_peak_pen    = W_SUPPORT_PEAK  * support_peak
+    support_range_pen   = W_SUPPORT_RANGE * support_range
+    # W_MULTI_BLOCK == 0.0 and W_SUPPORT_STD == 0.0 → not added
 
     total = (
-        W_UNUSED_BLOCKS * n_unused
-        + W_MULTI_BLOCK * num_multiblock
-        + W_MST * mst_total
-        + W_SPLIT * split_total
+        unused_block_pen
+        + occupancy_range_pen
+        + occupancy_std_pen
+        + span_pen
+        + mst_pen
+        + split_pen
+        + support_peak_pen
+        + support_range_pen
     )
 
     return ScoreBreakdown(
         total=total,
-        unused_blocks_pen=W_UNUSED_BLOCKS * n_unused,
-        multi_block_pen=W_MULTI_BLOCK * num_multiblock,
-        mst_pen=W_MST * mst_total,
-        split_pen=W_SPLIT * split_total,
-        block_loads={b: 0 for b in hw.blocks},   # kept for compat, not used in scoring
+        active_blocks=active_blocks,
+        unused_blocks=unused_blocks,
+        occupancy_range=occupancy_range,
+        occupancy_std=occupancy_std,
         num_multiblock=num_multiblock,
-        n_unused_blocks=n_unused,
+        span_total=span_total,
         max_blocks_touched=max_blocks_touched,
-        top_rotations=top_rotations,
+        mst_total=mst_total,
+        split_total=split_total,
+        support_peak=support_peak,
+        support_range=support_range,
+        unused_block_pen=unused_block_pen,
+        occupancy_range_pen=occupancy_range_pen,
+        occupancy_std_pen=occupancy_std_pen,
+        span_pen=span_pen,
+        mst_pen=mst_pen,
+        split_pen=split_pen,
+        support_peak_pen=support_peak_pen,
+        support_range_pen=support_range_pen,
     )
 
 
-def print_score_debug(
-    score: ScoreBreakdown,
-    *,
-    title: str = "SCORE DEBUG",
-    show_top_k: int = 10,
-) -> None:
-    """Pretty-print a ScoreBreakdown. Pass ENABLE_DEBUG=True to _score to populate top_rotations."""
+def print_score_debug(score: ScoreBreakdown, *, title: str = "SCORE DEBUG") -> None:
     bar = "=" * 60
     print(f"\n{bar}")
     print(f"  {title}")
     print(bar)
     print(f"  total              : {score.total:.2f}")
-    print(f"  unused_blocks_pen  : {score.unused_blocks_pen:.2f}  (n_unused={score.n_unused_blocks})")
-    print(f"  multi_block_pen    : {score.multi_block_pen:.2f}  (n_multiblock={score.num_multiblock})")
-    print(f"  mst_pen            : {score.mst_pen:.2f}")
-    print(f"  split_pen          : {score.split_pen:.2f}")
+    print(f"  active_blocks      : {score.active_blocks}  (unused={score.unused_blocks})")
+    print(f"  unused_block_pen   : {score.unused_block_pen:.2f}")
+    print(f"  occupancy_range    : {score.occupancy_range:.4f}  pen={score.occupancy_range_pen:.2f}")
+    print(f"  occupancy_std      : {score.occupancy_std:.4f}  pen={score.occupancy_std_pen:.2f}")
+    print(f"  span_total         : {score.span_total:.2f}  pen={score.span_pen:.2f}")
+    print(f"  mst_total          : {score.mst_total:.2f}  pen={score.mst_pen:.2f}")
+    print(f"  split_total        : {score.split_total:.2f}  pen={score.split_pen:.2f}")
+    print(f"  support_peak       : {score.support_peak:.2f}  pen={score.support_peak_pen:.2f}")
+    print(f"  support_range      : {score.support_range:.2f}  pen={score.support_range_pen:.2f}")
+    print(f"  num_multiblock     : {score.num_multiblock}")
     print(f"  max_blocks_touched : {score.max_blocks_touched}")
-    if score.top_rotations:
-        k = min(show_top_k, len(score.top_rotations))
-        print(f"\n  Top-{k} rotations by penalty:")
-        for i, r in enumerate(score.top_rotations[:k]):
-            print(
-                f"    [{i+1:2d}] ridx={r.ridx} layer={r.layer} k={r.k} "
-                f"supp={r.support_size} blocks={r.touched_blocks} "
-                f"pen={r.total_pen:.2f} "
-                f"(mst={r.raw_mst:.0f} split={r.raw_split:.2f})"
-            )
     print(bar)
 
 
@@ -407,17 +460,16 @@ def _debug_state(rotations: list, hw: HardwareGraph, cfg: MappingConfig) -> None
     print(f"  rotations          : {len(rotations)}")
     print(f"  cfg.sa_steps/t0/tend: {cfg.sa_steps} / {cfg.sa_t0} / {cfg.sa_tend}")
 
-    # check a sample of rotation supports and which blocks they hit
     multi_block = 0
-    no_support = 0
-    unmatched = 0
+    no_support  = 0
+    unmatched   = 0
     for rot in rotations:
-        supp = _rotation_support(rot)
+        supp   = _rotation_support(rot)
         blocks = _blocks_touched(rot, hw)
         if not supp:
             no_support += 1
         elif not blocks:
-            unmatched += 1  # support qubits not in hw.logical_to_block
+            unmatched += 1
         elif len(blocks) > 1:
             multi_block += 1
 
@@ -425,7 +477,6 @@ def _debug_state(rotations: list, hw: HardwareGraph, cfg: MappingConfig) -> None
     print(f"  rotations w/ unmatched qubits: {unmatched}  <- nonzero = logical ID mismatch")
     print(f"  rotations spanning >1 block  : {multi_block}")
 
-    # per-block utilisation table
     load: Dict[BlockId, int] = {b: 0 for b in hw.blocks}
     for rot in rotations:
         for b in _blocks_touched(rot, hw):
@@ -437,22 +488,15 @@ def _debug_state(rotations: list, hw: HardwareGraph, cfg: MappingConfig) -> None
     for b in sorted(hw.blocks.keys()):
         cap = hw.blocks[b].num_logicals
         print(f"  {b:>6}  {qubit_count[b]:>8}  {cap:>8}  {load[b]:>8}")
-    active_blocks = set(hw.logical_to_block.values())
-    active_loads = [load[b] for b in active_blocks] if active_blocks else [0]
-    print(f"  active-block load  max={max(active_loads)}  (balance metric)")
 
-    # initial score
-    s = _score(rotations, hw, ENABLE_DEBUG=True)
-    print(f"  initial score  total={s.total:.1f}  unused_blocks={s.unused_blocks_pen:.1f}  "
-          f"multi_block={s.multi_block_pen:.1f}  mst={s.mst_pen:.1f}  split={s.split_pen:.1f}")
+    s = _score(rotations, hw)
+    print_score_debug(s, title="Initial score")
 
-    # check 10 random moves and their score deltas
-    import random as _random
-    rng = _random.Random(0)
+    rng = random.Random(0)
     deltas = []
     for _ in range(20):
         move = _random_move(hw, rng)
-        nxt = _score(rotations, hw, ENABLE_DEBUG=True)
+        nxt = _score(rotations, hw)
         deltas.append(nxt.total - s.total)
         _undo_move(hw, move)
     nonzero = sum(1 for d in deltas if d != 0.0)
@@ -473,6 +517,7 @@ def _anneal(
     t0: float,
     t_end: float,
     seed: int,
+    score_kwargs: Optional[Dict[str, float]] = None,
     verbose: bool = False,
     report_every: int = 2_000,
 ) -> Tuple[ScoreBreakdown, Dict[LogicalId, Tuple[BlockId, LocalId]]]:
@@ -485,33 +530,29 @@ def _anneal(
         (best_score, best_map)  where best_map[q] = (block, local)
     """
     rng = random.Random(seed)
-    T0 = t0
-    Tend = t_end
+    skw = score_kwargs or {}
 
-    # snapshot helper
     def _snapshot() -> Dict[LogicalId, Tuple[BlockId, LocalId]]:
         return {q: (hw.logical_to_block[q], hw.logical_to_local[q]) for q in hw.logical_to_block}
 
     best_map = _snapshot()
-    cur = _score(rotations, hw)
+    cur  = _score(rotations, hw, **skw)
     best = cur
 
-    n_noop = 0
+    n_noop   = 0
     n_accept = 0
     n_reject = 0
 
     for it in range(1, steps + 1):
         frac = (it - 1) / max(1, steps - 1)
-        T = T0 * ((Tend / T0) ** frac)
+        T    = t0 * ((t_end / t0) ** frac)
 
         move = _random_move(hw, rng)
-
         if move[0] == "noop":
             n_noop += 1
             continue
 
-        nxt = _score(rotations, hw)
-
+        nxt   = _score(rotations, hw, **skw)
         delta = nxt.total - cur.total
         accept = delta <= 0 or rng.random() < math.exp(-delta / max(1e-12, T))
 
@@ -519,7 +560,7 @@ def _anneal(
             n_accept += 1
             cur = nxt
             if cur.total < best.total:
-                best = cur
+                best     = cur
                 best_map = _snapshot()
         else:
             n_reject += 1
@@ -529,13 +570,13 @@ def _anneal(
             print(
                 f"[SA-mapping] it={it:6d}  T={T:.4f}  "
                 f"cur={cur.total:.1f}  best={best.total:.1f}  "
-                f"(unused={cur.unused_blocks_pen:.0f} multi={cur.multi_block_pen:.0f} "
-                f"mst={cur.mst_pen:.0f} split={cur.split_pen:.0f})  "
+                f"(unused={cur.unused_blocks} span={cur.span_total:.1f} "
+                f"mst={cur.mst_total:.1f} peak={cur.support_peak:.1f})  "
                 f"accept={n_accept}  reject={n_reject}  noop={n_noop}"
             )
             n_noop = n_accept = n_reject = 0
 
-    # restore best mapping into hw
+    # Restore best mapping into hw
     hw.logical_to_block.clear()
     hw.logical_to_local.clear()
     for q, (b, l) in best_map.items():
@@ -552,9 +593,9 @@ def _anneal(
 @dataclass(frozen=True)
 class SimulatedAnnealingMapper(BaseMapper):
     """
-    SA mapper that minimises the number of PauliRotations spanning multiple blocks.
+    SA mapper using tuned scoring and hyperparameters from sensitivity analysis.
 
-    Compatible with the factory pattern — no constructor args required:
+    Compatible with the factory pattern:
 
         mapper = get_mapper("simulated_annealing")
         plan   = mapper.solve(problem, hw, cfg, meta={"rotations": converter.program.rotations})
@@ -562,9 +603,12 @@ class SimulatedAnnealingMapper(BaseMapper):
     meta keys:
         rotations  (required) : list[PauliRotation] from GoSCConverter.program.rotations
         verbose    (optional) : bool, print SA progress (default False)
+        score_kwargs (optional): override individual score weights
 
     SA temperature schedule and step count are read from cfg:
         cfg.sa_steps, cfg.sa_t0, cfg.sa_tend, cfg.seed
+    Tuned defaults (TUNED_SA_STEPS=22500, TUNED_SA_T0=1e5, TUNED_SA_TEND=5e-2)
+    are applied in run_experiment.py via SA_STEPS / SA_T0 / SA_TEND constants.
     """
     name: str = "simulated_annealing"
     init_mapper_name: str = "auto_round_robin_mapping"
@@ -584,7 +628,11 @@ class SimulatedAnnealingMapper(BaseMapper):
                 "(list of PauliRotation from GoSCConverter.program.rotations)."
             )
         verbose: bool = meta.get("verbose", False)
-        debug: bool = meta.get("debug", False)
+        debug:   bool = meta.get("debug",   False)
+
+        # Build score kwargs: start from tuned defaults, allow caller overrides
+        skw = dict(TUNED_SCORE_KWARGS)
+        skw.update(meta.get("score_kwargs", {}) or {})
 
         from ..factory import get_mapper
 
@@ -603,6 +651,7 @@ class SimulatedAnnealingMapper(BaseMapper):
             t0=cfg.sa_t0,
             t_end=cfg.sa_tend,
             seed=cfg.seed,
+            score_kwargs=skw,
             verbose=verbose,
         )
 
@@ -614,18 +663,24 @@ class SimulatedAnnealingMapper(BaseMapper):
             out_b,
             out_l,
             meta={
-                "mapper":                    self.name,
-                "init_mapper":               self.init_mapper_name,
-                "sa_steps":                  cfg.sa_steps,
-                "sa_t0":                     cfg.sa_t0,
-                "sa_tend":                   cfg.sa_tend,
-                "best_score_total":          best_score.total,
-                "best_score_unused_blocks":  best_score.unused_blocks_pen,
-                "best_score_multi_block":    best_score.multi_block_pen,
-                "best_score_mst":            best_score.mst_pen,
-                "best_score_split":          best_score.split_pen,
-                "n_unused_blocks":           best_score.n_unused_blocks,
-                "num_multiblock":            best_score.num_multiblock,
-                "n_rotations":               len(rotations),
+                "mapper":               self.name,
+                "init_mapper":          self.init_mapper_name,
+                "sa_steps":             cfg.sa_steps,
+                "sa_t0":                cfg.sa_t0,
+                "sa_tend":              cfg.sa_tend,
+                "score_kwargs":         skw,
+                "best_score_total":     best_score.total,
+                "active_blocks":        best_score.active_blocks,
+                "unused_blocks":        best_score.unused_blocks,
+                "occupancy_range":      best_score.occupancy_range,
+                "occupancy_std":        best_score.occupancy_std,
+                "num_multiblock":       best_score.num_multiblock,
+                "span_total":           best_score.span_total,
+                "mst_total":            best_score.mst_total,
+                "split_total":          best_score.split_total,
+                "support_peak":         best_score.support_peak,
+                "support_range":        best_score.support_range,
+                "max_blocks_touched":   best_score.max_blocks_touched,
+                "n_rotations":          len(rotations),
             },
         )

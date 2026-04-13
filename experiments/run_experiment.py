@@ -1,51 +1,35 @@
 """
-Experiment runner for the PBC compiler paper evaluation.
+experiments/run_experiment.py — PBC compiler paper evaluation.
 
-Source of truth for circuits: circuits/benchmarks/pbc/  (all *_PBC.json files).
-Circuits whose names start with "rand" are skipped (too slow for first iteration).
+Hardware (Gross code): n_data=11, coupler_capacity=1, sparse_pct=0.0.
+Topologies: grid AND ring, both evaluated per circuit.
+SA hyperparameters: tuned values from sensitivity analysis (phases 1–3).
 
-Configs
--------
-  naive : random + sequential     (Table 1 naive-depth baseline)
+Configs (per topology):
+  naive : random + sequential
   A     : random + greedy_critical
   B     : random + cpsat
   C     : sa     + greedy_critical
   D     : sa     + cpsat
 
-SA hyperparameters (fixed)
---------------------------
-  sa_steps = 25_000
-  sa_t0    = 1e5
-  sa_tend  = 5e-2
+Efficiency: SA runs ONCE per topology (shared by C+D).
+            Random runs ONCE per topology (shared by naive+A+B).
 
-Efficiency
-----------
-  Configs C and D share ONE SA mapping pass (SA runs once per circuit).
-  Configs naive, A and B share ONE random mapping pass.
+Output:
+  results/raw/{circuit}_seed{seed}.json
 
-Output
-------
-  runs/{circuit}_{mapping}_{scheduler}_seed{seed}.json
-  Fields: circuit, n_qubits, n_blocks, t_count, mapping, scheduler, seed,
-          inter_block_rotations, logical_depth, sa_iterations,
-          mapping_time_sec, scheduling_time_sec, compile_time_sec, timestamp
+Usage:
+  # List all available circuits:
+  python experiments/run_experiment.py --list
 
-Usage
------
-  # Run all PBC circuits, all 5 configs, SA-once efficiency:
-  python experiments/run_experiment.py --all-pbc --seed 42
+  # Run one circuit (both topologies, all 5 configs, seed=42):
+  python experiments/run_experiment.py --circuit Adder8
 
-  # Single circuit, single config:
-  python experiments/run_experiment.py --circuit Adder8 --mapping sa --scheduler cpsat
+  # With custom seed and CP-SAT time limit:
+  python experiments/run_experiment.py --circuit Adder8 --seed 1 --cp-time 300
 
-  # Single circuit, all configs (SA runs once for C+D):
-  python experiments/run_experiment.py --circuit Adder8 --all-configs
-
-  # 30-seed robustness on a specific circuit:
-  python experiments/run_experiment.py --circuit qft_100_approx --all-configs --seeds 1-30
-
-  # Force re-run even if file exists:
-  python experiments/run_experiment.py --all-pbc --force
+  # Re-run even if result file exists:
+  python experiments/run_experiment.py --circuit Adder8 --force
 """
 from __future__ import annotations
 
@@ -56,14 +40,15 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modqldpc.frontend.extract_pauli import GoSCConverter
-from modqldpc.frontend.qasm_reader import load_qasm_file
-from modqldpc.mapping.mapper import MappingConfig, MappingPlan, MappingProblem, get_mapper
+from modqldpc.mapping.algos.sa_mapping import TUNED_SA_STEPS, TUNED_SA_T0, TUNED_SA_TEND
+from modqldpc.mapping.factory import get_mapper
 from modqldpc.mapping.hardware_gen import make_hardware
+from modqldpc.mapping.mapper import MappingConfig, MappingPlan, MappingProblem
 from modqldpc.lowering.keys import KeyNamer
 from modqldpc.lowering.policy import (
     HeuristicRepeatNativePolicy,
@@ -79,57 +64,75 @@ from modqldpc.runtime.outcomes import RandomOutcomeModel
 from modqldpc.scheduling.factory import get_scheduler
 from modqldpc.scheduling.types import SchedulingProblem
 from modqldpc.pipeline.run_one import make_gross_actual_cost_fn
-from modqldpc.core.trace import Trace
+
 
 # ── Directory layout ──────────────────────────────────────────────────────────
 
-_ROOT        = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PBC_DIR      = os.path.join(_ROOT, "circuits", "benchmarks", "pbc")
-EXP_CIRCUITS = os.path.join(_ROOT, "experiment_circuits")
-BENCH_DIR    = os.path.join(_ROOT, "circuits", "benchmarks")
-RUNS_DIR     = os.path.join(_ROOT, "runs")
-MAPPINGS_DIR = os.path.join(_ROOT, "runs", "mappings")
-RESULTS_DIR  = os.path.join(_ROOT, "results")
+_ROOT    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PBC_DIR  = os.path.join(_ROOT, "circuits", "benchmarks", "pbc")
+RAW_DIR  = os.path.join(_ROOT, "results", "raw")
 
-_trace = Trace(os.path.join(RESULTS_DIR, "trace.jsonl"))
+# ── Hardware constants ────────────────────────────────────────────────────────
 
-# ── SA hyperparameters (fixed for all paper runs) ─────────────────────────────
+N_DATA           = 11   # Gross code data qubits per block
+COUPLER_CAPACITY = 1    # per-coupler capacity
+SPARSE_PCT       = 0.0  # dense packing
 
-SA_STEPS = 25_000
-SA_T0    = 1e5
-SA_TEND  = 5e-2
+# ── SA hyperparameters (tuned, from sensitivity analysis phases 1–3) ──────────
 
-# ── Circuits to skip (prefix match) ──────────────────────────────────────────
+SA_STEPS = TUNED_SA_STEPS   # 22_500
+SA_T0    = TUNED_SA_T0      # 1e5
+SA_TEND  = TUNED_SA_TEND    # 5e-2
 
-SKIP_PREFIXES = ("rand",)   # random circuits are too slow for first iteration
+# ── CP-SAT fallback ───────────────────────────────────────────────────────────
 
-# ── Name mappings ─────────────────────────────────────────────────────────────
+CPSAT_FALLBACK_SCHED = "greedy_critical"
+DEFAULT_CPSAT_TIME   = 1000.0   # seconds per layer
 
-MAPPING_TO_MAPPER = {
+# ── Config definitions ────────────────────────────────────────────────────────
+
+CONFIGS = {
+    "naive": ("random", "sequential"),
+    "A":     ("random", "greedy_critical"),
+    "B":     ("random", "cpsat"),
+    "C":     ("sa",     "greedy_critical"),
+    "D":     ("sa",     "cpsat"),
+}
+
+MAPPER_NAMES = {
     "random": "pure_random",
     "sa":     "simulated_annealing",
 }
 
-SCHEDULER_TO_FACTORY = {
+SCHED_NAMES = {
     "sequential":      "sequential_scheduler",
     "greedy_critical": "greedy_critical",
     "cpsat":           "cp_sat",
 }
 
-# Configs that share a mapping pass
-RANDOM_SCHEDULERS = ["sequential", "greedy_critical", "cpsat"]  # naive + A + B
-SA_SCHEDULERS     = ["greedy_critical", "cpsat"]                 # C + D
+TOPOLOGIES = ["grid", "ring"]
 
 
-# ── PBC discovery ─────────────────────────────────────────────────────────────
+# ── Circuit discovery ─────────────────────────────────────────────────────────
 
-def _circuit_name_from_pbc(fname: str) -> str:
+def _circuit_name(fname: str) -> str:
     stem = os.path.splitext(fname)[0]
     return stem[:-4] if stem.endswith("_PBC") else stem
 
 
-def pbc_path_for(circuit_name: str) -> str | None:
-    """Return existing PBC path for circuit, trying _PBC.json then .json."""
+def discover_circuits() -> Dict[str, str]:
+    """Return {circuit_name: pbc_path} for every JSON in circuits/benchmarks/pbc/."""
+    if not os.path.isdir(PBC_DIR):
+        return {}
+    result = {}
+    for fname in sorted(os.listdir(PBC_DIR)):
+        if fname.endswith(".json"):
+            name = _circuit_name(fname)
+            result[name] = os.path.join(PBC_DIR, fname)
+    return result
+
+
+def find_pbc(circuit_name: str) -> Optional[str]:
     for candidate in [
         os.path.join(PBC_DIR, f"{circuit_name}_PBC.json"),
         os.path.join(PBC_DIR, f"{circuit_name}.json"),
@@ -139,157 +142,80 @@ def pbc_path_for(circuit_name: str) -> str | None:
     return None
 
 
-def discover_pbc_circuits() -> dict[str, str]:
-    """Return {circuit_name: pbc_path} for every JSON in circuits/benchmarks/pbc/."""
-    result = {}
-    if not os.path.isdir(PBC_DIR):
-        return result
-    for fname in sorted(os.listdir(PBC_DIR)):
-        if fname.endswith(".json"):
-            name = _circuit_name_from_pbc(fname)
-            result[name] = os.path.join(PBC_DIR, fname)
-    return result
-
-
-def _should_skip(circuit_name: str) -> bool:
-    return any(circuit_name.startswith(p) for p in SKIP_PREFIXES)
-
-
 # ── PBC loading ───────────────────────────────────────────────────────────────
 
-def _build_pbc_from_qasm(circuit_name: str, qasm_path: str) -> str:
-    """Convert QASM → PBC JSON and save to PBC_DIR. Returns pbc_path."""
-    pbc_path = os.path.join(PBC_DIR, f"{circuit_name}.json")
-    if os.path.exists(pbc_path):
-        return pbc_path
-    _trace.event("pbc_convert_start", circuit=circuit_name, source=qasm_path)
-    qasm_str = load_qasm_file(qasm_path)
-    conv = GoSCConverter(verbose=False)
-    conv.convert_qasm(qasm_str)
-    conv.greedy_layering()
-    os.makedirs(PBC_DIR, exist_ok=True)
-    with open(pbc_path, "w") as f:
-        json.dump(conv.to_compact_payload(), f)
-    _trace.event("pbc_saved", circuit=circuit_name, path=pbc_path)
-    return pbc_path
-
-
-def load_pbc(circuit_name: str, pbc_path: str | None = None) -> GoSCConverter:
+def load_pbc(circuit_name: str) -> Tuple[GoSCConverter, int, int, int]:
     """
-    Load PBC JSON into a GoSCConverter.
-    Resolution: explicit path → _PBC.json → .json → build from QASM.
+    Load the PBC for circuit_name.
+    Returns (conv, n_logicals, t_count, n_layers).
     """
-    if pbc_path is None:
-        pbc_path = pbc_path_for(circuit_name)
-    if pbc_path is None:
-        # Try building from experiment_circuits/
-        for fname in os.listdir(EXP_CIRCUITS) if os.path.isdir(EXP_CIRCUITS) else []:
-            if os.path.splitext(fname)[0] == circuit_name and fname.endswith(".qasm"):
-                pbc_path = _build_pbc_from_qasm(
-                    circuit_name, os.path.join(EXP_CIRCUITS, fname)
-                )
-                break
-    if pbc_path is None:
+    path = find_pbc(circuit_name)
+    if path is None:
+        available = sorted(discover_circuits())
         raise FileNotFoundError(
-            f"No PBC file found for '{circuit_name}' in {PBC_DIR}.\n"
-            f"Available: {sorted(discover_pbc_circuits())}"
+            f"No PBC found for '{circuit_name}' in {PBC_DIR}.\n"
+            f"Available: {available}"
         )
     conv = GoSCConverter(verbose=False)
-    conv.load_cache_json(pbc_path)
-    return conv
+    conv.load_cache_json(path)
+    first_rot  = next(iter(conv.program.rotations))
+    n_logicals = len(first_rot.axis.lstrip("+-"))
+    t_count    = sum(1 for r in conv.program.rotations if abs(r.angle) < math.pi / 2 - 1e-9)
+    n_layers   = len(conv.layers)
+    return conv, n_logicals, t_count, n_layers
 
 
 # ── Inter-block rotation counting ─────────────────────────────────────────────
 
-def count_inter_block_rotations(rotations, plan) -> int:
-    count = 0
-    for rot in rotations:
-        axis = rot.axis.lstrip("+-")
-        n = len(axis)
-        blocks = set()
-        for qubit_idx in range(n):
-            if axis[n - 1 - qubit_idx] != "I":
-                b = plan.logical_to_block.get(qubit_idx)
-                if b is not None:
-                    blocks.add(b)
-        if len(blocks) >= 2:
-            count += 1
-    return count
-
-
-# ── Core pipeline: mapping phase ──────────────────────────────────────────────
+# ── Mapping ───────────────────────────────────────────────────────────────────
 
 def _run_mapping(
-    circuit_name: str,
-    mapping: str,
+    mapping_key: str,
     seed: int,
     conv: GoSCConverter,
     hw,
     n_logicals: int,
-) -> tuple:
+) -> Tuple[MappingPlan, float]:
     """
-    Run the mapping phase and return:
-        (plan, inter_block_rotations, mapping_time_sec)
-    hw is mutated in-place to the best mapping state.
+    Run mapping and return (plan, mapping_time_sec).
     """
-    mapper_name = MAPPING_TO_MAPPER[mapping]
-    map_cfg = MappingConfig(seed=seed, sa_steps=SA_STEPS, sa_t0=SA_T0, sa_tend=SA_TEND)
+    mapper_name = MAPPER_NAMES[mapping_key]
+    cfg = MappingConfig(seed=seed, sa_steps=SA_STEPS, sa_t0=SA_T0, sa_tend=SA_TEND)
 
-    _trace.event("mapping_start", circuit=circuit_name, mapping=mapping, seed=seed)
     t0 = time.perf_counter()
-
     plan = get_mapper(mapper_name).solve(
         MappingProblem(n_logicals=n_logicals),
-        hw, map_cfg,
+        hw,
+        cfg,
         {"rotations": conv.program.rotations, "verbose": False, "debug": False},
     )
-
     mapping_time = round(time.perf_counter() - t0, 3)
-
-    t_rotations = [r for r in conv.program.rotations if abs(r.angle) < math.pi / 2 - 1e-9]
-    inter_block = count_inter_block_rotations(t_rotations, plan)
-
-    _trace.event(
-        "mapping_done", circuit=circuit_name, mapping=mapping, seed=seed,
-        inter_block_rotations=inter_block, mapping_time_sec=mapping_time,
-    )
-    return plan, inter_block, mapping_time
+    return plan, mapping_time
 
 
-# ── Core pipeline: scheduling phase ──────────────────────────────────────────
-
-CPSAT_TIME_LIMIT     = 1000.0   # seconds per layer; None = no limit
-CPSAT_FALLBACK_SCHED = "greedy_critical"
-
+# ── Scheduling ────────────────────────────────────────────────────────────────
 
 def _run_scheduling(
     conv: GoSCConverter,
     hw,
-    plan,
-    scheduler: str,
+    plan: MappingPlan,
+    sched_key: str,
     seed: int,
-    *,
-    cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-) -> tuple:
+    cp_time: float,
+) -> Tuple[int, float, int, int]:
     """
-    Run the scheduling phase for a fixed mapping (plan/hw) and return:
-        (logical_depth, scheduling_time_sec, fallback_layers, suboptimal_layers)
-
-    fallback_layers  : list of (layer_id, reason_str) where CP-SAT found no
-                       solution and fell back to greedy_critical.
-    suboptimal_layers: list of (layer_id, obj, obj_lb) where CP-SAT found a
-                       FEASIBLE but not OPTIMAL solution within the time limit.
+    Run scheduling and return (logical_depth, sched_time_sec, cpsat_fallbacks, cpsat_suboptimal).
+    cpsat_fallbacks/suboptimal are 0 for non-cpsat schedulers.
     """
-    sched_name     = SCHEDULER_TO_FACTORY[scheduler]
-    fallback_name  = SCHEDULER_TO_FACTORY[CPSAT_FALLBACK_SCHED]
-    is_cpsat       = scheduler == "cpsat"
+    sched_name    = SCHED_NAMES[sched_key]
+    fallback_name = SCHED_NAMES[CPSAT_FALLBACK_SCHED]
+    is_cpsat      = sched_key == "cpsat"
 
-    cost_fn    = make_gross_actual_cost_fn(plan)  # n_data=11 (Gross code), not block data count
-    policies   = LoweringPolicies(
+    policies = LoweringPolicies(
         namer=KeyNamer(),
         magic=ChooseMagicBlockMinId(),
         routing=ShortestPathGatherRouting(),
-        native=HeuristicRepeatNativePolicy(cost_fn=cost_fn),
+        native=HeuristicRepeatNativePolicy(cost_fn=make_gross_actual_cost_fn(plan)),
     )
 
     effective_rotations: Dict[int, PauliRotation] = {
@@ -300,9 +226,9 @@ def _run_scheduling(
         outcome_model=RandomOutcomeModel(seed=seed),
         frame_policy=FrameUpdatePolicy(),
     )
-    total_depth       = 0
-    fallback_layers:   list = []   # (layer_id, reason)
-    suboptimal_layers: list = []   # (layer_id, obj, obj_lb)
+    total_depth  = 0
+    n_fallback   = 0
+    n_suboptimal = 0
 
     t0 = time.perf_counter()
     for layer_id, layer in enumerate(conv.layers):
@@ -313,54 +239,28 @@ def _run_scheduling(
             hw=hw,
             policies=policies,
         )
-        meta = {
-            "start_time":        0,
-            "layer_idx":         layer_id,
-            "tie_breaker":       "duration",
-            "cp_sat_time_limit": cp_sat_time_limit,
-            "debug_decode":      False,
-            "safe_fill":         True,
-            "cp_sat_log":        False,
-        }
         sched_problem = SchedulingProblem(
-            dag=res.dag, hw=hw, seed=seed,
+            dag=res.dag,
+            hw=hw,
+            seed=seed,
             policy_name="incident_coupler_blocks_local",
-            meta=meta,
+            meta={
+                "start_time":        0,
+                "layer_idx":         layer_id,
+                "tie_breaker":       "duration",
+                "cp_sat_time_limit": cp_time,
+                "debug_decode":      False,
+                "safe_fill":         True,
+                "cp_sat_log":        False,
+            },
         )
-
         try:
             S = get_scheduler(sched_name).solve(sched_problem)
-            # Check if CP-SAT stopped early with only a feasible (not optimal) solution
             if is_cpsat and S.meta.get("cp_sat_status") == "FEASIBLE":
-                obj    = S.meta.get("cp_sat_obj", -1)
-                obj_lb = S.meta.get("cp_sat_obj_lb", -1)
-                gap_pct = (
-                    round(100.0 * (obj - obj_lb) / max(obj_lb, 1), 1)
-                    if obj >= 0 and obj_lb >= 0 else None
-                )
-                gap_str = f"{gap_pct}%" if gap_pct is not None else "?"
-                print(
-                    f"\n  [cpsat suboptimal] layer {layer_id}: "
-                    f"FEASIBLE within time limit — obj={obj}  lb={obj_lb}  gap≈{gap_str}"
-                )
-                _trace.event(
-                    "cpsat_suboptimal", layer=layer_id,
-                    obj=obj, obj_lb=obj_lb, gap_pct=gap_pct,
-                    time_limit=cp_sat_time_limit,
-                )
-                suboptimal_layers.append({"layer": layer_id, "obj": obj,
-                                          "obj_lb": obj_lb, "gap_pct": gap_pct})
-        except Exception as exc:
+                n_suboptimal += 1
+        except Exception:
             if is_cpsat:
-                reason = str(exc)
-                print(
-                    f"\n  [cpsat fallback] layer {layer_id}: {exc!r} "
-                    f"— falling back to {CPSAT_FALLBACK_SCHED}"
-                )
-                _trace.event(
-                    "cpsat_fallback", layer=layer_id, reason=reason
-                )
-                fallback_layers.append({"layer": layer_id, "reason": reason})
+                n_fallback += 1
                 S = get_scheduler(fallback_name).solve(sched_problem)
             else:
                 raise
@@ -368,456 +268,278 @@ def _run_scheduling(
         next_idxs = conv.layers[layer_id + 1] if (layer_id + 1) in conv.layers else []
         rot_next  = [effective_rotations[i] for i in next_idxs]
         ex = executor.execute_layer(
-            layer=layer_id, dag=res.dag, schedule=S,
-            frame_in=frame, next_layer_rotations=rot_next,
+            layer=layer_id,
+            dag=res.dag,
+            schedule=S,
+            frame_in=frame,
+            next_layer_rotations=rot_next,
         )
         for r in ex.next_rotations_effective:
             effective_rotations[r.idx] = r
         frame = ex.frame_after
         total_depth += ex.depth
 
-    scheduling_time = round(time.perf_counter() - t0, 3)
-    return total_depth, scheduling_time, fallback_layers, suboptimal_layers
+    sched_time = round(time.perf_counter() - t0, 3)
+    return total_depth, sched_time, n_fallback, n_suboptimal
 
 
-# ── Result persistence ─────────────────────────────────────────────────────────
+# ── Per-topology runner ───────────────────────────────────────────────────────
 
-def result_path(circuit: str, mapping: str, scheduler: str, seed: int) -> str:
-    return os.path.join(RUNS_DIR, f"{circuit}_{mapping}_{scheduler}_seed{seed}.json")
-
-
-def _make_record(
+def _run_topology(
     circuit_name: str,
-    mapping: str,
-    scheduler: str,
-    seed: int,
-    n_logicals: int,
-    n_blocks: int,
-    t_count: int,
-    inter_block: int,
-    logical_depth: int,
-    mapping_time: float,
-    scheduling_time: float,
-    fallback_layers: list | None = None,
-    suboptimal_layers: list | None = None,
-    n_couplers: int = 0,
-    qldpc_phys_qubits: int = 0,
-) -> dict:
-    is_cpsat = scheduler == "cpsat"
-    fb  = fallback_layers   or []
-    sub = suboptimal_layers or []
-    return {
-        "circuit":               circuit_name,
-        "n_qubits":              n_logicals,
-        "n_blocks":              n_blocks,
-        "n_couplers":            n_couplers,
-        "qldpc_phys_qubits":     qldpc_phys_qubits,
-        "t_count":               t_count,
-        "mapping":               mapping,
-        "scheduler":             scheduler,
-        "seed":                  seed,
-        "inter_block_rotations": inter_block,
-        "logical_depth":         logical_depth,
-        "sa_iterations":         SA_STEPS if mapping == "sa" else None,
-        "mapping_time_sec":      mapping_time,
-        "scheduling_time_sec":   scheduling_time,
-        "compile_time_sec":      round(mapping_time + scheduling_time, 3),
-        # CP-SAT quality report — None when scheduler != cpsat
-        "cpsat_fallback_count":    len(fb)  if is_cpsat else None,
-        "cpsat_fallback_layers":   fb       if is_cpsat else None,
-        "cpsat_suboptimal_count":  len(sub) if is_cpsat else None,
-        "cpsat_suboptimal_layers": sub      if is_cpsat else None,
-        "timestamp":             datetime.now(timezone.utc).isoformat(),
-    }
-
-
-def save_result(rec: dict) -> str:
-    os.makedirs(RUNS_DIR, exist_ok=True)
-    path = result_path(rec["circuit"], rec["mapping"], rec["scheduler"], rec["seed"])
-    with open(path, "w") as f:
-        json.dump(rec, f, indent=2)
-    _trace.event("result_saved", path=os.path.basename(path))
-    print(f"  [saved] {os.path.basename(path)}")
-    return path
-
-
-def load_results(
-    circuit: str | None = None,
-    mapping: str | None = None,
-    scheduler: str | None = None,
-) -> List[dict]:
-    """Load all runs/ JSONs, optionally filtered. Handles old 'placement' key."""
-    records = []
-    if not os.path.isdir(RUNS_DIR):
-        return records
-    for fname in sorted(os.listdir(RUNS_DIR)):
-        if not fname.endswith(".json"):
-            continue
-        with open(os.path.join(RUNS_DIR, fname)) as f:
-            rec = json.load(f)
-        # backwards-compat: old files used "placement" key
-        if "mapping" not in rec and "placement" in rec:
-            rec["mapping"] = rec["placement"]
-        if circuit   and rec.get("circuit")   != circuit:   continue
-        if mapping   and rec.get("mapping")   != mapping:   continue
-        if scheduler and rec.get("scheduler") != scheduler: continue
-        records.append(rec)
-    return records
-
-
-# ── Mapping cache ─────────────────────────────────────────────────────────────
-
-def _mapping_cache_path(circuit: str, mapping: str, seed: int) -> str:
-    return os.path.join(MAPPINGS_DIR, f"{circuit}_{mapping}_seed{seed}.json")
-
-
-def _save_mapping_cache(
-    circuit: str,
-    mapping: str,
-    seed: int,
-    plan,
-    inter_block: int,
-    mapping_time: float,
-    n_logicals: int,
-    n_data: int,
-    coupler_capacity: int,
     topology: str,
-) -> None:
-    os.makedirs(MAPPINGS_DIR, exist_ok=True)
-    payload = {
-        "circuit":          circuit,
-        "mapping":          mapping,
-        "seed":             seed,
-        "n_logicals":       n_logicals,
-        "n_data":           n_data,
-        "coupler_capacity": coupler_capacity,
-        "topology":         topology,
-        "inter_block_rotations": inter_block,
-        "mapping_time_sec": mapping_time,
-        "logical_to_block": {str(k): v for k, v in plan.logical_to_block.items()},
-        "logical_to_local": {str(k): v for k, v in plan.logical_to_local.items()},
-    }
-    with open(_mapping_cache_path(circuit, mapping, seed), "w") as f:
-        json.dump(payload, f)
-
-
-def _load_mapping_cache(
-    circuit: str,
-    mapping: str,
-    seed: int,
+    conv: GoSCConverter,
     n_logicals: int,
-    n_data: int,
-    coupler_capacity: int,
-    topology: str,
-):
-    """
-    Load a cached mapping if it exists and hw parameters match.
-    Returns (plan, hw, inter_block, mapping_time) or None on miss/mismatch.
-    """
-    path = _mapping_cache_path(circuit, mapping, seed)
-    if not os.path.exists(path):
-        return None
-    with open(path) as f:
-        c = json.load(f)
-    if (c.get("n_logicals") != n_logicals or c.get("n_data") != n_data
-            or c.get("coupler_capacity") != coupler_capacity
-            or c.get("topology") != topology):
-        return None  # stale cache — hw params changed
-
-    logical_to_block = {int(k): v for k, v in c["logical_to_block"].items()}
-    logical_to_local = {int(k): v for k, v in c["logical_to_local"].items()}
-    plan = MappingPlan(
-        logical_to_block=logical_to_block,
-        logical_to_local=logical_to_local,
-    )
-    hw, _ = make_hardware(
-        n_logicals, topology=topology, sparse_pct=0.0,
-    )
-    hw.update_plan(logical_to_block, logical_to_local)
-    return plan, hw, c["inter_block_rotations"], c["mapping_time_sec"]
-
-
-# ── High-level runners ────────────────────────────────────────────────────────
-
-def run_mapping_then_schedulers(
-    circuit_name: str,
-    mapping: str,
-    schedulers: list[str],
     seed: int,
-    *,
-    pbc_path: str | None = None,
-    skip_existing: bool = True,
-    cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-    n_data: int = 288,
-    coupler_capacity: int = 24,
-    topology: str = "grid",
-) -> None:
-    """
-    Run ONE mapping pass, then run each scheduler against that mapping.
-    Saves one JSON file per scheduler. Skips any scheduler whose output
-    file already exists (unless skip_existing=False).
-
-    This is the efficiency primitive: SA runs once for C+D, random runs
-    once for naive+A+B.
-    """
-    # Check which schedulers still need running
-    pending = []
-    for sched in schedulers:
-        path = result_path(circuit_name, mapping, sched, seed)
-        if skip_existing and os.path.exists(path):
-            print(f"  [skip] {os.path.basename(path)}")
-        else:
-            pending.append(sched)
-
-    if not pending:
-        return
-
-    # Load PBC (needed for t_count and scheduling regardless of mapping cache)
-    conv = load_pbc(circuit_name, pbc_path)
-    first_rot  = next(iter(conv.program.rotations))
-    n_logicals = len(first_rot.axis.lstrip("+-"))
-    t_count    = sum(1 for r in conv.program.rotations if abs(r.angle) < math.pi / 2 - 1e-9)
-
-    # Try mapping cache first
-    cached = _load_mapping_cache(
-        circuit_name, mapping, seed,
-        n_logicals, n_data, coupler_capacity, topology,
-    )
-    if cached is not None:
-        plan, hw, inter_block, mapping_time = cached
-        n_blocks   = len(hw.blocks)
-        n_couplers = len(hw.couplers)
-        print(f"\n[{circuit_name}] mapping={mapping} seed={seed}  "
-              f"({n_logicals}q / {n_blocks} blocks / {t_count} T-gates)")
-        print(f"  mapping loaded from cache  inter_block={inter_block}")
-    else:
-        # Build hardware and run mapper
-        hw, _ = make_hardware(
-            n_logicals, topology=topology, sparse_pct=0.0,
-        )
-        n_blocks   = len(hw.blocks)
-        n_couplers = len(hw.couplers)
-
-        print(f"\n[{circuit_name}] mapping={mapping} seed={seed}  "
-              f"({n_logicals}q / {n_blocks} blocks / {t_count} T-gates)")
-
-        plan, inter_block, mapping_time = _run_mapping(
-            circuit_name, mapping, seed, conv, hw, n_logicals
-        )
-        print(f"  mapping done in {mapping_time:.1f}s  inter_block={inter_block}")
-        _save_mapping_cache(
-            circuit_name, mapping, seed, plan,
-            inter_block, mapping_time,
-            n_logicals, n_data, coupler_capacity, topology,
-        )
-
-    # Physical qubit count (same formula regardless of cache)
-    _n_ancilla = math.ceil(1.3 * n_data)
-    qldpc_phys_qubits = n_blocks * (n_data + _n_ancilla) + n_couplers * coupler_capacity
-
-    # Scheduling phase — once per pending scheduler
-    for sched in pending:
-        print(f"  scheduling: {sched} ...", end="", flush=True)
-        depth, sched_time, fallback_layers, suboptimal_layers = _run_scheduling(
-            conv, hw, plan, sched, seed,
-            cp_sat_time_limit=cp_sat_time_limit,
-        )
-        status_parts = []
-        if fallback_layers:
-            status_parts.append(f"{len(fallback_layers)} fallback")
-        if suboptimal_layers:
-            status_parts.append(f"{len(suboptimal_layers)} suboptimal")
-        suffix = f"  [{', '.join(status_parts)}]" if status_parts else ""
-        print(f" depth={depth:,}  time={sched_time:.1f}s{suffix}")
-        rec = _make_record(
-            circuit_name, mapping, sched, seed,
-            n_logicals, n_blocks, t_count,
-            inter_block, depth, mapping_time, sched_time,
-            fallback_layers=fallback_layers, suboptimal_layers=suboptimal_layers,
-            n_couplers=n_couplers, qldpc_phys_qubits=qldpc_phys_qubits,
-        )
-        _trace.event(
-            "run_done", circuit=circuit_name, mapping=mapping,
-            scheduler=sched, seed=seed,
-            inter_block_rotations=inter_block, logical_depth=depth,
-            mapping_time_sec=mapping_time, scheduling_time_sec=sched_time,
-            cpsat_fallback_count=len(fallback_layers),
-            cpsat_suboptimal_count=len(suboptimal_layers),
-        )
-        save_result(rec)
-
-
-def run_all_configs(
-    circuit_name: str,
-    seed: int,
-    *,
-    pbc_path: str | None = None,
-    skip_existing: bool = True,
-    cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-    n_data: int = 288,
-    coupler_capacity: int = 24,
-    topology: str = "grid",
-) -> None:
-    """
-    Run all 5 configs for one circuit:
-      - random mapping once  → sequential (naive), greedy_critical (A), cpsat (B)
-      - SA mapping once      → greedy_critical (C), cpsat (D)
-    """
-    kwargs = dict(
-        pbc_path=pbc_path, skip_existing=skip_existing,
-        cp_sat_time_limit=cp_sat_time_limit, n_data=n_data,
-        coupler_capacity=coupler_capacity, topology=topology,
-    )
-    run_mapping_then_schedulers(circuit_name, "random", RANDOM_SCHEDULERS, seed, **kwargs)
-    run_mapping_then_schedulers(circuit_name, "sa",     SA_SCHEDULERS,     seed, **kwargs)
-
-
-# ── Single-config runner (public API, backwards-compat) ───────────────────────
-
-def run_one_config(
-    circuit_name: str,
-    mapping: str,
-    scheduler: str,
-    seed: int,
-    *,
-    pbc_path: str | None = None,
-    cp_sat_time_limit: float | None = CPSAT_TIME_LIMIT,
-    n_data: int = 288,
-    coupler_capacity: int = 24,
-    topology: str = "grid",
+    cp_time: float,
 ) -> dict:
-    """Run a single (circuit, mapping, scheduler, seed) config and return the record."""
-    conv = load_pbc(circuit_name, pbc_path)
-    first_rot  = next(iter(conv.program.rotations))
-    n_logicals = len(first_rot.axis.lstrip("+-"))
-    t_count    = sum(1 for r in conv.program.rotations if abs(r.angle) < math.pi / 2 - 1e-9)
-
-    hw, _ = make_hardware(
-        n_logicals, topology=topology, sparse_pct=0.0,
+    """
+    Run all 5 configs for one topology. Returns a dict with hw info and per-config results.
+    SA runs once (C+D). Random runs once (naive+A+B).
+    """
+    hw, spec = make_hardware(
+        n_logicals,
+        topology=topology,
+        sparse_pct=SPARSE_PCT,
+        n_data=N_DATA,
+        coupler_capacity=COUPLER_CAPACITY,
     )
     n_blocks   = len(hw.blocks)
     n_couplers = len(hw.couplers)
-    _n_ancilla = math.ceil(1.3 * n_data)
-    qldpc_phys_qubits = n_blocks * (n_data + _n_ancilla) + n_couplers * coupler_capacity
 
-    plan, inter_block, mapping_time = _run_mapping(
-        circuit_name, mapping, seed, conv, hw, n_logicals
+    print(f"\n  [{circuit_name}|{topology.upper()}] {spec.label()}  n_blocks={n_blocks}  n_couplers={n_couplers}")
+
+    # ── Random mapping (shared by naive, A, B) ────────────────────────────────
+    print(f"    mapping: random ...", end="", flush=True)
+    # need a fresh hw for random — clone state after make_hardware
+    hw_rand, _ = make_hardware(
+        n_logicals,
+        topology=topology,
+        sparse_pct=SPARSE_PCT,
+        n_data=N_DATA,
+        coupler_capacity=COUPLER_CAPACITY,
     )
-    depth, sched_time, fallback_layers, suboptimal_layers = _run_scheduling(
-        conv, hw, plan, scheduler, seed,
-        cp_sat_time_limit=cp_sat_time_limit, n_data=n_data,
+    plan_rand, t_map_rand = _run_mapping("random", seed, conv, hw_rand, n_logicals)
+    print(f" done ({t_map_rand:.1f}s)")
+
+    # ── SA mapping (shared by C, D) ───────────────────────────────────────────
+    print(f"    mapping: SA     ...", end="", flush=True)
+    hw_sa, _ = make_hardware(
+        n_logicals,
+        topology=topology,
+        sparse_pct=SPARSE_PCT,
+        n_data=N_DATA,
+        coupler_capacity=COUPLER_CAPACITY,
     )
-    return _make_record(
-        circuit_name, mapping, scheduler, seed,
-        n_logicals, n_blocks, t_count,
-        inter_block, depth, mapping_time, sched_time,
-        fallback_layers=fallback_layers, suboptimal_layers=suboptimal_layers,
-        n_couplers=n_couplers, qldpc_phys_qubits=qldpc_phys_qubits,
-    )
+    plan_sa, t_map_sa = _run_mapping("sa", seed, conv, hw_sa, n_logicals)
+    print(f" done ({t_map_sa:.1f}s)")
+
+    # SA score metadata from plan
+    sa_meta = plan_sa.meta or {}
+    sa_score_info = {
+        "sa_score_total":   sa_meta.get("best_score_total"),
+        "sa_unused_blocks": sa_meta.get("unused_blocks"),
+        "sa_num_multiblock":sa_meta.get("num_multiblock"),
+        "sa_span_total":    sa_meta.get("span_total"),
+        "sa_mst_total":     sa_meta.get("mst_total"),
+    }
+
+    # ── Scheduling: all 5 configs ─────────────────────────────────────────────
+    config_results: Dict[str, dict] = {}
+    naive_depth: Optional[int] = None
+
+    for config_name, (mapping_key, sched_key) in CONFIGS.items():
+        is_sa = (mapping_key == "sa")
+        plan  = plan_sa   if is_sa else plan_rand
+        hw    = hw_sa     if is_sa else hw_rand
+        t_map = t_map_sa  if is_sa else t_map_rand
+
+        print(f"    {config_name} ({mapping_key}+{sched_key}) ...", end="", flush=True)
+        depth, t_sched, n_fb, n_sub = _run_scheduling(
+            conv, hw, plan, sched_key, seed, cp_time
+        )
+        t_total = round(t_map + t_sched, 3)
+        print(f" depth={depth:,}  ({t_sched:.1f}s)", end="")
+        if n_fb:
+            print(f"  [cpsat fallback: {n_fb}]", end="")
+        print()
+
+        if config_name == "naive":
+            naive_depth = depth
+
+        entry: dict = {
+            "mapping":              mapping_key,
+            "scheduler":            sched_key,
+            "logical_depth":        depth,
+            "mapping_time_sec":     t_map,
+            "scheduling_time_sec":  t_sched,
+            "total_time_sec":       t_total,
+        }
+        if is_sa:
+            entry.update(sa_score_info)
+        if is_sa or config_name not in ("naive",):  # cpsat quality info
+            if sched_key == "cpsat":
+                entry["cpsat_fallback_layers"]  = n_fb
+                entry["cpsat_suboptimal_layers"] = n_sub
+
+        config_results[config_name] = entry
+
+    # ── Compute percent improvement vs naive ──────────────────────────────────
+    if naive_depth and naive_depth > 0:
+        for cname, entry in config_results.items():
+            d = entry["logical_depth"]
+            entry["pct_vs_naive"] = round(100.0 * (d - naive_depth) / naive_depth, 2)
+    else:
+        for entry in config_results.values():
+            entry["pct_vs_naive"] = 0.0
+
+    return {
+        "hw_label":   spec.label(),
+        "n_blocks":   n_blocks,
+        "n_couplers": n_couplers,
+        "fill_rate":  round(spec.actual_fill_rate, 4),
+        "grid_rows":  spec.grid_rows,
+        "grid_cols":  spec.grid_cols,
+        "configs":    config_results,
+    }
+
+
+# ── Main per-circuit runner ───────────────────────────────────────────────────
+
+def result_path(circuit_name: str, seed: int) -> str:
+    os.makedirs(RAW_DIR, exist_ok=True)
+    return os.path.join(RAW_DIR, f"{circuit_name}_seed{seed}.json")
+
+
+def run_circuit(
+    circuit_name: str,
+    seed: int,
+    cp_time: float,
+    *,
+    force: bool = False,
+) -> dict:
+    """
+    Run all 5 configs × 2 topologies for one circuit. Saves and returns the result JSON.
+    """
+    out_path = result_path(circuit_name, seed)
+    if not force and os.path.exists(out_path):
+        print(f"[skip] {os.path.basename(out_path)} already exists (use --force to re-run)")
+        with open(out_path) as f:
+            return json.load(f)
+
+    print(f"\n{'='*70}")
+    print(f"  Circuit: {circuit_name}  seed={seed}  cp_time={cp_time}s/layer")
+    print(f"  SA: steps={SA_STEPS}  t0={SA_T0:.0e}  tend={SA_TEND}")
+    print(f"  Hardware: n_data={N_DATA}  coupler_capacity={COUPLER_CAPACITY}")
+    print(f"{'='*70}")
+
+    conv, n_logicals, t_count, n_layers = load_pbc(circuit_name)
+    print(f"  n_logicals={n_logicals}  t_count={t_count}  n_layers={n_layers}")
+
+    topo_results: dict = {}
+    for topology in TOPOLOGIES:
+        topo_results[topology] = _run_topology(
+            circuit_name, topology, conv, n_logicals, seed, cp_time
+        )
+
+    record = {
+        "circuit":   circuit_name,
+        "n_qubits":  n_logicals,
+        "t_count":   t_count,
+        "n_layers":  n_layers,
+        "seed":      seed,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "hardware": {
+            "n_data":           N_DATA,
+            "coupler_capacity": COUPLER_CAPACITY,
+            "sparse_pct":       SPARSE_PCT,
+        },
+        "sa_params": {
+            "steps": SA_STEPS,
+            "t0":    SA_T0,
+            "tend":  SA_TEND,
+        },
+        "cp_sat_time_limit_per_layer": cp_time,
+    }
+    for topology in TOPOLOGIES:
+        record[topology] = topo_results[topology]
+
+    with open(out_path, "w") as f:
+        json.dump(record, f, indent=2)
+    print(f"\n  [saved] {out_path}")
+
+    # ── Quick summary table ───────────────────────────────────────────────────
+    print(f"\n{'='*70}")
+    print(f"  SUMMARY: {circuit_name}  seed={seed}")
+    print(f"  {'Config':<8}  {'Mapping':<8}  {'Sched':<16}  "
+          f"{'Grid depth':>10}  {'Grid %':>7}  {'Ring depth':>10}  {'Ring %':>7}")
+    print(f"  {'-'*74}")
+    for cname in CONFIGS:
+        gc = topo_results["grid"]["configs"][cname]
+        rc = topo_results["ring"]["configs"][cname]
+        mapping_k, sched_k = CONFIGS[cname]
+        print(f"  {cname:<8}  {mapping_k:<8}  {sched_k:<16}  "
+              f"{gc['logical_depth']:>10,}  {gc['pct_vs_naive']:>+7.1f}%  "
+              f"{rc['logical_depth']:>10,}  {rc['pct_vs_naive']:>+7.1f}%")
+    print(f"{'='*70}")
+
+    return record
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(
-        description="PBC compiler experiment runner",
+        description="PBC compiler paper evaluation — one circuit at a time.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # All circuits, all configs (SA runs once per circuit for C+D):
-  python experiments/run_experiment.py --all-pbc
+  # List all available PBC circuits:
+  python experiments/run_experiment.py --list
 
-  # Single circuit, all configs:
-  python experiments/run_experiment.py --circuit Adder8 --all-configs
+  # Run Adder8 with defaults (seed=42, cp-time=1000s):
+  python experiments/run_experiment.py --circuit Adder8
 
-  # Single circuit, single config:
-  python experiments/run_experiment.py --circuit Adder8 --mapping sa --scheduler cpsat
+  # Custom seed and CP-SAT time limit:
+  python experiments/run_experiment.py --circuit QFT32 --seed 1 --cp-time 300
 
-  # 30-seed robustness (all configs):
-  python experiments/run_experiment.py --circuit qft_100_approx --all-configs --seeds 1-30
+  # Force re-run even if result exists:
+  python experiments/run_experiment.py --circuit Adder16 --force
 """,
     )
-    parser.add_argument("--all-pbc",     action="store_true",
-                        help="Run all circuits in circuits/benchmarks/pbc/ (skips rand* circuits)")
-    parser.add_argument("--all-configs", action="store_true",
-                        help="Run all 5 configs for the selected circuit (SA runs once for C+D)")
-    parser.add_argument("--circuit",     help="Single circuit name")
-    parser.add_argument("--mapping",     choices=list(MAPPING_TO_MAPPER),
-                        help="Mapping strategy (for single-config runs)")
-    parser.add_argument("--scheduler",   choices=list(SCHEDULER_TO_FACTORY),
-                        help="Scheduler (for single-config runs)")
-    parser.add_argument("--seed",        type=int, default=42)
-    parser.add_argument("--seeds",       help="Seed range, e.g. '1-30'")
-    parser.add_argument("--cp-time",     type=float, default=CPSAT_TIME_LIMIT,
-                        help=f"CP-SAT time limit per layer in seconds (default: {CPSAT_TIME_LIMIT})")
-    parser.add_argument("--force",       action="store_true",
+    parser.add_argument("--list",    action="store_true",
+                        help="List all available PBC circuits and exit")
+    parser.add_argument("--circuit", help="Circuit name to run")
+    parser.add_argument("--seed",    type=int, default=42,
+                        help="Random seed (default: 42)")
+    parser.add_argument("--cp-time", type=float, default=DEFAULT_CPSAT_TIME,
+                        dest="cp_time",
+                        help=f"CP-SAT time limit per layer in seconds "
+                             f"(default: {DEFAULT_CPSAT_TIME})")
+    parser.add_argument("--force",   action="store_true",
                         help="Re-run even if result JSON already exists")
     args = parser.parse_args()
 
-    skip    = not args.force
-    cp_time = args.cp_time
-
-    seeds = [args.seed]
-    if args.seeds:
-        lo, hi = args.seeds.split("-")
-        seeds = list(range(int(lo), int(hi) + 1))
-
-    # ── --all-pbc: run every discovered circuit, all configs ──────────────────
-    if args.all_pbc:
-        pbc_circuits = discover_pbc_circuits()
-        if not pbc_circuits:
+    if args.list:
+        circuits = discover_circuits()
+        if not circuits:
             print(f"No PBC files found in {PBC_DIR}")
             return
-        skipped = [n for n in pbc_circuits if _should_skip(n)]
-        to_run  = {n: p for n, p in pbc_circuits.items() if not _should_skip(n)}
-        if skipped:
-            print(f"Skipping rand* circuits: {skipped}")
-        print(f"Running {len(to_run)} circuit(s) × {len(seeds)} seed(s), all configs\n")
-        _trace.event("phase_start", phase="all_pbc", n_circuits=len(to_run))
-        for name, path in sorted(to_run.items()):
-            for seed in seeds:
-                run_all_configs(
-                    name, seed, pbc_path=path,
-                    skip_existing=skip, cp_sat_time_limit=cp_time,
-                )
-        _trace.event("phase_done", phase="all_pbc")
+        print(f"Available circuits ({len(circuits)}) in {PBC_DIR}:\n")
+        for name in sorted(circuits):
+            print(f"  {name}")
         return
 
-    # ── --circuit + --all-configs: all 5 configs for one circuit ─────────────
-    if args.circuit and args.all_configs:
-        explicit_pbc = pbc_path_for(args.circuit)
-        for seed in seeds:
-            run_all_configs(
-                args.circuit, seed, pbc_path=explicit_pbc,
-                skip_existing=skip, cp_sat_time_limit=cp_time,
-            )
+    if not args.circuit:
+        parser.print_help()
         return
 
-    # ── --circuit + --mapping + --scheduler: single config ───────────────────
-    if args.circuit and args.mapping and args.scheduler:
-        explicit_pbc = pbc_path_for(args.circuit)
-        if explicit_pbc is None:
-            # Check experiment_circuits/ as fallback
-            qasm = os.path.join(EXP_CIRCUITS, f"{args.circuit}.qasm")
-            if not os.path.exists(qasm):
-                parser.error(
-                    f"Circuit '{args.circuit}' has no PBC file in {PBC_DIR} "
-                    f"and no QASM in {EXP_CIRCUITS}.\n"
-                    f"Available PBC circuits: {sorted(discover_pbc_circuits())}"
-                )
-        for seed in seeds:
-            path = result_path(args.circuit, args.mapping, args.scheduler, seed)
-            if skip and os.path.exists(path):
-                print(f"[skip] {os.path.basename(path)}")
-                continue
-            rec = run_one_config(
-                args.circuit, args.mapping, args.scheduler, seed,
-                pbc_path=explicit_pbc, cp_sat_time_limit=cp_time,
-            )
-            save_result(rec)
-        return
-
-    parser.print_help()
+    run_circuit(
+        args.circuit,
+        seed=args.seed,
+        cp_time=args.cp_time,
+        force=args.force,
+    )
 
 
 if __name__ == "__main__":
