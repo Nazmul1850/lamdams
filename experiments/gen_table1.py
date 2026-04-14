@@ -1,19 +1,16 @@
 """
 Generate Table 1: SC vs qLDPC resource comparison — all 5 configs.
 
-Discovers circuits automatically from:
-  - circuits/benchmarks/pbc/*_PBC.json
-  - experiment_circuits/*.qasm  (if no PBC counterpart)
+Data sources (in priority order per circuit):
+  1. results/raw/{circuit}_seed42.json   — new unified format (grid + ring + all configs)
+  2. runs/{circuit}_*_seed42.json        — legacy per-run files (fallback)
 
-Configs shown per circuit:
-  naive : random + sequential      (baseline)
-  A     : random + greedy_critical
-  B     : random + cpsat
-  C     : sa     + greedy_critical
-  D     : sa     + cpsat
+SC baseline always from results/sc_baseline/sc_baseline.json.
 
-A row is rendered if SC baseline + naive run are present.
-All other configs are optional — missing ones show "—".
+A row is rendered for every circuit that has SC baseline + at least naive depth.
+All other configs show "—" when missing.
+
+Topology shown: GRID (primary). Ring depths included in JSON output as _ring columns.
 
 Usage:
     python experiments/gen_table1.py
@@ -38,8 +35,26 @@ _ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PBC_DIR     = os.path.join(_ROOT, "circuits", "benchmarks", "pbc")
 EXP_DIR     = os.path.join(_ROOT, "experiment_circuits")
 RUNS_DIR    = os.path.join(_ROOT, "runs")
+RAW_DIR     = os.path.join(_ROOT, "results", "raw")
 SC_BASELINE = os.path.join(_ROOT, "results", "sc_baseline", "sc_baseline.json")
 OUT_PATH    = os.path.join(_ROOT, "results", "table1", "table1.json")
+
+# Config key → (mapping, scheduler) in the new raw format
+RAW_CONFIGS = {
+    "naive": ("random", "sequential"),
+    "A":     ("random", "greedy_critical"),
+    "B":     ("random", "cpsat"),
+    "C":     ("sa",     "greedy_critical"),
+    "D":     ("sa",     "cpsat"),
+}
+# Config key → legacy runs/ filename fragments
+LEGACY_CONFIGS = {
+    "naive": ("random", "sequential"),
+    "A":     ("random", "greedy_critical"),
+    "B":     ("random", "cpsat"),
+    "C":     ("sa",     "greedy_critical"),
+    "D":     ("sa",     "cpsat"),
+}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -50,12 +65,19 @@ def _circuit_name_from_pbc(fname: str) -> str:
 
 
 def discover_circuits() -> list[str]:
-    """Return sorted list of all circuit names present in pbc/ or experiment_circuits/."""
+    """Union of: raw/ files, pbc/ files, experiment_circuits/ files."""
     names: set[str] = set()
+    # primary: raw/ directory
+    if os.path.isdir(RAW_DIR):
+        for f in os.listdir(RAW_DIR):
+            if f.endswith(f"_seed{SEED}.json"):
+                names.add(f[: -(len(f"_seed{SEED}.json"))])
+    # secondary: pbc/ JSONs
     if os.path.isdir(PBC_DIR):
         for f in os.listdir(PBC_DIR):
             if f.endswith(".json"):
                 names.add(_circuit_name_from_pbc(f))
+    # tertiary: experiment_circuits/ .qasm
     if os.path.isdir(EXP_DIR):
         for f in os.listdir(EXP_DIR):
             if f.endswith(".qasm"):
@@ -63,16 +85,25 @@ def discover_circuits() -> list[str]:
     return sorted(names)
 
 
-def run_path(circuit: str, mapping: str, scheduler: str) -> str:
-    return os.path.join(RUNS_DIR, f"{circuit}_{mapping}_{scheduler}_seed{SEED}.json")
-
-
-def load_run(circuit: str, mapping: str, scheduler: str) -> dict | None:
-    p = run_path(circuit, mapping, scheduler)
+def load_raw_file(circuit: str) -> dict | None:
+    """Load results/raw/{circuit}_seed42.json (new unified format)."""
+    p = os.path.join(RAW_DIR, f"{circuit}_seed{SEED}.json")
     if not os.path.exists(p):
         return None
     with open(p) as f:
         return json.load(f)
+
+
+def load_legacy_run(circuit: str, mapping: str, scheduler: str) -> dict | None:
+    """Load runs/{circuit}_{mapping}_{scheduler}_seed42.json (old format)."""
+    p = os.path.join(RUNS_DIR, f"{circuit}_{mapping}_{scheduler}_seed{SEED}.json")
+    if not os.path.exists(p):
+        return None
+    with open(p) as f:
+        d = json.load(f)
+    if "mapping" not in d and "placement" in d:
+        d["mapping"] = d["placement"]
+    return d
 
 
 def grid_shape(n_blocks: int) -> tuple[int, int]:
@@ -86,90 +117,146 @@ def n_grid_couplers(n_blocks: int) -> int:
     return rows * (cols - 1) + (rows - 1) * cols
 
 
-def qldpc_physical_qubits(n_blocks: int) -> tuple[int, int, int]:
+def qldpc_physical_qubits(n_blocks: int, n_couplers: int | None = None) -> tuple[int, int, int]:
     """Return (total_phys, n_couplers, block_qubits)."""
-    n_couplers    = n_grid_couplers(n_blocks)
+    if n_couplers is None:
+        n_couplers = n_grid_couplers(n_blocks)
     block_qubits  = n_blocks * (PHYS_PER_BLOCK + ANCILLA_PER_BLOCK)
     bridge_qubits = n_couplers * BRIDGE_PER_COUP
     return block_qubits + bridge_qubits, n_couplers, block_qubits
+
+
+# ── Per-circuit data extraction ───────────────────────────────────────────────
+
+class CircuitData:
+    """Unified view of one circuit's depths across all configs and topologies."""
+
+    def __init__(self, circuit: str, sc: dict):
+        self.circuit  = circuit
+        self.sc       = sc
+        self.source   = None   # "raw" or "legacy"
+
+        # depths[topology][config_key] = int | None
+        self.depths:    dict[str, dict[str, int | None]]   = {"grid": {}, "ring": {}}
+        self.n_blocks:  dict[str, int | None]               = {"grid": None, "ring": None}
+        self.n_couplers: dict[str, int | None]              = {"grid": None, "ring": None}
+        self.hw_label:  dict[str, str]                      = {"grid": "", "ring": ""}
+        self.fill_rate: dict[str, float | None]             = {"grid": None, "ring": None}
+
+        raw = load_raw_file(circuit)
+        if raw is not None:
+            self.source = "raw"
+            self._load_raw(raw)
+        else:
+            self.source = "legacy"
+            self._load_legacy()
+
+    def _load_raw(self, raw: dict) -> None:
+        for topo in ("grid", "ring"):
+            if topo not in raw:
+                continue
+            td = raw[topo]
+            self.n_blocks[topo]   = td.get("n_blocks")
+            self.n_couplers[topo] = td.get("n_couplers")
+            self.hw_label[topo]   = td.get("hw_label", "")
+            self.fill_rate[topo]  = td.get("fill_rate")
+            for cfg_key in RAW_CONFIGS:
+                cfg = td.get("configs", {}).get(cfg_key)
+                self.depths[topo][cfg_key] = cfg["logical_depth"] if cfg else None
+
+    def _load_legacy(self) -> None:
+        """Pull from runs/ flat files into grid slot only."""
+        for cfg_key, (mapping, scheduler) in LEGACY_CONFIGS.items():
+            rec = load_legacy_run(self.circuit, mapping, scheduler)
+            depth = None
+            if rec:
+                depth = rec.get("logical_depth")
+                if self.n_blocks["grid"] is None:
+                    self.n_blocks["grid"] = rec.get("n_blocks")
+                if self.n_couplers["grid"] is None:
+                    self.n_couplers["grid"] = rec.get("n_couplers")
+            self.depths["grid"][cfg_key] = depth
+
+    def has_naive(self, topo: str = "grid") -> bool:
+        return self.depths.get(topo, {}).get("naive") is not None
+
+    def depth(self, cfg: str, topo: str = "grid") -> int | None:
+        return self.depths.get(topo, {}).get(cfg)
+
+    def grid_n_blocks(self) -> int | None:
+        return self.n_blocks["grid"]
+
+    def grid_n_couplers(self) -> int | None:
+        return self.n_couplers["grid"]
 
 
 # ── Load SC baseline ──────────────────────────────────────────────────────────
 
 if not os.path.exists(SC_BASELINE):
     print(f"ERROR: SC baseline not found at {SC_BASELINE}")
-    print("  Run: python experiments/sc_baseline.py")
     raise SystemExit(1)
 
 with open(SC_BASELINE) as f:
-    sc_data = {r["circuit"]: r for r in json.load(f)}
+    _raw_sc = json.load(f)
+    # keep only best (latest) entry per circuit name
+    sc_data: dict[str, dict] = {}
+    for r in _raw_sc:
+        c = r["circuit"]
+        if c not in sc_data or r.get("timestamp", "") > sc_data[c].get("timestamp", ""):
+            sc_data[c] = r
 
 
-# ── Discover circuits ─────────────────────────────────────────────────────────
+# ── Discover + load all circuits ──────────────────────────────────────────────
 
-all_circuits = discover_circuits()
+all_circuit_names = discover_circuits()
+circuit_objects: list[CircuitData] = []
+for name in all_circuit_names:
+    if name not in sc_data:
+        continue
+    cd = CircuitData(name, sc_data[name])
+    if cd.has_naive("grid"):
+        circuit_objects.append(cd)
+
 
 # ── Status report ─────────────────────────────────────────────────────────────
 
-print("=" * 90)
+print("=" * 100)
 print("TABLE 1 — STATUS REPORT")
-print("=" * 90)
-print(f"\n  {'Circuit':<28}  {'SC':^4}  {'naive':^5}  {'A:R+Grd':^7}  {'B:R+CP':^6}  {'C:SA+Grd':^8}  {'D:SA+CP':^7}  ready?")
-print("  " + "-" * 80)
+print("=" * 100)
+print(
+    f"\n  {'Circuit':<30} {'Src':^5} {'SC':^4}  "
+    f"{'naive':^5} {'A':^4} {'B':^4} {'C':^4} {'D':^4}  "
+    f"{'ring-naive':^10} {'ring-D':^8}  ready?"
+)
+print("  " + "-" * 90)
 
-for c in all_circuits:
-    has_sc         = c in sc_data
-    naive_run      = load_run(c, "random", "sequential")
-    rg_run         = load_run(c, "random", "greedy_critical")
-    rc_run         = load_run(c, "random", "cpsat")
-    sa_greedy_run  = load_run(c, "sa",     "greedy_critical")
-    sa_cpsat_run   = load_run(c, "sa",     "cpsat")
+all_names_with_sc = [n for n in all_circuit_names if n in sc_data]
+for name in all_names_with_sc:
+    cd   = CircuitData(name, sc_data[name])
+    src  = cd.source or "—"
 
-    def sym(r): return "✓" if r else "—"
+    def sym(v): return "✓" if v is not None else "—"
 
-    sc_sym    = "✓" if has_sc    else "✗"
-    naive_sym = "✓" if naive_run else "✗"
-    ready     = "✓ ROW" if (has_sc and naive_run) else "✗ skip"
+    row_ready = "✓ ROW" if cd.has_naive("grid") else "✗ skip"
+    print(
+        f"  {name:<30} {src:^5} ✓     "
+        f"{sym(cd.depth('naive')):^5} "
+        f"{sym(cd.depth('A')):^4} "
+        f"{sym(cd.depth('B')):^4} "
+        f"{sym(cd.depth('C')):^4} "
+        f"{sym(cd.depth('D')):^4}  "
+        f"{sym(cd.depth('naive','ring')):^10} "
+        f"{sym(cd.depth('D','ring')):^8}  "
+        f"{row_ready}"
+    )
 
-    print(f"  {c:<28}  {sc_sym:^4}  {naive_sym:^5}  {sym(rg_run):^7}  {sym(rc_run):^6}  {sym(sa_greedy_run):^8}  {sym(sa_cpsat_run):^7}  {ready}")
-
-# Missing commands
-missing_sc       = [c for c in all_circuits if c not in sc_data]
-missing_naive    = [c for c in all_circuits if not load_run(c, "random", "sequential")]
-missing_rg       = [c for c in all_circuits if not load_run(c, "random", "greedy_critical")]
-missing_rc       = [c for c in all_circuits if not load_run(c, "random", "cpsat")]
-missing_sa_greedy = [c for c in all_circuits if not load_run(c, "sa", "greedy_critical")]
-missing_sa       = [c for c in all_circuits if not load_run(c, "sa", "cpsat")]
-
-if missing_sc:
-    print("\n[TO DO — SC baseline]")
-    for c in missing_sc:
-        print(f"  python experiments/sc_baseline.py --circuit {c}")
-
+# To-do: circuits with SC baseline but no naive run
+missing_naive = [n for n in all_names_with_sc
+                 if not CircuitData(n, sc_data[n]).has_naive("grid")]
 if missing_naive:
-    print("\n[TO DO — naive (random+sequential)]")
-    for c in missing_naive:
-        print(f"  python experiments/run_experiment.py --circuit {c} --mapping random --scheduler sequential --seed {SEED}")
-
-if missing_rg:
-    print("\n[TO DO — config A (random+greedy)]")
-    for c in missing_rg:
-        print(f"  python experiments/run_experiment.py --circuit {c} --mapping random --scheduler greedy_critical --seed {SEED}")
-
-if missing_rc:
-    print("\n[TO DO — config B (random+cpsat)]")
-    for c in missing_rc:
-        print(f"  python experiments/run_experiment.py --circuit {c} --mapping random --scheduler cpsat --seed {SEED}")
-
-if missing_sa_greedy:
-    print("\n[TO DO — config C (sa+greedy)]")
-    for c in missing_sa_greedy:
-        print(f"  python experiments/run_experiment.py --circuit {c} --mapping sa --scheduler greedy_critical --seed {SEED}")
-
-if missing_sa:
-    print("\n[TO DO — config D (sa+cpsat)]")
-    for c in missing_sa:
-        print(f"  python experiments/run_experiment.py --circuit {c} --mapping sa --scheduler cpsat --seed {SEED}")
+    print(f"\n[TO DO — missing naive grid run for {len(missing_naive)} circuit(s)]")
+    for n in missing_naive:
+        print(f"  python experiments/run_experiment.py --circuit {n} --all-configs --seed {SEED}")
 
 print()
 
@@ -177,54 +264,61 @@ print()
 # ── Build table rows ──────────────────────────────────────────────────────────
 
 rows = []
-for circuit in all_circuits:
-    if circuit not in sc_data:
-        continue
-    naive_run = load_run(circuit, "random", "sequential")
-    if naive_run is None:
-        continue
-
-    sc            = sc_data[circuit]
-    rg_run        = load_run(circuit, "random", "greedy_critical")
-    rc_run        = load_run(circuit, "random", "cpsat")
-    sa_greedy_run = load_run(circuit, "sa",     "greedy_critical")
-    sa_run        = load_run(circuit, "sa",     "cpsat")
-
-    # Use sc_baseline as authoritative t_count — sequential runs on PBC circuits
-    # record t_count=0 because the sequential scheduler doesn't recount T-gates.
+for cd in circuit_objects:
+    sc       = cd.sc
     t_count  = sc["t_count"]
     n_qubits = sc["n_qubits"]
-    n_blocks = naive_run["n_blocks"]
 
-    qldpc_phys, n_couplers, block_qubits = qldpc_physical_qubits(n_blocks)
+    nb = cd.grid_n_blocks()
+    nc = cd.grid_n_couplers()
+    if nb is None:
+        continue
+
+    qldpc_phys, n_couplers_calc, block_qubits = qldpc_physical_qubits(nb, nc)
+    if nc is None:
+        nc = n_couplers_calc
 
     sc_data_tiles  = 6 * n_qubits
     sc_magic_tiles = 3 * (t_count + 1)
     sc_phys_data   = sc_data_tiles * PHYS_PER_TILE
     sc_phys_total  = sc["sc_tile_count"] * PHYS_PER_TILE
+    sc_depth       = sc["sc_logical_depth"]
 
-    sc_depth        = sc["sc_logical_depth"]
-    naive_depth     = naive_run["logical_depth"]
-    rg_depth        = rg_run["logical_depth"]        if rg_run        else None
-    rc_depth        = rc_run["logical_depth"]        if rc_run        else None
-    sa_greedy_depth = sa_greedy_run["logical_depth"] if sa_greedy_run else None
-    sa_depth        = sa_run["logical_depth"]        if sa_run        else None
+    naive_d = cd.depth("naive")
+    rg_d    = cd.depth("A")
+    rc_d    = cd.depth("B")
+    sag_d   = cd.depth("C")
+    sa_d    = cd.depth("D")
 
-    def _pct(d):
-        if d is None: return None
-        return round((naive_depth - d) / naive_depth * 100, 1)
+    # Ring topology (optional)
+    naive_d_ring = cd.depth("naive", "ring")
+    rg_d_ring    = cd.depth("A",     "ring")
+    rc_d_ring    = cd.depth("B",     "ring")
+    sag_d_ring   = cd.depth("C",     "ring")
+    sa_d_ring    = cd.depth("D",     "ring")
 
-    qubit_reduction = round(sc_phys_data / qldpc_phys, 2)
-    naive_depth_oh  = round(naive_depth / sc_depth, 2) if sc_depth else None
+    def _pct(d, base=None):
+        b = base if base is not None else naive_d
+        if d is None or b is None or b == 0:
+            return None
+        return round((b - d) / b * 100, 1)
+
+    qubit_reduction = round(sc_phys_data / qldpc_phys, 2) if qldpc_phys else None
+    naive_depth_oh  = round(naive_d / sc_depth, 2) if sc_depth and naive_d else None
 
     rows.append({
-        "circuit":                  circuit,
-        "n_logical_qubits":         n_qubits,
-        "t_count":                  t_count,
-        "n_blocks":                 n_blocks,
-        "n_couplers":               n_couplers,
+        "circuit":            cd.circuit,
+        "source":             cd.source,
+        "n_logical_qubits":   n_qubits,
+        "t_count":            t_count,
+        "hw_label_grid":      cd.hw_label.get("grid", ""),
+        "hw_label_ring":      cd.hw_label.get("ring", ""),
+        "n_blocks":           nb,
+        "n_couplers":         nc,
+        "fill_rate_grid":     cd.fill_rate.get("grid"),
+        "fill_rate_ring":     cd.fill_rate.get("ring"),
 
-        # SC columns
+        # SC
         "sc_data_tiles":            sc_data_tiles,
         "sc_magic_tiles":           sc_magic_tiles,
         "sc_total_tiles":           sc["sc_tile_count"],
@@ -234,25 +328,49 @@ for circuit in all_circuits:
         "code_distance_d":          CODE_DISTANCE,
         "phys_per_tile":            PHYS_PER_TILE,
 
-        # qLDPC columns
-        "qldpc_block_qubits":       block_qubits,
-        "qldpc_bridge_qubits":      n_couplers * BRIDGE_PER_COUP,
-        "qldpc_physical_qubits":    qldpc_phys,
+        # qLDPC physical
+        "qldpc_block_qubits":    block_qubits,
+        "qldpc_bridge_qubits":   nc * BRIDGE_PER_COUP,
+        "qldpc_physical_qubits": qldpc_phys,
 
-        # All 5 configs
-        "qldpc_naive_depth":        naive_depth,           # naive: random+sequential
-        "qldpc_rg_depth":           rg_depth,              # A: random+greedy
-        "qldpc_rc_depth":           rc_depth,              # B: random+cpsat
-        "qldpc_sa_greedy_depth":    sa_greedy_depth,       # C: sa+greedy
-        "qldpc_sa_cpsat_depth":     sa_depth,              # D: sa+cpsat
+        # Grid depths
+        "grid_naive_depth": naive_d,
+        "grid_A_depth":     rg_d,
+        "grid_B_depth":     rc_d,
+        "grid_C_depth":     sag_d,
+        "grid_D_depth":     sa_d,
 
-        # Derived — all vs naive
-        "qubit_reduction":          qubit_reduction,
-        "naive_depth_overhead":     naive_depth_oh,
-        "rg_depth_reduction_pct":   _pct(rg_depth),
-        "rc_depth_reduction_pct":   _pct(rc_depth),
-        "sa_greedy_depth_reduction_pct": _pct(sa_greedy_depth),
-        "sa_cpsat_depth_reduction_pct":  _pct(sa_depth),
+        # Ring depths
+        "ring_naive_depth": naive_d_ring,
+        "ring_A_depth":     rg_d_ring,
+        "ring_B_depth":     rc_d_ring,
+        "ring_C_depth":     sag_d_ring,
+        "ring_D_depth":     sa_d_ring,
+
+        # Derived (grid, vs naive_grid)
+        "qubit_reduction":       qubit_reduction,
+        "naive_depth_overhead":  naive_depth_oh,
+        "grid_A_pct": _pct(rg_d),
+        "grid_B_pct": _pct(rc_d),
+        "grid_C_pct": _pct(sag_d),
+        "grid_D_pct": _pct(sa_d),
+
+        # Derived (ring, vs ring naive)
+        "ring_A_pct": _pct(rg_d_ring,  naive_d_ring),
+        "ring_B_pct": _pct(rc_d_ring,  naive_d_ring),
+        "ring_C_pct": _pct(sag_d_ring, naive_d_ring),
+        "ring_D_pct": _pct(sa_d_ring,  naive_d_ring),
+
+        # Legacy field aliases (backward compat)
+        "qldpc_naive_depth":             naive_d,
+        "qldpc_rg_depth":                rg_d,
+        "qldpc_rc_depth":                rc_d,
+        "qldpc_sa_greedy_depth":         sag_d,
+        "qldpc_sa_cpsat_depth":          sa_d,
+        "rg_depth_reduction_pct":        _pct(rg_d),
+        "rc_depth_reduction_pct":        _pct(rc_d),
+        "sa_greedy_depth_reduction_pct": _pct(sag_d),
+        "sa_cpsat_depth_reduction_pct":  _pct(sa_d),
     })
 
 
@@ -260,13 +378,11 @@ for circuit in all_circuits:
 
 os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
 output = {
-    "description": "Table 1: SC vs qLDPC physical qubit and depth comparison",
+    "description": "Table 1: SC vs qLDPC physical qubit and depth comparison — all families",
     "methodology": {
         "sc_physical_qubits":    "data-only tiles × (2·d²-1); data tiles = 6·n_qubits",
-        "sc_data_tiles":         "3 rows × 2·n_qubits cols  (SimplePreDistilledStates layout)",
-        "sc_magic_tiles":        "3 rows × (T_count+1) cols  (excluded from qubit comparison)",
         "qldpc_physical_qubits": "n_blocks × (288+103) + n_couplers × 24",
-        "sc_depth":              "T-count (Litinski transform, each T = 1 lattice-surgery round)",
+        "sc_depth":              "T-count (Litinski transform)",
         "configs": {
             "naive": "random placement + sequential scheduler",
             "A":     "random placement + greedy_critical scheduler",
@@ -274,9 +390,10 @@ output = {
             "C":     "SA placement + greedy_critical scheduler",
             "D":     "SA placement + CP-SAT scheduler",
         },
-        "depth_reduction_pct":   "(naive - config_depth) / naive × 100",
-        "code_distance":         CODE_DISTANCE,
-        "t_count_source":        "sc_baseline.json (authoritative; sequential runs do not recount)",
+        "depth_pct":       "(naive - config) / naive × 100  [grid vs grid naive, ring vs ring naive]",
+        "code_distance":   CODE_DISTANCE,
+        "t_count_source":  "sc_baseline.json (authoritative)",
+        "data_sources":    "results/raw/{circuit}_seed42.json (primary), runs/ (legacy fallback)",
     },
     "generated_at": datetime.now(timezone.utc).isoformat(),
     "rows": rows,
@@ -286,71 +403,106 @@ with open(OUT_PATH, "w") as f:
     json.dump(output, f, indent=2)
 
 
-# ── Print table ───────────────────────────────────────────────────────────────
+# ── Print table (grid topology) ───────────────────────────────────────────────
 
 def _fmt(v, fmt=",") -> str:
     if v is None:
         return "—"
     if fmt == "pct":
-        return f"{v:.1f}%"
+        return f"{v:+.1f}%"
     if fmt == "x":
-        return f"{v:.1f}x"
+        return f"{v:.1f}×"
     return f"{v:{fmt}}"
 
 
 if rows:
-    # ── Header ────────────────────────────────────────────────────────────────
-    W = 160
+    W = 172
     print("=" * W)
     print(
         f"  {'Circuit':<22} {'Q':>4} {'B':>3} {'T':>6}  "
         f"{'SC PhysQ':>9} {'SC D':>6}  "
         f"{'qLDPC PhysQ':>11}  "
         f"{'Naive':>7} {'A:R+Grd':>8} {'B:R+CP':>7} {'C:SA+Grd':>9} {'D:SA+CP':>8}  "
-        f"{'Q×':>5} {'NaiveOH':>7}  "
-        f"{'A%':>6} {'B%':>6} {'C%':>6} {'D%':>6}"
+        f"{'Q×':>5} {'SC OH':>6}  "
+        f"{'A%':>6} {'B%':>6} {'C%':>6} {'D%':>6}  src"
     )
     print("  " + "-" * (W - 2))
+
+    prev_family = None
+    def _family(c: str) -> str:
+        if c.startswith("Adder"):       return "Adder"
+        if c.upper().startswith("QFT"): return "QFT"
+        if c.startswith("gf"):          return "GF"
+        return "Other"
+
     for r in rows:
+        fam = _family(r["circuit"])
+        if fam != prev_family:
+            if prev_family is not None:
+                print("  " + "·" * (W - 2))
+            prev_family = fam
+
         print(
             f"  {r['circuit']:<22} {r['n_logical_qubits']:>4} {r['n_blocks']:>3} {r['t_count']:>6,}  "
             f"{r['sc_physical_qubits']:>9,} {r['sc_depth']:>6,}  "
             f"{r['qldpc_physical_qubits']:>11,}  "
-            f"{r['qldpc_naive_depth']:>7,} "
-            f"{_fmt(r['qldpc_rg_depth']):>8} "
-            f"{_fmt(r['qldpc_rc_depth']):>7} "
-            f"{_fmt(r['qldpc_sa_greedy_depth']):>9} "
-            f"{_fmt(r['qldpc_sa_cpsat_depth']):>8}  "
+            f"{_fmt(r['grid_naive_depth']):>7} "
+            f"{_fmt(r['grid_A_depth']):>8} "
+            f"{_fmt(r['grid_B_depth']):>7} "
+            f"{_fmt(r['grid_C_depth']):>9} "
+            f"{_fmt(r['grid_D_depth']):>8}  "
             f"{_fmt(r['qubit_reduction'], 'x'):>5} "
-            f"{_fmt(r['naive_depth_overhead'], 'x'):>7}  "
-            f"{_fmt(r['rg_depth_reduction_pct'], 'pct'):>6} "
-            f"{_fmt(r['rc_depth_reduction_pct'], 'pct'):>6} "
-            f"{_fmt(r['sa_greedy_depth_reduction_pct'], 'pct'):>6} "
-            f"{_fmt(r['sa_cpsat_depth_reduction_pct'], 'pct'):>6}"
+            f"{_fmt(r['naive_depth_overhead'], 'x'):>6}  "
+            f"{_fmt(r['grid_A_pct'], 'pct'):>6} "
+            f"{_fmt(r['grid_B_pct'], 'pct'):>6} "
+            f"{_fmt(r['grid_C_pct'], 'pct'):>6} "
+            f"{_fmt(r['grid_D_pct'], 'pct'):>6}  "
+            f"{r['source']}"
         )
+
     print("=" * W)
 
-    # ── Summary counts ────────────────────────────────────────────────────────
-    counts = {
-        "A": sum(1 for r in rows if r["qldpc_rg_depth"] is not None),
-        "B": sum(1 for r in rows if r["qldpc_rc_depth"] is not None),
-        "C": sum(1 for r in rows if r["qldpc_sa_greedy_depth"] is not None),
-        "D": sum(1 for r in rows if r["qldpc_sa_cpsat_depth"] is not None),
-    }
-    print(f"\n  {len(rows)} circuit(s)  |  "
-          + "  |  ".join(f"Config {k}: {v}/{len(rows)}" for k, v in counts.items()))
+    # Summary by family
+    for fam_name, prefix in [("Adder", "Adder"), ("QFT", "QFT"), ("GF", "gf"), ("Other", None)]:
+        fam_rows = [r for r in rows if _family(r["circuit"]) == fam_name]
+        if not fam_rows:
+            continue
+        def _mean(key):
+            vals = [r[key] for r in fam_rows if r[key] is not None]
+            return f"{sum(vals)/len(vals):.1f}%" if vals else "—"
+        print(f"\n  {fam_name} ({len(fam_rows)} circuits)  "
+              f"mean D reduction:  A={_mean('grid_A_pct')}  B={_mean('grid_B_pct')}  "
+              f"C={_mean('grid_C_pct')}  D={_mean('grid_D_pct')}")
 
-    # ── Mean reduction row (only configs with data) ───────────────────────────
-    def _mean_pct(key):
-        vals = [r[key] for r in rows if r[key] is not None]
-        return f"{sum(vals)/len(vals):.1f}%" if vals else "—"
-
-    print(f"\n  Mean depth reduction vs naive:")
-    print(f"    A (Rand+Greedy): {_mean_pct('rg_depth_reduction_pct')}")
-    print(f"    B (Rand+CPSAT):  {_mean_pct('rc_depth_reduction_pct')}")
-    print(f"    C (SA+Greedy):   {_mean_pct('sa_greedy_depth_reduction_pct')}")
-    print(f"    D (SA+CPSAT):    {_mean_pct('sa_cpsat_depth_reduction_pct')}")
+    total_counts = {k: sum(1 for r in rows if r[f"grid_{k}_depth"] is not None)
+                    for k in ("A","B","C","D")}
+    print(f"\n  Total: {len(rows)} circuits  |  "
+          + "  |  ".join(f"{k}: {v}/{len(rows)}" for k, v in total_counts.items()))
 else:
-    print("No rows to render — run sc_baseline.py and naive runs first.")
+    print("No rows — check SC baseline and raw/runs data.")
 
 print(f"\nWritten → {OUT_PATH}")
+
+
+# ── Figure 3 gap report ───────────────────────────────────────────────────────
+
+print("\n" + "=" * 60)
+print("FIGURE 3 GAP REPORT (results/raw/ coverage)")
+print("=" * 60)
+raw_circuits = set()
+if os.path.isdir(RAW_DIR):
+    for f in os.listdir(RAW_DIR):
+        if f.endswith(f"_seed{SEED}.json"):
+            raw_circuits.add(f[: -(len(f"_seed{SEED}.json"))])
+
+all_with_sc = set(sc_data.keys())
+in_raw      = raw_circuits & all_with_sc
+missing_raw = all_with_sc - raw_circuits
+
+print(f"\n  Have raw file ({len(in_raw)}): {sorted(in_raw)}")
+if missing_raw:
+    print(f"\n  Missing raw file ({len(missing_raw)}) — needed for fig 3:")
+    for c in sorted(missing_raw):
+        print(f"    {c}")
+else:
+    print("\n  All SC-baseline circuits have raw files. Fig 3 is complete.")

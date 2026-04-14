@@ -145,7 +145,18 @@ FAMILY_SCORE_KWARGS: Dict[str, Dict[str, float]] = {
         "W_SUPPORT_STD": 0.0
     },
     # rand/adder/qft: tuned defaults; update once random_scaling.py results are in
-    "rand":  dict(TUNED_SCORE_KWARGS),
+    "rand":  {
+        "W_UNUSED_BLOCKS": 1000000.0,
+        "W_OCC_RANGE": 22000.0,
+        "W_OCC_STD": 10000.0,
+        "W_MULTI_BLOCK": 0.0,
+        "W_SPAN": 2000.0,
+        "W_MST": 275.0,
+        "W_SPLIT": 10.0,
+        "W_SUPPORT_PEAK": 100.0,
+        "W_SUPPORT_RANGE": 20.0,
+        "W_SUPPORT_STD": 0.0
+    },
     "adder": dict(TUNED_SCORE_KWARGS),
     "qft":   dict(TUNED_SCORE_KWARGS),
 }

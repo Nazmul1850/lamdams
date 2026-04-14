@@ -1,0 +1,157 @@
+{
+  "circuit": "rand_60q_4kt_s42",
+  "n_qubits": 60,
+  "t_count": 0,
+  "n_layers": 41,
+  "seed": 42,
+  "timestamp": "2026-04-14T06:31:03.146321+00:00",
+  "hardware": {
+    "n_data": 11,
+    "coupler_capacity": 1,
+    "sparse_pct": 0.0
+  },
+  "sa_params": {
+    "steps": 22500,
+    "t0": 100000.0,
+    "tend": 0.05
+  },
+  "cp_sat_time_limit_per_layer": 1000.0,
+  "grid": {
+    "hw_label": "2\u00d73 (6B, 91% fill)",
+    "n_blocks": 6,
+    "n_couplers": 7,
+    "fill_rate": 0.9091,
+    "grid_rows": 2,
+    "grid_cols": 3,
+    "configs": {
+      "naive": {
+        "mapping": "random",
+        "scheduler": "sequential",
+        "logical_depth": 134985,
+        "mapping_time_sec": 0.0,
+        "scheduling_time_sec": 252.716,
+        "total_time_sec": 252.716,
+        "pct_vs_naive": 0.0
+      },
+      "A": {
+        "mapping": "random",
+        "scheduler": "greedy_critical",
+        "logical_depth": 126375,
+        "mapping_time_sec": 0.0,
+        "scheduling_time_sec": 475.084,
+        "total_time_sec": 475.084,
+        "pct_vs_naive": -6.38
+      },
+      "B": {
+        "mapping": "random",
+        "scheduler": "cpsat",
+        "logical_depth": 125234,
+        "mapping_time_sec": 0.0,
+        "scheduling_time_sec": 39545.268,
+        "total_time_sec": 39545.268,
+        "cpsat_fallback_layers": 17,
+        "cpsat_suboptimal_layers": 23,
+        "pct_vs_naive": -7.22
+      },
+      "C": {
+        "mapping": "sa",
+        "scheduler": "greedy_critical",
+        "logical_depth": 124928,
+        "mapping_time_sec": 2572.086,
+        "scheduling_time_sec": 1065.363,
+        "total_time_sec": 3637.449,
+        "sa_score_total": 191665092.88755307,
+        "sa_unused_blocks": 0,
+        "sa_num_multiblock": 3787,
+        "sa_span_total": 18200.0,
+        "sa_mst_total": 18274.0,
+        "pct_vs_naive": -7.45
+      },
+      "D": {
+        "mapping": "sa",
+        "scheduler": "cpsat",
+        "logical_depth": 123757,
+        "mapping_time_sec": 2572.086,
+        "scheduling_time_sec": 41265.619,
+        "total_time_sec": 43837.705,
+        "sa_score_total": 191665092.88755307,
+        "sa_unused_blocks": 0,
+        "sa_num_multiblock": 3787,
+        "sa_span_total": 18200.0,
+        "sa_mst_total": 18274.0,
+        "cpsat_fallback_layers": 12,
+        "cpsat_suboptimal_layers": 28,
+        "pct_vs_naive": -8.32
+      }
+    }
+  },
+  "ring": {
+    "hw_label": "ring (6B, 91% fill)",
+    "n_blocks": 6,
+    "n_couplers": 6,
+    "fill_rate": 0.9091,
+    "grid_rows": null,
+    "grid_cols": null,
+    "configs": {
+      "naive": {
+        "mapping": "random",
+        "scheduler": "sequential",
+        "logical_depth": 134999,
+        "mapping_time_sec": 0.0,
+        "scheduling_time_sec": 620.359,
+        "total_time_sec": 620.359,
+        "pct_vs_naive": 0.0
+      },
+      "A": {
+        "mapping": "random",
+        "scheduler": "greedy_critical",
+        "logical_depth": 126183,
+        "mapping_time_sec": 0.0,
+        "scheduling_time_sec": 787.43,
+        "total_time_sec": 787.43,
+        "pct_vs_naive": -6.53
+      },
+      "B": {
+        "mapping": "random",
+        "scheduler": "cpsat",
+        "logical_depth": 125117,
+        "mapping_time_sec": 0.0,
+        "scheduling_time_sec": 40595.098,
+        "total_time_sec": 40595.098,
+        "cpsat_fallback_layers": 0,
+        "cpsat_suboptimal_layers": 40,
+        "pct_vs_naive": -7.32
+      },
+      "C": {
+        "mapping": "sa",
+        "scheduler": "greedy_critical",
+        "logical_depth": 124396,
+        "mapping_time_sec": 2626.319,
+        "scheduling_time_sec": 576.444,
+        "total_time_sec": 3202.763,
+        "sa_score_total": 190629667.5595416,
+        "sa_unused_blocks": 0,
+        "sa_num_multiblock": 3768,
+        "sa_span_total": 18099.0,
+        "sa_mst_total": 18227.0,
+        "pct_vs_naive": -7.85
+      },
+      "D": {
+        "mapping": "sa",
+        "scheduler": "cpsat",
+        "logical_depth": 123493,
+        "mapping_time_sec": 2626.319,
+        "scheduling_time_sec": 39854.98,
+        "total_time_sec": 42481.299,
+        "sa_score_total": 190629667.5595416,
+        "sa_unused_blocks": 0,
+        "sa_num_multiblock": 3768,
+        "sa_span_total": 18099.0,
+        "sa_mst_total": 18227.0,
+        "cpsat_fallback_layers": 0,
+        "cpsat_suboptimal_layers": 39,
+        "pct_vs_naive": -8.52
+      }
+    }
+  }
+}

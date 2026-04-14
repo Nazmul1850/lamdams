@@ -341,3 +341,97 @@
 {"ts": "2026-04-07T15:59:10.735844+00:00", "t": "run_done", "circuit": "Adder8", "mapping": "random", "scheduler": "cpsat", "seed": 42, "inter_block_rotations": 0, "logical_depth": 1009, "mapping_time_sec": 0.0, "scheduling_time_sec": 2000.974, "cpsat_fallback_count": 0, "cpsat_suboptimal_count": 2}
 {"ts": "2026-04-07T15:59:10.736739+00:00", "t": "result_saved", "path": "Adder8_random_cpsat_seed42.json"}
 {"ts": "2026-04-07T15:59:10.737156+00:00", "t": "phase_done", "phase": "all_pbc"}
+{"ts": "2026-04-13T18:18:20.793176+00:00", "t": "sc_pbc_phase_start", "n_files": 23}
+{"ts": "2026-04-13T18:18:20.874686+00:00", "t": "sc_pbc_start", "circuit": "Adder128", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\Adder128_PBC.json"}
+{"ts": "2026-04-13T18:18:20.880700+00:00", "t": "sc_pbc_done", "circuit": "Adder128", "sc_logical_depth": 5306, "sc_tile_count": 18219, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:20.908725+00:00", "t": "sc_cache_hit", "circuit": "Adder16"}
+{"ts": "2026-04-13T18:18:20.944836+00:00", "t": "sc_cache_hit", "circuit": "Adder32"}
+{"ts": "2026-04-13T18:18:20.948851+00:00", "t": "sc_cache_hit", "circuit": "Adder64"}
+{"ts": "2026-04-13T18:18:20.952620+00:00", "t": "sc_cache_hit", "circuit": "Adder8"}
+{"ts": "2026-04-13T18:18:21.027745+00:00", "t": "sc_pbc_start", "circuit": "QFT128", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\QFT128_PBC.json"}
+{"ts": "2026-04-13T18:18:21.031742+00:00", "t": "sc_pbc_done", "circuit": "QFT128", "sc_logical_depth": 381, "sc_tile_count": 1914, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.052803+00:00", "t": "sc_cache_hit", "circuit": "QFT16"}
+{"ts": "2026-04-13T18:18:21.061844+00:00", "t": "sc_cache_hit", "circuit": "QFT32"}
+{"ts": "2026-04-13T18:18:21.078487+00:00", "t": "sc_cache_hit", "circuit": "QFT64"}
+{"ts": "2026-04-13T18:18:21.086960+00:00", "t": "sc_cache_hit", "circuit": "QFT8"}
+{"ts": "2026-04-13T18:18:21.112349+00:00", "t": "sc_pbc_start", "circuit": "gf10_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf10_mult_PBC.json"}
+{"ts": "2026-04-13T18:18:21.112349+00:00", "t": "sc_pbc_done", "circuit": "gf10_mult", "sc_logical_depth": 700, "sc_tile_count": 2283, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.132613+00:00", "t": "sc_pbc_start", "circuit": "gf6_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf6_mult_PBC.json"}
+{"ts": "2026-04-13T18:18:21.134619+00:00", "t": "sc_pbc_done", "circuit": "gf6_mult", "sc_logical_depth": 252, "sc_tile_count": 867, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.165258+00:00", "t": "sc_pbc_start", "circuit": "gf7_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf7_mult_PBC.json"}
+{"ts": "2026-04-13T18:18:21.165258+00:00", "t": "sc_pbc_done", "circuit": "gf7_mult", "sc_logical_depth": 343, "sc_tile_count": 1158, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.204453+00:00", "t": "sc_pbc_start", "circuit": "gf8_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf8_mult_PBC.json"}
+{"ts": "2026-04-13T18:18:21.206452+00:00", "t": "sc_pbc_done", "circuit": "gf8_mult", "sc_logical_depth": 448, "sc_tile_count": 1491, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.248820+00:00", "t": "sc_pbc_start", "circuit": "gf9_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf9_mult_PBC.json"}
+{"ts": "2026-04-13T18:18:21.248820+00:00", "t": "sc_pbc_done", "circuit": "gf9_mult", "sc_logical_depth": 567, "sc_tile_count": 1866, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.282878+00:00", "t": "sc_cache_hit", "circuit": "rand_100_10k"}
+{"ts": "2026-04-13T18:18:21.346466+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_1500t_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_1500t_s42_PBC.json"}
+{"ts": "2026-04-13T18:18:21.348471+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_1500t_s42", "sc_logical_depth": 1500, "sc_tile_count": 4803, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.395379+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_1kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_1kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:18:21.395379+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_1kt_s42", "sc_logical_depth": 1000, "sc_tile_count": 3303, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.419304+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_2kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_2kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:18:21.421302+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_2kt_s42", "sc_logical_depth": 2000, "sc_tile_count": 6303, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.504609+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_500t_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_500t_s42_PBC.json"}
+{"ts": "2026-04-13T18:18:21.504609+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_500t_s42", "sc_logical_depth": 500, "sc_tile_count": 1803, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.528989+00:00", "t": "sc_pbc_start", "circuit": "rand_60q_4kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_60q_4kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:18:21.528989+00:00", "t": "sc_pbc_done", "circuit": "rand_60q_4kt_s42", "sc_logical_depth": 4000, "sc_tile_count": 12363, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.549510+00:00", "t": "sc_pbc_start", "circuit": "rand_70q_6kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_70q_6kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:18:21.549510+00:00", "t": "sc_pbc_done", "circuit": "rand_70q_6kt_s42", "sc_logical_depth": 6000, "sc_tile_count": 18423, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.581690+00:00", "t": "sc_pbc_start", "circuit": "rand_80q_8kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_80q_8kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:18:21.581690+00:00", "t": "sc_pbc_done", "circuit": "rand_80q_8kt_s42", "sc_logical_depth": 8000, "sc_tile_count": 24483, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:18:21.589129+00:00", "t": "sc_phase_start", "circuits": ["QFTAdd128", "gf2^10_mult", "gf2^6_mult", "gf2^7_mult", "gf2^8_mult", "gf2^9_mult", "gf2_16_mult", "qft_100_approx", "rand_100q_10k"]}
+{"ts": "2026-04-13T18:18:21.624325+00:00", "t": "sc_start", "circuit": "QFTAdd128", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\QFTAdd128.qasm"}
+{"ts": "2026-04-13T18:19:50.578334+00:00", "t": "sc_pbc_phase_start", "n_files": 23}
+{"ts": "2026-04-13T18:19:50.631041+00:00", "t": "sc_pbc_start", "circuit": "Adder128", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\Adder128_PBC.json"}
+{"ts": "2026-04-13T18:19:50.631041+00:00", "t": "sc_pbc_done", "circuit": "Adder128", "sc_logical_depth": 5306, "sc_tile_count": 18219, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.671282+00:00", "t": "sc_cache_hit", "circuit": "Adder16"}
+{"ts": "2026-04-13T18:19:50.690095+00:00", "t": "sc_cache_hit", "circuit": "Adder32"}
+{"ts": "2026-04-13T18:19:50.704504+00:00", "t": "sc_cache_hit", "circuit": "Adder64"}
+{"ts": "2026-04-13T18:19:50.743969+00:00", "t": "sc_cache_hit", "circuit": "Adder8"}
+{"ts": "2026-04-13T18:19:50.767893+00:00", "t": "sc_pbc_start", "circuit": "QFT128", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\QFT128_PBC.json"}
+{"ts": "2026-04-13T18:19:50.784075+00:00", "t": "sc_pbc_done", "circuit": "QFT128", "sc_logical_depth": 381, "sc_tile_count": 1914, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.788073+00:00", "t": "sc_cache_hit", "circuit": "QFT16"}
+{"ts": "2026-04-13T18:19:50.790077+00:00", "t": "sc_cache_hit", "circuit": "QFT32"}
+{"ts": "2026-04-13T18:19:50.790077+00:00", "t": "sc_cache_hit", "circuit": "QFT64"}
+{"ts": "2026-04-13T18:19:50.790960+00:00", "t": "sc_cache_hit", "circuit": "QFT8"}
+{"ts": "2026-04-13T18:19:50.792684+00:00", "t": "sc_pbc_start", "circuit": "gf10_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf10_mult_PBC.json"}
+{"ts": "2026-04-13T18:19:50.792684+00:00", "t": "sc_pbc_done", "circuit": "gf10_mult", "sc_logical_depth": 700, "sc_tile_count": 2283, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.794687+00:00", "t": "sc_pbc_start", "circuit": "gf6_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf6_mult_PBC.json"}
+{"ts": "2026-04-13T18:19:50.794687+00:00", "t": "sc_pbc_done", "circuit": "gf6_mult", "sc_logical_depth": 252, "sc_tile_count": 867, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.794687+00:00", "t": "sc_pbc_start", "circuit": "gf7_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf7_mult_PBC.json"}
+{"ts": "2026-04-13T18:19:50.796691+00:00", "t": "sc_pbc_done", "circuit": "gf7_mult", "sc_logical_depth": 343, "sc_tile_count": 1158, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.797937+00:00", "t": "sc_pbc_start", "circuit": "gf8_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf8_mult_PBC.json"}
+{"ts": "2026-04-13T18:19:50.797937+00:00", "t": "sc_pbc_done", "circuit": "gf8_mult", "sc_logical_depth": 448, "sc_tile_count": 1491, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.798937+00:00", "t": "sc_pbc_start", "circuit": "gf9_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\gf9_mult_PBC.json"}
+{"ts": "2026-04-13T18:19:50.798937+00:00", "t": "sc_pbc_done", "circuit": "gf9_mult", "sc_logical_depth": 567, "sc_tile_count": 1866, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.799937+00:00", "t": "sc_cache_hit", "circuit": "rand_100_10k"}
+{"ts": "2026-04-13T18:19:50.801902+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_1500t_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_1500t_s42_PBC.json"}
+{"ts": "2026-04-13T18:19:50.801902+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_1500t_s42", "sc_logical_depth": 1500, "sc_tile_count": 4803, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.804319+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_1kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_1kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:19:50.804700+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_1kt_s42", "sc_logical_depth": 1000, "sc_tile_count": 3303, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.806228+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_2kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_2kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:19:50.807474+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_2kt_s42", "sc_logical_depth": 2000, "sc_tile_count": 6303, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.808473+00:00", "t": "sc_pbc_start", "circuit": "rand_50q_500t_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_50q_500t_s42_PBC.json"}
+{"ts": "2026-04-13T18:19:50.808473+00:00", "t": "sc_pbc_done", "circuit": "rand_50q_500t_s42", "sc_logical_depth": 500, "sc_tile_count": 1803, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.811983+00:00", "t": "sc_pbc_start", "circuit": "rand_60q_4kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_60q_4kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:19:50.811983+00:00", "t": "sc_pbc_done", "circuit": "rand_60q_4kt_s42", "sc_logical_depth": 4000, "sc_tile_count": 12363, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.819634+00:00", "t": "sc_pbc_start", "circuit": "rand_70q_6kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_70q_6kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:19:50.820633+00:00", "t": "sc_pbc_done", "circuit": "rand_70q_6kt_s42", "sc_logical_depth": 6000, "sc_tile_count": 18423, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.848761+00:00", "t": "sc_pbc_start", "circuit": "rand_80q_8kt_s42", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\circuits\\benchmarks\\pbc\\rand_80q_8kt_s42_PBC.json"}
+{"ts": "2026-04-13T18:19:50.855112+00:00", "t": "sc_pbc_done", "circuit": "rand_80q_8kt_s42", "sc_logical_depth": 8000, "sc_tile_count": 24483, "elapsed_sec": 0.0}
+{"ts": "2026-04-13T18:19:50.891890+00:00", "t": "sc_phase_start", "circuits": ["gf2^10_mult", "gf2^6_mult", "gf2^7_mult", "gf2^8_mult", "gf2^9_mult", "gf2_16_mult", "qft_100_approx", "rand_100q_10k"]}
+{"ts": "2026-04-13T18:19:51.011129+00:00", "t": "sc_start", "circuit": "gf2^10_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\gf2^10_mult.qasm"}
+{"ts": "2026-04-13T18:19:51.308499+00:00", "t": "sc_done", "circuit": "gf2^10_mult", "sc_logical_depth": 700, "sc_tile_count": 2283, "sc_rows": 3, "sc_cols": 761, "lc_ops_naive": 13973, "elapsed_sec": 0.293}
+{"ts": "2026-04-13T18:19:51.346407+00:00", "t": "sc_start", "circuit": "gf2^6_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\gf2^6_mult.qasm"}
+{"ts": "2026-04-13T18:19:51.440985+00:00", "t": "sc_done", "circuit": "gf2^6_mult", "sc_logical_depth": 252, "sc_tile_count": 867, "sc_rows": 3, "sc_cols": 289, "lc_ops_naive": 5153, "elapsed_sec": 0.086}
+{"ts": "2026-04-13T18:19:51.514786+00:00", "t": "sc_start", "circuit": "gf2^7_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\gf2^7_mult.qasm"}
+{"ts": "2026-04-13T18:19:51.688851+00:00", "t": "sc_done", "circuit": "gf2^7_mult", "sc_logical_depth": 343, "sc_tile_count": 1158, "sc_rows": 3, "sc_cols": 386, "lc_ops_naive": 6956, "elapsed_sec": 0.161}
+{"ts": "2026-04-13T18:19:51.766467+00:00", "t": "sc_start", "circuit": "gf2^8_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\gf2^8_mult.qasm"}
+{"ts": "2026-04-13T18:19:51.912732+00:00", "t": "sc_done", "circuit": "gf2^8_mult", "sc_logical_depth": 448, "sc_tile_count": 1491, "sc_rows": 3, "sc_cols": 497, "lc_ops_naive": 9209, "elapsed_sec": 0.141}
+{"ts": "2026-04-13T18:19:51.976256+00:00", "t": "sc_start", "circuit": "gf2^9_mult", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\gf2^9_mult.qasm"}
+{"ts": "2026-04-13T18:19:52.198322+00:00", "t": "sc_done", "circuit": "gf2^9_mult", "sc_logical_depth": 567, "sc_tile_count": 1866, "sc_rows": 3, "sc_cols": 622, "lc_ops_naive": 11366, "elapsed_sec": 0.217}
+{"ts": "2026-04-13T18:19:52.273431+00:00", "t": "sc_cache_hit", "circuit": "gf2_16_mult"}
+{"ts": "2026-04-13T18:19:52.306594+00:00", "t": "sc_cache_hit", "circuit": "qft_100_approx"}
+{"ts": "2026-04-13T18:19:52.421038+00:00", "t": "sc_start", "circuit": "rand_100q_10k", "source": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\experiment_circuits\\rand_100q_10k.qasm"}
+{"ts": "2026-04-13T18:20:03.615896+00:00", "t": "sc_done", "circuit": "rand_100q_10k", "sc_logical_depth": 10000, "sc_tile_count": 30603, "sc_rows": 3, "sc_cols": 10201, "lc_ops_naive": 246416, "elapsed_sec": 11.193}
+{"ts": "2026-04-13T18:20:03.698648+00:00", "t": "sc_saved", "path": "C:\\Users\\hasann2\\Documents\\GitHub\\lamdams\\results\\sc_baseline\\sc_baseline.json", "n": 33}
