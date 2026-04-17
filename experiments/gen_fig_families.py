@@ -1,17 +1,20 @@
 """
 experiments/gen_fig_families.py
 
-Multi-family depth comparison — single-column, three stacked panels.
+Multi-family depth comparison — two-column, three-row layout.
 
 Layout
 ------
-Three vertically stacked panels, one per family (Adder / QFT / GF mult).
-Within each panel:
-  - x-axis  : circuits ordered by size, labelled by qubit/bit count
+3 rows × 2 columns:
+  Row    = circuit family  (Adder / QFT / GF mult)
+  Left col  = Grid topology
+  Right col = Ring topology
+
+Within each panel (one family × one topology):
+  - x-axis  : circuits ordered by size, labelled by circuit name + hw detail
   - bars     : configs A–D, normalised to SC baseline depth (y = depth / sc_depth)
-               Grid = solid fill   |   Ring = hatched (//)
-               Gray scale A→D: lightest → darkest (prints cleanly in B&W)
-  - y-axis   : depth / SC-baseline depth (log scale, independent per panel)
+               Grayscale A→D: lightest → darkest (prints cleanly in B&W)
+  - y-axis   : depth / SC-baseline depth (log scale, shared per row)
   - solid black line at y = 1.0  — SC baseline anchor
   - dashed line per circuit      — naive overhead level
   - improvement label on each bar — "−XX%" reduction vs naive, rotated 90°
@@ -28,7 +31,6 @@ Usage
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import matplotlib
@@ -62,6 +64,7 @@ X_LABEL: dict[str, str] = {
 }
 
 TOPOLOGIES = ["grid", "ring"]
+COL_TITLE  = {"grid": "Grid Topology", "ring": "Ring Topology"}
 
 CONFIGS: list[tuple[str, str]] = [
     ("A", "Rand+Greedy"),
@@ -80,17 +83,19 @@ CONFIG_GRAY = {
 HATCH = {"grid": "", "ring": "///"}
 
 # ── Typography ────────────────────────────────────────────────────────────────
-FS_TITLE   = 13
-FS_AXLABEL = 11
-FS_TICK    = 10
-FS_LEGEND  = 9
-FS_BAR     = 7      # improvement labels on bars
-FS_NAIVE   = 8      # "naive" annotation
+FS_TITLE    = 12
+FS_AXLABEL  = 10
+FS_TICK     = 9.5
+FS_LEGEND   = 11
+FS_BAR      = 8.5   # improvement labels on bars
+FS_NAIVE    = 8.5   # "naive" annotation
+FS_COLTITLE = 12    # column header
+FS_XLBL     = 9.5   # circuit name below bars
+FS_XHWLBL   = 8.0   # hw detail below circuit name
 
 # ── Bar geometry ──────────────────────────────────────────────────────────────
-BAR_W       = 0.17
-GROUP_PAD   = 0.06   # gap between grid-group and ring-group within a circuit
-CIRCUIT_PAD = 0.42   # gap between adjacent circuits
+BAR_W       = 0.30   # width of each bar — wide enough for % labels on top
+CIRCUIT_PAD = 0.22   # gap between adjacent circuits
 
 
 # ── I/O helpers ───────────────────────────────────────────────────────────────
@@ -100,11 +105,10 @@ def load_sc_depths() -> dict[str, dict]:
     rows = json.loads(SC_PATH.read_text())
     if isinstance(rows, dict):
         rows = rows.get("rows", [])
-    # keep latest entry per circuit
     out: dict[str, dict] = {}
     for r in rows:
         c = r["circuit"]
-        if c not in out or r.get("timestamp","") > out[c].get("timestamp",""):
+        if c not in out or r.get("timestamp", "") > out[c].get("timestamp", ""):
             out[c] = r
     return out
 
@@ -116,265 +120,245 @@ def load_raw(circuit: str) -> dict | None:
     return json.loads(p.read_text())
 
 
+# ── Draw one panel (family × topology) ────────────────────────────────────────
+def _draw_panel(
+    ax,
+    circuits: list[str],
+    topo: str,
+    sc_map: dict,
+    all_norm_vals: list[float],
+    all_naive_vals: list[float],
+) -> None:
+    entries = []
+    for circ in circuits:
+        raw = load_raw(circ)
+        if raw is None:
+            continue
+        if topo not in raw:
+            continue
+        sc_row = sc_map.get(circ)
+        if sc_row is None or sc_row.get("sc_logical_depth", 0) == 0:
+            continue
+        sc_d = float(sc_row["sc_logical_depth"])
+        entries.append({"circuit": circ, "raw": raw, "sc_d": sc_d})
+
+    if not entries:
+        ax.set_visible(False)
+        return
+
+    n_cfg    = len(CONFIGS)
+    grp_w    = n_cfg * BAR_W           # width of one circuit's bar cluster
+    cursor   = 0.0
+    xtick_pos: list[float] = []
+    naive_spans: list[tuple[float, float, float]] = []
+    xlabel_info: list[tuple[float, str, str]] = []   # (x_ctr, circ_lbl, hw_lbl)
+
+    for entry in entries:
+        circ = entry["circuit"]
+        raw  = entry["raw"]
+        sc_d = entry["sc_d"]
+        topo_data = raw[topo]
+
+        x_ctr = cursor + grp_w / 2
+        xtick_pos.append(x_ctr)
+
+        # hw label
+        td = raw.get(topo, {})
+        if topo == "grid":
+            gr = td.get("grid_rows"); gc = td.get("grid_cols")
+            fr = td.get("fill_rate")
+            hw_lbl = (f"{gr}×{gc}B, {fr*100:.0f}%" if gr and gc and fr is not None
+                      else f"{td.get('n_blocks','?')}B")
+        else:
+            nb = td.get("n_blocks", "?"); fr = td.get("fill_rate")
+            hw_lbl = f"{nb}B, {fr*100:.0f}%" if fr is not None else f"{nb}B"
+
+        xlabel_info.append((x_ctr, X_LABEL.get(circ, circ), hw_lbl))
+
+        # naive depth for this topology
+        naive_d = topo_data.get("configs", {}).get("naive", {}).get("logical_depth")
+        naive_ratio = (naive_d / sc_d) if naive_d else None
+        if naive_d:
+            x_lo = cursor - BAR_W * 0.5
+            x_hi = cursor + grp_w + BAR_W * 0.5
+            naive_spans.append((x_lo, x_hi, naive_ratio))
+            all_naive_vals.append(naive_ratio)
+
+        # bars
+        for cfg_idx, (cfg_key, _) in enumerate(CONFIGS):
+            cfg = topo_data.get("configs", {}).get(cfg_key)
+            if cfg is None:
+                continue
+            depth = cfg["logical_depth"]
+            norm  = depth / sc_d
+            pct   = cfg.get("pct_vs_naive")
+            all_norm_vals.append(norm)
+
+            xc = cursor + cfg_idx * BAR_W + BAR_W / 2
+            ax.bar(
+                xc, norm,
+                width=BAR_W * 0.84,
+                color=CONFIG_GRAY[cfg_key],
+                hatch=HATCH[topo],
+                edgecolor="#333333" if topo == "ring" else "white",
+                linewidth=0.5,
+                alpha=0.97,
+                zorder=3,
+            )
+
+            if pct is not None:
+                label_str = f"−{abs(pct):.0f}%"
+                # place just above bar top in log space
+                y_lbl = norm * (10 ** 0.04)
+                ax.text(
+                    xc, y_lbl, label_str,
+                    ha="center", va="bottom",
+                    fontsize=FS_BAR, rotation=0,
+                    color="#111111", zorder=4,
+                    fontweight="bold" if cfg_key == "D" else "normal",
+                )
+
+        cursor += grp_w + CIRCUIT_PAD
+
+    # SC baseline
+    ax.axhline(1.0, color="black", linewidth=1.6, linestyle="-", zorder=7)
+
+    # naive lines
+    for i, (x_lo, x_hi, naive_ratio) in enumerate(naive_spans):
+        ax.hlines(naive_ratio, x_lo, x_hi,
+                  colors="#555555", linewidth=1.2, linestyle="--", zorder=5)
+        if i == 0:
+            ax.text(x_hi + 0.03, naive_ratio, "naive",
+                    va="center", ha="left",
+                    fontsize=FS_NAIVE, color="#555555", style="italic")
+
+    # x-axis labels — 2 rows:
+    #   Row 1 (−9 pt):  circuit name  e.g. "16-bit"  (bold)
+    #   Row 2 (−20 pt): hw detail     e.g. "4B, 52%"  (italic, muted)
+    for x_ctr, circ_lbl, hw_lbl in xlabel_info:
+        ax.annotate(
+            circ_lbl,
+            xy=(x_ctr, 0), xycoords=("data", "axes fraction"),
+            xytext=(0, -9), textcoords="offset points",
+            ha="center", va="top",
+            fontsize=FS_XLBL, fontweight="bold", color="black",
+        )
+        ax.annotate(
+            hw_lbl,
+            xy=(x_ctr, 0), xycoords=("data", "axes fraction"),
+            xytext=(0, -20), textcoords="offset points",
+            ha="center", va="top",
+            fontsize=FS_XHWLBL, color="#444444", style="italic",
+        )
+
+    # axes formatting
+    ax.set_yscale("log")
+    ax.set_xticks(xtick_pos)
+    ax.set_xticklabels([""] * len(xtick_pos))
+    ax.tick_params(axis="x", length=0, pad=2)
+    ax.set_xlim(-BAR_W, cursor - CIRCUIT_PAD + BAR_W)
+
+    ax.yaxis.set_major_locator(
+        mticker.LogLocator(base=10, subs=[1.0, 2.0, 5.0], numticks=8)
+    )
+    ax.yaxis.set_major_formatter(
+        mticker.FuncFormatter(
+            lambda v, _: f"{int(v)}×" if v == int(v) else f"{v:.1f}×"
+        )
+    )
+    ax.yaxis.set_minor_locator(mticker.NullLocator())
+    ax.tick_params(axis="y", labelsize=FS_TICK)
+    ax.yaxis.grid(True, which="major", linestyle="-", linewidth=0.4, alpha=0.4, zorder=0)
+    ax.xaxis.grid(False)
+    ax.set_axisbelow(True)
+
+
 # ── Build figure ──────────────────────────────────────────────────────────────
 def build_figure() -> None:
-    sc_map = load_sc_depths()   # circuit → sc_row dict
+    sc_map   = load_sc_depths()
+    fam_list = list(FAMILIES.items())
+    n_fam    = len(fam_list)
 
-    n_fam = len(FAMILIES)
     fig, axes = plt.subplots(
-        n_fam, 1,
-        figsize=(7.0, 3.8 * n_fam),
-        squeeze=True,
+        n_fam, 2,
+        figsize=(16.0, 2.6 * n_fam),
+        sharey="row",
+        squeeze=False,
     )
-    if n_fam == 1:
-        axes = [axes]
 
-    all_norm_vals:  list[float] = []   # config bar values
-    all_naive_vals: list[float] = []   # naive line values — kept separate for ylim
+    all_norm_vals:  list[float] = []
+    all_naive_vals: list[float] = []
 
-    for ax, (fam, circuits) in zip(axes, FAMILIES.items()):
+    PANEL_TITLE = {
+        "Adder":   "① Adders  (8–64 bit)",
+        "QFT":     "② QFT  (8–128 qubit)",
+        "GF mult": "③ GF Mult  (n=6–10)",
+    }
 
-        # ── collect entries ───────────────────────────────────────────────────
-        entries = []
-        for circ in circuits:
-            raw = load_raw(circ)
-            if raw is None:
-                print(f"  [skip] {circ} — no raw file")
-                continue
-            sc_row = sc_map.get(circ)
-            if sc_row is None or sc_row.get("sc_logical_depth", 0) == 0:
-                print(f"  [skip] {circ} — no SC baseline")
-                continue
-            sc_d = float(sc_row["sc_logical_depth"])
-            entries.append({"circuit": circ, "raw": raw, "sc_d": sc_d})
+    for row, (fam, circuits) in enumerate(fam_list):
+        for col, topo in enumerate(TOPOLOGIES):
+            ax = axes[row][col]
+            _draw_panel(ax, circuits, topo, sc_map,
+                        all_norm_vals, all_naive_vals)
 
-        if not entries:
-            ax.set_visible(False)
-            continue
+            # row label: left panel only
+            if col == 0:
+                ax.set_ylabel("Depth / SC baseline  (log)", fontsize=FS_AXLABEL)
+                ax.set_title(PANEL_TITLE.get(fam, fam),
+                             fontsize=FS_TITLE, fontweight="bold",
+                             pad=6, loc="left")
 
-        # ── x layout: collect positions while drawing bars ────────────────────
-        xticks_pos: list[float] = []
-        naive_spans: list[tuple[float, float, float]] = []  # (x_lo, x_hi, ratio)
-        # three-row x-axis labels: (x_gm, x_rm, x_ctr, circ_lbl, hw_g, hw_r)
-        xlabel_rows: list[tuple] = []
-        cursor = 0.0
-
-        for entry in entries:
-            circ  = entry["circuit"]
-            raw   = entry["raw"]
-            sc_d  = entry["sc_d"]
-
-            grid_w  = len(CONFIGS) * BAR_W
-            ring_w  = len(CONFIGS) * BAR_W
-            group_w = grid_w + GROUP_PAD + ring_w
-
-            x_grid_start = cursor
-            x_ring_start = cursor + grid_w + GROUP_PAD
-            x_grid_mid   = cursor + grid_w / 2
-            x_ring_mid   = x_ring_start + ring_w / 2
-            x_center     = cursor + group_w / 2
-
-            xticks_pos.append(x_center)
-
-            # Build compact hw labels from raw fields
-            g_topo = raw.get("grid", {})
-            r_topo = raw.get("ring", {})
-            gr = g_topo.get("grid_rows"); gc = g_topo.get("grid_cols")
-            g_nb = g_topo.get("n_blocks", "?")
-            g_fr = g_topo.get("fill_rate")
-            r_nb = r_topo.get("n_blocks", "?")
-            r_fr = r_topo.get("fill_rate")
-            hw_g = (f"{gr}×{gc}B, {g_fr*100:.0f}%"
-                    if gr and gc and g_fr is not None
-                    else f"{g_nb}B")
-            hw_r = (f"{r_nb}B, {r_fr*100:.0f}%"
-                    if r_fr is not None else f"{r_nb}B")
-
-            xlabel_rows.append((x_grid_mid, x_ring_mid, x_center,
-                                 X_LABEL.get(circ, circ), hw_g, hw_r))
-
-            # naive depth for reference line + label y-anchor
-            naive_g = (raw.get("grid", {})
-                          .get("configs", {})
-                          .get("naive", {})
-                          .get("logical_depth"))
-            naive_ratio = (naive_g / sc_d) if naive_g else None
-            if naive_g:
-                x_lo = cursor - BAR_W * 0.4
-                x_hi = cursor + group_w + BAR_W * 0.4
-                naive_spans.append((x_lo, x_hi, naive_ratio))
-                all_naive_vals.append(naive_ratio)   # track for ylim
-
-            # ── draw bars ─────────────────────────────────────────────────────
-            for topo in TOPOLOGIES:
-                if topo not in raw:
-                    continue
-                topo_data = raw[topo]
-                x_start   = x_grid_start if topo == "grid" else x_ring_start
-
-                for cfg_idx, (cfg_key, _) in enumerate(CONFIGS):
-                    cfg = topo_data.get("configs", {}).get(cfg_key)
-                    if cfg is None:
-                        continue
-                    depth = cfg["logical_depth"]
-                    norm  = depth / sc_d
-                    pct   = cfg.get("pct_vs_naive")
-                    all_norm_vals.append(norm)
-
-                    xc = x_start + cfg_idx * BAR_W + BAR_W / 2
-
-                    ax.bar(
-                        xc, norm,
-                        width=BAR_W * 0.84,
-                        color=CONFIG_GRAY[cfg_key],
-                        hatch=HATCH[topo],
-                        edgecolor="#333333" if topo == "ring" else "white",
-                        linewidth=0.55,
-                        alpha=0.93,
-                        zorder=3,
-                    )
-
-                    # ── pct label: just below the naive line ──────────────────
-                    if pct is not None and naive_ratio is not None:
-                        label_str = f"−{abs(pct):.0f}%"
-                        # place at 88 % of naive in log space → just below line
-                        y_lbl = naive_ratio * (10 ** -0.055)
-                        ax.text(
-                            xc, y_lbl, label_str,
-                            ha="center", va="top",
-                            fontsize=FS_BAR, rotation=90,
-                            color="#111111", zorder=4,
-                            fontweight="bold" if cfg_key == "D" else "normal",
-                        )
-
-            cursor += group_w + CIRCUIT_PAD
-
-        # ── SC baseline anchor ────────────────────────────────────────────────
-        ax.axhline(1.0, color="black", linewidth=1.8, linestyle="-",
-                   zorder=7, label="SC baseline  (1×)")
-
-        # ── Naive lines per circuit ───────────────────────────────────────────
-        for i, (x_lo, x_hi, naive_ratio) in enumerate(naive_spans):
-            ax.hlines(
-                naive_ratio, x_lo, x_hi,
-                colors="#555555", linewidth=1.4, linestyle="--",
-                zorder=5,
-            )
-            if i == 0:
-                ax.text(
-                    x_hi + 0.04, naive_ratio, "naive",
-                    va="center", ha="left",
-                    fontsize=FS_NAIVE, color="#555555", style="italic",
-                )
-
-        # ── Three-row x-axis labels ───────────────────────────────────────────
-        # Row 1 (−9 pt):   "Grid" | "Ring"  (topology type)
-        # Row 2 (−19 pt):  hw detail  e.g. "2×2 (4B, 52%)" | "ring (3B, 70%)"
-        # Row 3 (−34 pt):  circuit name  e.g. "8-bit"  (bold, largest)
-        for x_gm, x_rm, x_ctr, circ_lbl, hw_g, hw_r in xlabel_rows:
-            # Row 1 — topology name
-            for xm, lbl in [(x_gm, "Grid"), (x_rm, "Ring")]:
-                ax.annotate(
-                    lbl,
-                    xy=(xm, 0), xycoords=("data", "axes fraction"),
-                    xytext=(0, -9), textcoords="offset points",
-                    ha="center", va="top",
-                    fontsize=FS_BAR + 0.5, color="#333333",
-                    fontweight="semibold",
-                )
-            # Row 2 — hw detail
-            for xm, lbl in [(x_gm, hw_g), (x_rm, hw_r)]:
-                ax.annotate(
-                    lbl,
-                    xy=(xm, 0), xycoords=("data", "axes fraction"),
-                    xytext=(0, -19), textcoords="offset points",
-                    ha="center", va="top",
-                    fontsize=FS_BAR - 0.5, color="#666666",
-                    style="italic",
-                )
-            # Row 3 — circuit name
-            ax.annotate(
-                circ_lbl,
-                xy=(x_ctr, 0), xycoords=("data", "axes fraction"),
-                xytext=(0, -34), textcoords="offset points",
-                ha="center", va="top",
-                fontsize=FS_TICK, fontweight="bold", color="black",
-            )
-
-        # ── Axes formatting ───────────────────────────────────────────────────
-        ax.set_yscale("log")
-        ax.set_xticks(xticks_pos)
-        ax.set_xticklabels([""] * len(xticks_pos))   # labels drawn manually above
-        ax.tick_params(axis="x", length=0, pad=2)
-        ax.set_xlim(-BAR_W * 1.5, cursor - CIRCUIT_PAD + BAR_W * 1.5)
-        PANEL_TITLE = {
-            "Adder":   "① Arithmetic Adders  (Adder8–64)",
-            "QFT":     "② Quantum Fourier Transforms  (QFT8–128)",
-            "GF mult": "③ Finite-Field Multipliers  GF(2\u2076\u20132\u00b9\u2070)",
-        }
-        ax.set_ylabel("Depth  /  SC baseline  (log scale)", fontsize=FS_AXLABEL)
-        ax.set_title(PANEL_TITLE.get(fam, fam), fontsize=FS_TITLE,
-                     fontweight="bold", pad=8, loc="left")
-
-        ax.yaxis.set_major_locator(
-            mticker.LogLocator(base=10, subs=[1.0, 2.0, 5.0], numticks=10)
+    # ── column headers ────────────────────────────────────────────────────────
+    for col, topo in enumerate(TOPOLOGIES):
+        axes[0][col].set_title(
+            COL_TITLE[topo],
+            fontsize=FS_COLTITLE, fontweight="bold",
+            color="#222222", pad=10,
+            loc="center",
         )
-        ax.yaxis.set_major_formatter(
-            mticker.FuncFormatter(
-                lambda v, _: f"{int(v)}×" if v == int(v) else f"{v:.1f}×"
-            )
-        )
-        ax.yaxis.set_minor_locator(mticker.NullLocator())
-        ax.tick_params(axis="y", labelsize=FS_TICK)
 
-        ax.yaxis.grid(True, which="major", linestyle="-",  linewidth=0.45, alpha=0.45, zorder=0)
-        ax.xaxis.grid(False)
-        ax.set_axisbelow(True)
+    # ── global y-limits (shared per row via sharey) ───────────────────────────
+    all_vals  = all_norm_vals + all_naive_vals
+    ymax_glob = max(all_vals) * 1.12 if all_vals else 50
+    for row in range(n_fam):
+        axes[row][0].set_ylim(0.80, ymax_glob)
 
-    # ── set y-limits per panel ────────────────────────────────────────────────
-    # y-max: just enough to clear the highest naive line — no rounding to a clean
-    # tick so the axis ends naturally without adding an empty decade at the top.
-    all_vals = all_norm_vals + all_naive_vals
-    ymax_global = max(all_vals) * 1.10 if all_vals else 50
-    for ax in axes:
-        ax.set_ylim(0.80, ymax_global)
-
-    # ── shared legend (bottom of figure) ──────────────────────────────────────
+    # ── shared legend at bottom ───────────────────────────────────────────────
     config_patches = [
-        mpatches.Patch(
-            facecolor=CONFIG_GRAY[k], edgecolor="white",
-            label=f"Config {k}:  {lbl}  (Grid)",
-        )
+        mpatches.Patch(facecolor=CONFIG_GRAY[k], edgecolor="white",
+                       label=f"Config {k}:  {lbl}")
         for k, lbl in CONFIGS
     ]
     topo_patches = [
         mpatches.Patch(facecolor="#888888", edgecolor="white",
-                       hatch="",    label="Grid topology   (solid)"),
+                       hatch="",    label="Grid  (solid fill)"),
         mpatches.Patch(facecolor="#888888", edgecolor="#333333",
-                       hatch="///", label="Ring topology   (hatched)"),
+                       hatch="///", label="Ring  (hatched)"),
     ]
     from matplotlib.lines import Line2D
     ref_lines = [
-        Line2D([0],[0], color="black",   linestyle="-",  linewidth=1.8,
+        Line2D([0], [0], color="black",   linestyle="-",  linewidth=1.6,
                label="SC baseline  (1×)"),
-        Line2D([0],[0], color="#555555", linestyle="--", linewidth=1.4,
+        Line2D([0], [0], color="#555555", linestyle="--", linewidth=1.2,
                label="Naive  (random + sequential)"),
     ]
-    all_handles = ref_lines + config_patches + topo_patches
-
     fig.legend(
-        handles=all_handles,
+        handles=ref_lines + config_patches + topo_patches,
         loc="lower center",
-        ncol=3,
+        ncol=4,
         fontsize=FS_LEGEND,
         framealpha=0.95,
         edgecolor="#aaaaaa",
-        bbox_to_anchor=(0.5, -0.02),
+        bbox_to_anchor=(0.5, 0.01),
+        handlelength=2.0,
+        handleheight=1.2,
+        borderpad=0.8,
+        labelspacing=0.5,
     )
 
-    fig.tight_layout(rect=[0, 0.07, 1, 1], pad=0.4, h_pad=1.5)
+    fig.tight_layout(rect=[0, 0.11, 1, 1], pad=0.4, h_pad=2.0, w_pad=1.0)
 
-    # ── Save ──────────────────────────────────────────────────────────────────
+    # ── save ──────────────────────────────────────────────────────────────────
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT_DIR / "fig_family_depth.pdf", dpi=300,
                 bbox_inches="tight", format="pdf")

@@ -1,3 +1,0 @@
-{"ts": "2026-03-29T21:58:58.374800+00:00", "t": "run_start", "qasm_path": "experiment_circuits/qft_100_approx.qasm", "seed": 42, "run_tag": "qft_100"}
-{"ts": "2026-03-29T21:58:58.375693+00:00", "t": "artifact_written", "name": "input.qasm"}
-{"ts": "2026-03-29T21:59:13.625005+00:00", "t": "stage_frontend_done", "n_qubits": 100, "n_rots": 297, "compact": true, "pbc_path": "runs/qft_100__seed42__2026-03-29T21-58-58Z/stage_frontend/PBC.json"}

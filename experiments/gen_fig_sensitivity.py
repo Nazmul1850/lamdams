@@ -90,9 +90,9 @@ MARKER_ADDER = "o"
 MARKER_QFT   = "^"
 MARKER_GF    = "s"
 
-BAR_W    = 0.17
-OFFSETS  = {"adder": -0.20, "qft": 0.0, "gf": +0.20}
-JITTER   = 0.032
+BAR_W    = 0.22
+OFFSETS  = {"adder": -0.24, "qft": 0.0, "gf": +0.24}
+JITTER   = 0.038
 
 
 # ── File I/O helpers ──────────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ def build_figure() -> None:
         "gf":    ("GF mult", COLOR_GF),
     }
 
-    fig, ax = plt.subplots(figsize=(9.0, 5.2))
+    fig, ax = plt.subplots(figsize=(10.5, 5.2))
     rng = np.random.default_rng(0)
 
     x = np.arange(N_PROF)   # one position per profile
@@ -215,7 +215,7 @@ def build_figure() -> None:
 
             # bar
             ax.bar(xc, mu, width=BAR_W,
-                   color=color, alpha=0.82, zorder=3,
+                   color=color, alpha=0.95, zorder=3,
                    edgecolor="white", linewidth=0.6)
 
             # error bar
@@ -227,8 +227,8 @@ def build_figure() -> None:
             jit = rng.uniform(-JITTER, JITTER, len(vals))
             ax.scatter(xc + jit, vals,
                        color=color, marker=mk,
-                       edgecolors="white", linewidths=0.35,
-                       s=24, zorder=6, alpha=0.75)
+                       edgecolors="white", linewidths=0.5,
+                       s=42, zorder=6, alpha=0.92)
 
             # track best for family
             if fam_key not in best or mu > best[fam_key][1]:
@@ -257,9 +257,9 @@ def build_figure() -> None:
         "★ Balanced objectives:\nbest for Adder & QFT",
         xy=(_aq_xc, _aq_mu + _aq_std + 0.8),
         xytext=(_aq_xc - 0.45, _aq_mu + _aq_std + 9),
-        fontsize=7.5, color="#333333", fontweight="bold",
+        fontsize=10, color="#222222", fontweight="extra bold",
         ha="center", va="bottom",
-        arrowprops=dict(arrowstyle="->", color="#555555", lw=1.1),
+        arrowprops=dict(arrowstyle="->", color="#444444", lw=1.4),
     )
 
     if "gf" in best:
@@ -268,46 +268,46 @@ def build_figure() -> None:
             "★ Block util. dominated:\nbest for GF",
             xy=(gf_xc, gf_mu + gf_std + 0.8),
             xytext=(gf_xc + 0.3, gf_mu + gf_std + 9),
-            fontsize=7.5, color="#111111", fontweight="bold",
+            fontsize=10, color="#000000", fontweight="extra bold",
             ha="center", va="bottom",
-            arrowprops=dict(arrowstyle="->", color="#333333", lw=1.1),
+            arrowprops=dict(arrowstyle="->", color="#222222", lw=1.4),
         )
 
     # ── Axes formatting ───────────────────────────────────────────────────────
     ax.set_xticks(x)
-    ax.set_xticklabels([lbl for _, lbl in X_PROFILES], fontsize=9.5, fontweight="bold")
-    ax.set_xlim(x[0] - 0.6, x[-1] + 0.6)
-    ax.set_ylabel("Depth gain over random mapping  (%)", fontsize=9.5)
-    ax.yaxis.grid(False)
+    ax.set_xticklabels([lbl for _, lbl in X_PROFILES], fontsize=12, fontweight="bold")
+    ax.set_xlim(x[0] - 0.52, x[-1] + 0.52)
+    ax.set_ylabel("Depth gain over random mapping  (%)", fontsize=12, fontweight="bold")
+    ax.yaxis.grid(True, linestyle="-", linewidth=0.4, alpha=0.4, zorder=0)
     ax.xaxis.grid(False)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_linewidth(0.8)
     ax.spines["bottom"].set_linewidth(0.8)
     ax.tick_params(axis="x", length=0, pad=6)
-    ax.tick_params(axis="y", labelsize=8.5, length=3)
+    ax.tick_params(axis="y", labelsize=11, length=3)
 
     # weight-space gradient annotation at bottom
     for side, txt, ha in [
         (0.01, "← inter-block communication cost dominant",    "left"),
         (0.99, "block utilization & locality dominant →", "right"),
     ]:
-        ax.text(side, -0.14, txt,
+        ax.text(side, -0.10, txt,
                 transform=ax.transAxes,
-                fontsize=8.5, color="#444444", style="italic",
+                fontsize=10, color="#333333", style="italic",
                 ha=ha, va="top")
 
     # ── Legend ────────────────────────────────────────────────────────────────
     adder_p = mlines.Line2D([], [], color=COLOR_ADDER, marker=MARKER_ADDER,
-                             markersize=6, linestyle="none",
+                             markersize=8, linestyle="none",
                              markeredgecolor="white", markeredgewidth=0.4,
                              label="① Adder  (A8–A64, grid + ring)")
     qft_p   = mlines.Line2D([], [], color=COLOR_QFT, marker=MARKER_QFT,
-                             markersize=6, linestyle="none",
+                             markersize=8, linestyle="none",
                              markeredgecolor="white", markeredgewidth=0.4,
                              label="② QFT  (Q8–Q64, grid + ring)")
     gf_p    = mlines.Line2D([], [], color=COLOR_GF, marker=MARKER_GF,
-                             markersize=6, linestyle="none",
+                             markersize=8, linestyle="none",
                              markeredgecolor="white", markeredgewidth=0.4,
                              label="③ GF mult  (GF6–GF10, grid + ring)")
     ref_l   = mlines.Line2D([], [], color="#333333", linestyle="--", linewidth=1.4,
@@ -315,12 +315,14 @@ def build_figure() -> None:
     ax.legend(
         handles=[adder_p, qft_p, gf_p, ref_l],
         loc="lower right",
-        fontsize=8.5,
+        fontsize=11,
         framealpha=0.95,
         edgecolor="#cccccc",
+        handlelength=1.8,
+        labelspacing=0.5,
     )
 
-    fig.tight_layout(rect=[0, 0.08, 1, 1])
+    fig.tight_layout(rect=[0, 0.04, 1, 1], pad=0.4)
 
     # ── Save ──────────────────────────────────────────────────────────────────
     OUT_DIR.mkdir(parents=True, exist_ok=True)

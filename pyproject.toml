@@ -5,9 +5,23 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lamdams"
 version = "0.1.0"
+requires-python = ">=3.9"
 dependencies = [
+    # Core quantum compilation dependencies
+    "lsqecc @ git+https://github.com/latticesurgery-com/lattice-surgery-compiler.git@1d9d9f36c004847e478ad464085927eebc13a0fe",
+    "pyzx>=0.7",
     "wisq @ git+https://github.com/Abtin-Molavi/wisq.git",
+    # Optimisation
     "ortools>=9.8",
+    # Numerics / data
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=1.5",
+    "igraph>=0.9",
+    # Visualisation (figure generation scripts)
+    "matplotlib>=3.7",
+    # Utilities
+    "tqdm>=4.0",
 ]
 
 [tool.setuptools.packages.find]

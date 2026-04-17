@@ -1,5 +1,0 @@
-circuit,mapping,scheduler,logical_depth,sc_depth
-qft_100_approx,random,greedy_critical,1228,297
-qft_100_approx,random,cpsat,663,297
-qft_100_approx,sa,greedy_critical,957,297
-qft_100_approx,sa,cpsat,489,297
