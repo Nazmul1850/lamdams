@@ -1,8 +1,8 @@
 # LaMDaMS — Locality-aware Mapping and Dependency-aware Measurement Scheduling
 
-End-to-end compiler and scheduler for quantum circuits through **Pauli-Based Computation (PBC)** on lattice-surgery hardware (Gross code).
+End-to-end compiler and scheduler for quantum circuits through **Pauli-Based Computation (PBC)** on on modular qLDPC architecture.
 
-Given a quantum circuit, lamdams maps logical qubits to hardware blocks, decomposes Pauli rotations into native operations, schedules them under hardware constraints, and reports the resulting logical circuit depth; the primary cost metric for fault-tolerant execution.
+Given a quantum circuit, lamdams maps logical qubits to hardware blocks, decomposes Pauli rotations into native operations, schedules them under hardware constraints, and reports the resulting logical circuit depth by simulating the scheduled tasks.
 
 ---
 
@@ -258,13 +258,3 @@ results/
 
 ---
 
-## Citation
-
-```bibtex
-@article{lamdams2025,
-  title   = {},
-  author  = {},
-  journal = {},
-  year    = {2025},
-}
-```
