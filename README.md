@@ -258,3 +258,20 @@ results/
 
 ---
 
+## Citation
+
+If you use LaMDaMS for research please cite:
+
+```bibtex
+@inproceedings{hasan2026lamdams,
+  author    = {Nazmul Hasan and Muhammad Rashedul Haq Rashed},
+  title     = {LaMDaMS: Locality-aware Mapping and Dependency-aware Measurement Scheduling for Modular qLDPC Architecture},
+  booktitle = {Proceedings of the 2026 IEEE/ACM International Conference on Computer-Aided Design (ICCAD)},
+  year      = {2026},
+  publisher = {ACM},
+  doi       = {10.1145/3831252.3834142}
+}
+```
+
+---
+
